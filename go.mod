@@ -10,3 +10,5 @@ require (
 )
 
 replace github.com/PuerkitoBio/goquery => ./pkg/PuerkitoBio/goquery
+
+replace github.com/andybalholm/cascadia => ./pkg/andybalholm/cascadia

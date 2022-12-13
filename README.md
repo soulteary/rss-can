@@ -20,8 +20,7 @@ This project is licensed under the [MIT License](https://github.com/soulteary/RS
 ## Credits
 
 - [@PuerkitoBio](https://github.com/PuerkitoBio), He implements a good DOM parsing tool library [/goquery](https://github.com/PuerkitoBio/goquery) for Go under the [BSD-3-Clause license](https://github.com/PuerkitoBio/goquery/blob/master/LICENSE). In the project, it is used as a CSR method to parse remote document data. Because there is no Release for the new version, the code base used by the project is [[#3b7929a](https://github.com/PuerkitoBio/goquery/commit/3b7929a0d759a20968ba605c56bc3027c30d3527)].
+- [@andybalholm](https://github.com/andybalholm), He implements a Go implementation of a CSS selector library [cascadia](https://github.com/andybalholm/cascadia), which is the core dependency of goquery under the [BSD-2-Clause license](https://github.com/andybalholm/cascadia/blob/master/LICENSE). Because there is no Release for the new version, the code base used by the project is [[#c6065e4](https://github.com/andybalholm/cascadia/commit/c6065e4618b7f538edf5ca0d6b5b2fd0fe129fdd)]
 
-- CSS Selector Library: [andybalholm/cascadia](https://github.com/andybalholm/cascadia) [[#c6065e4](https://github.com/andybalholm/cascadia/commit/c6065e4618b7f538edf5ca0d6b5b2fd0fe129fdd)]
-    - [BSD-2-Clause license](https://github.com/andybalholm/cascadia/blob/master/LICENSE)
 - JavaScript Runtime With Golang: [https://github.com/rogchap/v8go](https://github.com/rogchap/v8go) [[v0.7.0](https://github.com/rogchap/v8go/releases/tag/v0.7.0)]
     - [BSD-3-Clause license](https://github.com/rogchap/v8go/blob/master/LICENSE)

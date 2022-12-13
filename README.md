@@ -10,10 +10,10 @@
 ## PLAN
 
 - Support fetch remote website page as feeds
-- Support fetch with CSR
 - Support fetch with SSR
-- Support dynamic fetch with rules or config
 - Dockerize
+- [x] 2022.12.13 Support dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
+- [x] 2022.12.12 Support websites parsing via CSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
 
 ## License
 

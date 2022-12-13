@@ -5,11 +5,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/soulteary/RSS-Can/internal/define"
 	v8 "rogchap.com/v8go"
 )
-
-const JS_EXECUTE_TIMEOUT = 200 * time.Millisecond
-const JS_EXECUTE_THORTTLING = 2 * time.Second
 
 func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, error) {
 	vals := make(chan *v8.Value, 1)
@@ -26,7 +24,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 	}()
 
 	duration := time.Since(start)
-	timeout := time.NewTimer(JS_EXECUTE_TIMEOUT)
+	timeout := time.NewTimer(define.JS_EXECUTE_TIMEOUT)
 
 	select {
 	case val := <-vals:
@@ -43,7 +41,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		vm.TerminateExecution()
 		err := <-errs
 		fmt.Fprintf(os.Stderr, "execution timeout: %v\n", duration)
-		time.Sleep(JS_EXECUTE_THORTTLING)
+		time.Sleep(define.JS_EXECUTE_THORTTLING)
 		return nil, err
 	}
 }

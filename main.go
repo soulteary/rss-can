@@ -9,10 +9,9 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/javascript"
 )
-
-const DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
 
 func getRemoteDocument(url string) (*goquery.Document, error) {
 	req, err := http.NewRequest("GET", url, nil)
@@ -20,7 +19,7 @@ func getRemoteDocument(url string) (*goquery.Document, error) {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", DEFAULT_UA)
+	req.Header.Set("User-Agent", define.DEFAULT_UA)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err

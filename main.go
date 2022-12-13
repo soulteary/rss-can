@@ -10,6 +10,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/javascript"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
 type Config struct {
@@ -23,10 +24,15 @@ type Config struct {
 }
 
 func getFeeds(config Config) {
-	doc := network.GetRemoteDocument("https://36kr.com/", "utf-8", func(document *goquery.Document) []define.Item {
-		var items []define.Item
+	doc := network.GetRemoteDocument("https://36kr.com/", "utf-8")
+	if doc.Body == "" {
+		return
+	}
+
+	items := parser.ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {
+		var items []define.InfoItem
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
-			var item define.Item
+			var item define.InfoItem
 
 			title := strings.TrimSpace(s.Find(config.Title).Text())
 			author := strings.TrimSpace(s.Find(config.Author).Text())
@@ -47,7 +53,7 @@ func getFeeds(config Config) {
 		})
 		return items
 	})
-	fmt.Println(doc)
+	fmt.Println(items)
 }
 
 func main() {

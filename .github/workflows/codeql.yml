@@ -14,9 +14,23 @@ name: "CodeQL"
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - 'pkg/andybalholm/cascadia/fuzz/corpus'
+      - 'pkg/andybalholm/cascadia/test_resources'
+      - 'pkg/PuerkitoBio/goquery/bench'
+      - 'pkg/PuerkitoBio/goquery/testdata'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.txt'
+      - 'pkg/andybalholm/cascadia/fuzz/corpus'
+      - 'pkg/andybalholm/cascadia/test_resources'
+      - 'pkg/PuerkitoBio/goquery/bench'
+      - 'pkg/PuerkitoBio/goquery/testdata'
   schedule:
     - cron: '0 0 * * *'
 

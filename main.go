@@ -78,6 +78,9 @@ func main() {
 	jsApp, _ := os.ReadFile("./config/config.js")
 	inject := string(jsApp)
 	ctx := v8.NewContext()
+
+	// safeJsSandbox(ctx, `while(1){console.log(1)}`, "main.js")
+
 	safeJsSandbox(ctx, inject, "main.js")
 	result, _ := ctx.RunScript("JSON.stringify(getConfig());", "config.js")
 
@@ -108,18 +111,24 @@ func safeJsSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, 
 	}()
 
 	duration := time.Since(start)
+	timeout := time.NewTimer(JS_EXECUTE_TIMEOUT)
+
 	select {
 	case val := <-vals:
+		if !timeout.Stop() {
+			<-timeout.C
+		}
 		fmt.Fprintf(os.Stderr, "cost time: %v\n", duration)
 		return val, nil
 	case err := <-errs:
 		return nil, err
-	case <-time.After(JS_EXECUTE_THORTTLING):
+	case <-timeout.C:
+		timeout.Stop()
 		vm := ctx.Isolate()
 		vm.TerminateExecution()
 		err := <-errs
 		fmt.Fprintf(os.Stderr, "execution timeout: %v\n", duration)
-		time.Sleep(JS_EXECUTE_TIMEOUT)
+		time.Sleep(JS_EXECUTE_THORTTLING)
 		return nil, err
 	}
 }

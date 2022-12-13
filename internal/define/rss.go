@@ -9,3 +9,13 @@ type InfoItem struct {
 	Description string `json:"description,omitempty"`
 	Content     string `json:"content,omitempty"`
 }
+
+type JavaScriptConfig struct {
+	ListContainer string `json:"ListContainer"`
+	Title         string `json:"Title"`
+	Author        string `json:"Author"`
+	Category      string `json:"Category"`
+	DateTime      string `json:"DateTime"`
+	Description   string `json:"Description"`
+	Link          string `json:"Link"`
+}

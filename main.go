@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -13,17 +12,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
-type Config struct {
-	ListContainer string `json:"ListContainer"`
-	Title         string `json:"Title"`
-	Author        string `json:"Author"`
-	Category      string `json:"Category"`
-	DateTime      string `json:"DateTime"`
-	Description   string `json:"Description"`
-	Link          string `json:"Link"`
-}
-
-func getFeeds(config Config) {
+func getFeeds(config define.JavaScriptConfig) {
 	doc := network.GetRemoteDocument("https://36kr.com/", "utf-8")
 	if doc.Body == "" {
 		return
@@ -66,8 +55,7 @@ func main() {
 		return
 	}
 
-	var config Config
-	err = json.Unmarshal([]byte(result), &config)
+	config, err := parser.ParseConfigFromJSON(result)
 	if err != nil {
 		fmt.Println(err)
 		return

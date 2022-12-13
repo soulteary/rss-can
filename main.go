@@ -7,10 +7,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/PuerkitoBio/goquery"
-	v8 "rogchap.com/v8go"
+	"github.com/soulteary/RSS-Can/internal/javascript"
 )
 
 const DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
@@ -77,58 +76,18 @@ func getFeeds(config Config) {
 func main() {
 	jsApp, _ := os.ReadFile("./config/config.js")
 	inject := string(jsApp)
-	ctx := v8.NewContext()
 
-	// safeJsSandbox(ctx, `while(1){console.log(1)}`, "main.js")
-
-	safeJsSandbox(ctx, inject, "main.js")
-	result, _ := ctx.RunScript("JSON.stringify(getConfig());", "config.js")
+	result, err := javascript.RunCode(inject, "JSON.stringify(getConfig());")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var config Config
-	err := json.Unmarshal([]byte(fmt.Sprintf("%s", result)), &config)
+	err = json.Unmarshal([]byte(result), &config)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	getFeeds(config)
-}
-
-const JS_EXECUTE_TIMEOUT = 200 * time.Millisecond
-const JS_EXECUTE_THORTTLING = 2 * time.Second
-
-func safeJsSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, error) {
-	vals := make(chan *v8.Value, 1)
-	errs := make(chan error, 1)
-
-	start := time.Now()
-	go func() {
-		val, err := ctx.RunScript(unsafe, fileName)
-		if err != nil {
-			errs <- err
-			return
-		}
-		vals <- val
-	}()
-
-	duration := time.Since(start)
-	timeout := time.NewTimer(JS_EXECUTE_TIMEOUT)
-
-	select {
-	case val := <-vals:
-		if !timeout.Stop() {
-			<-timeout.C
-		}
-		fmt.Fprintf(os.Stderr, "cost time: %v\n", duration)
-		return val, nil
-	case err := <-errs:
-		return nil, err
-	case <-timeout.C:
-		timeout.Stop()
-		vm := ctx.Isolate()
-		vm.TerminateExecution()
-		err := <-errs
-		fmt.Fprintf(os.Stderr, "execution timeout: %v\n", duration)
-		time.Sleep(JS_EXECUTE_THORTTLING)
-		return nil, err
-	}
 }

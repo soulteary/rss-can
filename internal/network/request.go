@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	Charset "github.com/soulteary/RSS-Can/internal/charset"
+	"github.com/soulteary/RSS-Can/internal/charset"
 	"github.com/soulteary/RSS-Can/internal/define"
 )
 
@@ -33,7 +33,7 @@ func Get(url string, userAgent string) (code define.ErrorCode, status string, re
 	return code, status, response
 }
 
-func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
+func GetRemoteDocument(url string, documentCharset string) define.RemoteBodySanitized {
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
@@ -49,7 +49,7 @@ func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
 		return define.MixupRemoteBodySanitized(code, status, now, "")
 	}
 
-	bodyParsed, err := Charset.DecodeHTMLBody(res.Body, charset)
+	bodyParsed, err := charset.DecodeHTMLBody(res.Body, documentCharset)
 	if err != nil {
 		code = define.ERROR_CODE_DECODE_CAHRSET_FAILED
 		status = fmt.Sprintf("%s: %s", define.ERROR_STATUS_DECODE_CAHRSET_FAILED, fmt.Errorf("%w", err))

@@ -48,8 +48,6 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 
 func RunCode(base string, export string) (string, error) {
 	ctx := v8.NewContext()
-	// test sandbox with this
-	// safeJsSandbox(ctx, `while(1){console.log(1)}`, "main.js")
 	RunCodeInSandbox(ctx, base, "base.js")
 	result, err := ctx.RunScript(export, "export.js")
 	if err != nil {

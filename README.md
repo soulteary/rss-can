@@ -1,5 +1,8 @@
 # RSS Can / RSS 罐头
 
+[![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) ![Go Report Card](https://goreportcard.com/badge/github.com/soulteary/RSS-Can)
+
+
 📰 🥫 **Got RSS CAN be better and simple.**
 
 ![](./assets/images/project.jpg)

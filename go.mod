@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/gorilla/feeds v1.1.1
-	golang.org/x/net v0.2.0
-	golang.org/x/text v0.4.0
+	golang.org/x/net v0.4.0
+	golang.org/x/text v0.5.0
 	rogchap.com/v8go v0.7.0
 )
 

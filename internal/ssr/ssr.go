@@ -10,6 +10,8 @@ import (
 )
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
+	// TODO allows for automatic charset recognition
+	// TODO allow set charset by JS Config
 	doc := network.GetRemoteDocument(config.URL, "utf-8")
 	if doc.Body == "" {
 		return result

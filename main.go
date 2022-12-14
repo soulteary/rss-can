@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/feeds"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -48,7 +49,7 @@ func getWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 	})
 }
 
-func generateFeeds(data define.BodyParsed) {
+func generateFeeds(data define.BodyParsed, rssType string) string {
 	now := time.Now()
 
 	rssFeed := &feeds.Feed{
@@ -69,22 +70,26 @@ func generateFeeds(data define.BodyParsed) {
 		rssFeed.Items = append(rssFeed.Items, &feedItem)
 	}
 
-	atom, err := rssFeed.ToAtom()
-	if err != nil {
-		log.Fatal(err)
+	var rss string
+	var err error
+
+	switch rssType {
+	case "RSS":
+		rss, err = rssFeed.ToRss()
+	case "ATOM":
+		rss, err = rssFeed.ToAtom()
+	case "JSON":
+		rss, err = rssFeed.ToJSON()
+	default:
+		rss = ""
 	}
 
-	rss, err := rssFeed.ToRss()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		return ""
 	}
 
-	json, err := rssFeed.ToJSON()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(atom, "\n", rss, "\n", json)
+	return rss
 }
 
 func main() {
@@ -103,5 +108,55 @@ func main() {
 		return
 	}
 	data := getWebsiteDataWithConfig(config)
-	generateFeeds(data)
+
+	type RSSType struct {
+		Type string `uri:"type" binding:"required"`
+	}
+
+	route := gin.Default()
+	route.GET("/:type/", func(c *gin.Context) {
+		var rssType RSSType
+		if err := c.ShouldBindUri(&rssType); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"msg": err})
+			return
+		}
+
+		var response string
+		var mimetype string
+		switch strings.ToUpper(rssType.Type) {
+		case "RSS":
+			mimetype = "application/rss+xml"
+			response = generateFeeds(data, "RSS")
+		case "ATOM":
+			mimetype = "application/atom+xml"
+			response = generateFeeds(data, "ATOM")
+		case "JSON":
+			mimetype = "application/feed+json"
+			response = generateFeeds(data, "JSON")
+		}
+		c.Data(http.StatusOK, mimetype, []byte(response))
+	})
+
+	const hello = `<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>RSS Feed Discovery.</title>
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 Feed" href="http://localhost:8080/rss">
+	<link rel="alternate" type="application/atom+xml" title="RSS Atom Feed" href="http://localhost:8080/atom">
+	<link rel="alternate" type="application/rss+json" title="RSS JSON Feed" href="http://localhost:8080/json">
+</head>
+<body>
+	RSS Feed Discovery.
+</body>
+</html>`
+
+	route.GET("/", func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html", []byte(hello))
+	})
+
+	route.Run(":8080")
+
 }

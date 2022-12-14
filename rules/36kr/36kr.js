@@ -1,6 +1,7 @@
 const config = {
   URL: "https://36kr.com/",
-  Mode: "ssr",
+  // optional
+  // Mode: "ssr",
   Title: ".article-item-title",
   Author: ".kr-flow-bar-author",
   Category: ".kr-flow-bar-motif a",

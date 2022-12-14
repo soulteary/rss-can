@@ -2,6 +2,7 @@ package parser
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 )
@@ -20,5 +21,14 @@ func ParseConfigFromJSON(str string) (define.JavaScriptConfig, error) {
 	if err != nil {
 		return config, err
 	}
-	return config, nil
+	return ApplyDefaults(config), nil
+}
+
+// TODO: warning when value fixed by default
+func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
+	modeInRuls := strings.ToLower(config.Mode)
+	if !(modeInRuls == "ssr" || modeInRuls == "csr") {
+		config.Mode = "ssr"
+	}
+	return config
 }

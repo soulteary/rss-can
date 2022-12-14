@@ -52,31 +52,38 @@ func getFeeds(config define.JavaScriptConfig) {
 func generateFeedsTest() {
 	now := time.Now()
 	feed := &feeds.Feed{
-		Title:       "jmoiron.net blog",
-		Link:        &feeds.Link{Href: "http://jmoiron.net/blog"},
-		Description: "discussion about tech, footie, photos",
-		Author:      &feeds.Author{Name: "Jason Moiron", Email: "jmoiron@jmoiron.net"},
+		Title:       "苏洋博客",
+		Link:        &feeds.Link{Href: "https://soulteary.com/"},
+		Description: "醉里不知天在水，满船清梦压星河。",
+		Author:      &feeds.Author{Name: "soulteary", Email: "soulteary@gmail.com"},
 		Created:     now,
 	}
 
 	feed.Items = []*feeds.Item{
 		{
-			Title:       "Limiting Concurrency in Go",
-			Link:        &feeds.Link{Href: "http://jmoiron.net/blog/limiting-concurrency-in-go/"},
-			Description: "A discussion on controlled parallelism in golang",
-			Author:      &feeds.Author{Name: "Jason Moiron", Email: "jmoiron@jmoiron.net"},
+			Title:       "RSS Can：借助 V8 让 Golang 应用具备动态化能力（二）",
+			Link:        &feeds.Link{Href: "https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html"},
+			Description: "继续聊聊之前做过的一个小东西的踩坑历程，如果你也想高效获取信息，或许这个系列的内容会对你有用。",
+			Author:      &feeds.Author{Name: "soulteary", Email: "soulteary@qq.com"},
 			Created:     now,
 		},
 		{
-			Title:       "Logic-less Template Redux",
-			Link:        &feeds.Link{Href: "http://jmoiron.net/blog/logicless-template-redux/"},
-			Description: "More thoughts on logicless templates",
+			Title:       "RSS Can：使用 Golang 实现更好的 RSS Hub 服务（一）",
+			Link:        &feeds.Link{Href: "https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html"},
+			Description: "聊聊之前做过的一个小东西的踩坑历程，如果你也想高效获取信息，或许这个系列的内容会对你有用。这个事情涉及的东西比较多，所以我考虑拆成一个系列来聊，每篇的内容不要太长，整理负担和阅读负担都轻一些。本篇是系列第一篇内容。",
+			Author:      &feeds.Author{Name: "soulteary", Email: "soulteary@gmail.com"},
 			Created:     now,
 		},
 		{
-			Title:       "Idiomatic Code Reuse in Go",
-			Link:        &feeds.Link{Href: "http://jmoiron.net/blog/idiomatic-code-reuse-in-go/"},
-			Description: "How to use interfaces <em>effectively</em>",
+			Title:       "在搭载 M1 及 M2 芯片 MacBook设备上玩 Stable Diffusion 模型",
+			Link:        &feeds.Link{Href: "https://soulteary.com/2022/12/10/play-the-stable-diffusion-model-on-macbook-devices-with-m1-and-m2-chips.html"},
+			Description: "本篇文章，我们聊了如何使用搭载了 Apple Silicon 芯片（M1 和 M2 CPU）的 MacBook 设备上运行 Stable Diffusion 模型。",
+			Created:     now,
+		},
+		{
+			Title:       "使用 Docker 来快速上手中文 Stable Diffusion 模型：太乙",
+			Link:        &feeds.Link{Href: "https://soulteary.com/2022/12/09/use-docker-to-quickly-get-started-with-the-chinese-stable-diffusion-model-taiyi.html"},
+			Description: "本篇文章，我们聊聊如何使用 Docker 快速运行中文 Stable Diffusion 模型：太乙。 ",
 			Created:     now,
 		},
 	}

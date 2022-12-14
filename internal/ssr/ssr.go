@@ -1,4 +1,4 @@
-package parser
+package ssr
 
 import (
 	"strings"
@@ -6,6 +6,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
@@ -14,7 +15,7 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 		return result
 	}
 
-	return ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {
+	return parser.ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {
 		var items []define.InfoItem
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
 			var item define.InfoItem

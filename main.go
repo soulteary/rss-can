@@ -7,6 +7,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/javascript"
 	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/server"
+	"github.com/soulteary/RSS-Can/internal/ssr"
 )
 
 func main() {
@@ -24,6 +25,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	data := parser.GetWebsiteDataWithConfig(config)
+	data := ssr.GetWebsiteDataWithConfig(config)
 	server.ServAPI(data)
 }

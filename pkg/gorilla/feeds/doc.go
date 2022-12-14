@@ -7,7 +7,7 @@ Installing
 
 Feeds provides a simple, generic Feed interface with a generic Item object as well as RSS, Atom and JSON Feed specific RssFeed, AtomFeed and JSONFeed objects which allow access to all of each spec's defined elements.
 
-Examples
+# Examples
 
 Create a Feed and some Items in that feed using the generic interfaces:
 

@@ -498,7 +498,7 @@ func TestJSONHub(t *testing.T) {
 		Version: "https://jsonfeed.org/version/1",
 		Title:   "feed title",
 		Hubs: []*JSONHub{
-			&JSONHub{
+			{
 				Type: "WebSub",
 				Url:  "https://websub-hub.example",
 			},

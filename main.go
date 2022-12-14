@@ -14,6 +14,6 @@ func main() {
 
 	config, _ := rule.GenerateConfigByRule(rules[0])
 
-	data := parser.GetWebsiteDataWithConfig(config, "ssr")
+	data := parser.GetWebsiteDataWithConfig(config)
 	server.ServAPI(data)
 }

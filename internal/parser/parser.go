@@ -7,9 +7,9 @@ import (
 	"github.com/soulteary/RSS-Can/internal/ssr"
 )
 
-func GetWebsiteDataWithConfig(config define.JavaScriptConfig, parseMode string) (result define.BodyParsed) {
+func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
 
-	if strings.ToLower(parseMode) != "ssr" {
+	if strings.ToLower(config.MODE) != "ssr" {
 		// TODO add warning when result length is zero
 		return result
 	}

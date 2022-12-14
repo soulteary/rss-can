@@ -5,27 +5,55 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
+	"github.com/soulteary/RSS-Can/internal/parser"
+	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
-func ServAPI(data define.BodyParsed) {
+func makeMap(list []string) map[string]string {
+	result := make(map[string]string)
+	for _, s := range list {
+		result[strings.Split(s, "/")[1]] = s
+	}
+	return result
+}
 
-	type RSSType struct {
-		Type string `uri:"type" binding:"required"`
+func ServAPI() {
+
+	// TODO dynamic refresh rules
+	rules := rule.LoadRules()
+	rulesAlived := makeMap(rules)
+
+	type RSS struct {
+		Type string `uri:"type" binding:"required"` // RSS Type
+		ID   string `uri:"id" binding:"required"`
 	}
 
 	route := gin.Default()
-	route.GET("/:type/", func(c *gin.Context) {
-		var rssType RSSType
-		if err := c.ShouldBindUri(&rssType); err != nil {
+	route.GET("/:id/:type/", func(c *gin.Context) {
+		var rss RSS
+		if err := c.ShouldBindUri(&rss); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"msg": err})
 			return
 		}
 
+		ruleFile, ok := rulesAlived[rss.ID]
+		if !ok {
+			c.JSON(http.StatusNotFound, gin.H{"msg": "rule not found"})
+			return
+		}
+
+		config, err := rule.GenerateConfigByRule(ruleFile)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"msg": "parse config failed"})
+			return
+		}
+
+		data := parser.GetWebsiteDataWithConfig(config)
+
 		var response string
 		var mimetype string
-		switch strings.ToUpper(rssType.Type) {
+		switch strings.ToUpper(rss.Type) {
 		case "RSS":
 			mimetype = "application/rss+xml"
 			response = generator.GenerateFeedsByType(data, "RSS")

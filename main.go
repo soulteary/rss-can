@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
+	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/server"
-	"github.com/soulteary/RSS-Can/internal/ssr"
 )
 
 func main() {
@@ -14,6 +14,6 @@ func main() {
 
 	config, _ := rule.GenerateConfigByRule(rules[0])
 
-	data := ssr.GetWebsiteDataWithConfig(config)
+	data := parser.GetWebsiteDataWithConfig(config, "ssr")
 	server.ServAPI(data)
 }

@@ -11,6 +11,8 @@ type InfoItem struct {
 }
 
 type JavaScriptConfig struct {
+	URL string `json:"url"`
+
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`
 	Author        string `json:"Author"`

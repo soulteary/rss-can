@@ -49,7 +49,10 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 
 func RunCode(base string, export string) (string, error) {
 	ctx := v8.NewContext()
-	RunCodeInSandbox(ctx, base, "base.js")
+	_, err := RunCodeInSandbox(ctx, base, "base.js")
+	if err != nil {
+		return "", err
+	}
 	result, err := ctx.RunScript(export, "export.js")
 	if err != nil {
 		return "", err

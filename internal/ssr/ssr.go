@@ -10,7 +10,7 @@ import (
 )
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
-	doc := network.GetRemoteDocument("https://36kr.com/", "utf-8")
+	doc := network.GetRemoteDocument(config.URL, "utf-8")
 	if doc.Body == "" {
 		return result
 	}

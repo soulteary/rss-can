@@ -11,10 +11,14 @@ import (
 )
 
 func main() {
-	jsApp, _ := os.ReadFile("./config/config.js")
-	inject := string(jsApp)
+	jsSSR, _ := os.ReadFile("./internal/jssdk/ssr.js")
+	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
+	base := fmt.Sprintf("%s\n%s\n", jsSSR, jsSDK)
 
-	jsConfig, err := javascript.RunCode(inject, "JSON.stringify(getConfig());")
+	jsApp, _ := os.ReadFile("./config/config.js")
+	inject := fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsApp, "JSON.stringify(potted.GetConfig());")
+
+	jsConfig, err := javascript.RunCode(base, inject)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -25,6 +29,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
 	data := ssr.GetWebsiteDataWithConfig(config)
 	server.ServAPI(data)
 }

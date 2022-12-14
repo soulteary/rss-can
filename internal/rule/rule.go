@@ -55,8 +55,12 @@ func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err erro
 	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
 	base := fmt.Sprintf("%s\n%s\n", jsSSR, jsSDK)
 
-	jsApp, _ := os.ReadFile(rule)
-	inject := fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsApp, "JSON.stringify(potted.GetConfig());")
+	jsRule, err := os.ReadFile(rule)
+	if err != nil {
+		return config, err
+	}
+
+	inject := fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
 
 	jsConfig, err := javascript.RunCode(base, inject)
 	if err != nil {

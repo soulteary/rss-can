@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/gin-gonic/gin v1.8.1
+	github.com/go-rod/rod v0.112.2
 	github.com/gorilla/feeds v1.1.1
 	golang.org/x/net v0.4.0
 	golang.org/x/text v0.5.0
@@ -25,6 +26,9 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
+	github.com/ysmood/goob v0.4.0 // indirect
+	github.com/ysmood/gson v0.7.3 // indirect
+	github.com/ysmood/leakless v0.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect

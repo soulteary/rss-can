@@ -83,6 +83,7 @@ class POTTED {
     this.scope.each((_, el) => {
       const title = self.GetText(self.config.Title, el);
       const author = self.GetText(self.config.Author, el);
+      const category = self.GetText(self.config.Category, el);
       const date = self.GetText(self.config.DateTime, el);
       const description = self.GetText(self.config.Description, el);
       const link = self.GetLink(self.config.Link, el);

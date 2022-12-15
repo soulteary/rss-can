@@ -13,6 +13,7 @@ type InfoItem struct {
 type JavaScriptConfig struct {
 	URL  string `json:"URL"`
 	Mode string `json:"Mode"`
+	File string //private field
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

@@ -15,11 +15,14 @@ func JSONStringify(r interface{}) (string, error) {
 	return string(out), nil
 }
 
-func ParseConfigFromJSON(str string) (define.JavaScriptConfig, error) {
+func ParseConfigFromJSON(str string, ruleFile string) (define.JavaScriptConfig, error) {
 	var config define.JavaScriptConfig
 	err := json.Unmarshal([]byte(str), &config)
 	if err != nil {
 		return config, err
+	}
+	if ruleFile != "" {
+		config.File = ruleFile
 	}
 	return ApplyDefaults(config), nil
 }

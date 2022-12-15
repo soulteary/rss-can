@@ -81,16 +81,29 @@ class POTTED {
     let result = [];
     let self = this;
     this.scope.each((_, el) => {
-      const title = self.GetText(self.config.Title, el);
-      const author = self.GetText(self.config.Author, el);
-      const category = self.GetText(self.config.Category, el);
-      const date = self.GetText(self.config.DateTime, el);
-      const description = self.GetText(self.config.Description, el);
-      const link = self.GetLink(self.config.Link, el);
-
-      result.push({ title, author, category, date, description, link });
+      if (self.config.Title && self.config.Link) {
+        const title = self.GetText(self.config.Title, el);
+        let author = "";
+        if (self.config.Author) {
+          author = self.GetText(self.config.Author, el);
+        }
+        let category = "";
+        if (self.config.Category) {
+          category = self.GetText(self.config.Category, el);
+        }
+        let date = "";
+        if (self.config.DateTime) {
+          date = self.GetText(self.config.DateTime, el);
+        }
+        let description = "";
+        if (self.config.Description) {
+          description = self.GetText(self.config.Description, el);
+        }
+        const link = self.GetLink(self.config.Link, el);
+        result.push({ title, author, category, date, description, link });
+      }
     });
-    this.value = result;
+    this.value = JSON.stringify(result);
     return this;
   }
 

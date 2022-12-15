@@ -14,7 +14,6 @@
 
 ## PLAN
 
-- CSR: Support websites parsing via CSR render (cdp support)
 - Dockerize: Provide a simple tutorial on how to use Docker images with common technology stacks
 - Stateful: Persistent data storage solution, supporting at least two databases
 - JS SDK: Games and Fun for everyone
@@ -23,6 +22,7 @@
 - AI: NLP tasks
 - Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
 - Tools: Quick RSS rules generator, like: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
+- [x] 2022.12.15 Support websites parsing via CSR render, [Blog WIP](#)
 - [x] 2022.12.14 Support convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
 - [x] 2022.12.13 Support dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
 - [x] 2022.12.12 Support websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)

@@ -67,6 +67,6 @@ func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err erro
 		return config, err
 	}
 
-	config, err = parser.ParseConfigFromJSON(jsConfig)
+	config, err = parser.ParseConfigFromJSON(jsConfig, rule)
 	return config, err
 }

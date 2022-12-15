@@ -8,12 +8,13 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 )
 
-func GenerateFeedsByType(data define.BodyParsed, rssType string) string {
+func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed, rssType string) string {
 	now := time.Now()
 
+	// TODO update with rules
 	rssFeed := &feeds.Feed{
-		Title:   "36Kr",
-		Link:    &feeds.Link{Href: "https://36kr.com/"},
+		Title:   config.File,
+		Link:    &feeds.Link{Href: config.URL},
 		Created: now,
 	}
 

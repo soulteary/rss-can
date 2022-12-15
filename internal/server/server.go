@@ -56,13 +56,13 @@ func ServAPI() {
 		switch strings.ToUpper(rss.Type) {
 		case "RSS":
 			mimetype = "application/rss+xml"
-			response = generator.GenerateFeedsByType(data, "RSS")
+			response = generator.GenerateFeedsByType(config, data, "RSS")
 		case "ATOM":
 			mimetype = "application/atom+xml"
-			response = generator.GenerateFeedsByType(data, "ATOM")
+			response = generator.GenerateFeedsByType(config, data, "ATOM")
 		case "JSON":
 			mimetype = "application/feed+json"
-			response = generator.GenerateFeedsByType(data, "JSON")
+			response = generator.GenerateFeedsByType(config, data, "JSON")
 		}
 		c.Data(http.StatusOK, mimetype, []byte(response))
 	})
@@ -74,9 +74,9 @@ func ServAPI() {
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>RSS Feed Discovery.</title>
-	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 Feed" href="http://localhost:8080/rss">
-	<link rel="alternate" type="application/atom+xml" title="RSS Atom Feed" href="http://localhost:8080/atom">
-	<link rel="alternate" type="application/rss+json" title="RSS JSON Feed" href="http://localhost:8080/json">
+	<link rel="alternate" type="application/rss+xml" title="RSS 2.0 Feed" href="http://localhost:8080/36kr/rss">
+	<link rel="alternate" type="application/atom+xml" title="RSS Atom Feed" href="http://localhost:8080/36kr/atom">
+	<link rel="alternate" type="application/rss+json" title="RSS JSON Feed" href="http://localhost:8080/36kr/json">
 </head>
 <body>
 	RSS Feed Discovery.

@@ -55,26 +55,38 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 		var items []define.InfoItem
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
 			var item define.InfoItem
+			// title must exist in the config
+			if config.Title != "" {
+				title := jsBridge(config.Title, "text", s)
+				item.Title = title
 
-			title := jsBridge(config.Title, "text", s)
-			item.Title = title
+				if config.Author != "" {
+					author := jsBridge(config.Author, "text", s)
+					item.Author = author
+				}
 
-			author := jsBridge(config.Author, "text", s)
-			item.Author = author
+				if config.DateTime != "" {
+					time := jsBridge(config.DateTime, "text", s)
+					item.Date = time
+				}
 
-			time := jsBridge(config.DateTime, "text", s)
-			item.Date = time
+				if config.Category != "" {
+					category := jsBridge(config.Category, "text", s)
+					item.Category = category
+				}
 
-			category := jsBridge(config.Category, "text", s)
-			item.Category = category
+				if config.Description != "" {
+					description := jsBridge(config.Description, "text", s)
+					item.Description = description
+				}
 
-			description := jsBridge(config.Description, "text", s)
-			item.Description = description
+				if config.Link != "" {
+					link := jsBridge(config.Link, "href", s)
+					item.Link = link
+				}
 
-			link := jsBridge(config.Link, "href", s)
-			item.Link = link
-
-			items = append(items, item)
+				items = append(items, item)
+			}
 		})
 		return items
 	})

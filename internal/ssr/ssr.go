@@ -24,6 +24,25 @@ func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document 
 	return define.MixupBodyParsed(code, status, data.Date, items)
 }
 
+func jsBridge(field string, method string, s *goquery.Selection) string {
+	if strings.Contains(field, ".") || strings.Contains(field, "#") {
+		// extract information by attributes
+		find := strings.ToLower(method)
+		if find == "text" {
+			return strings.TrimSpace(s.Find(field).Text())
+		} else if find == "href" || strings.HasPrefix(find, "data-") {
+			prop, exists := s.Find(field).Attr(method)
+			if !exists {
+				return ""
+			}
+			return strings.TrimSpace(prop)
+		}
+	}
+
+	// if not a selector, fallback the original content
+	return field
+}
+
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
 	// TODO allows for automatic charset recognition
 	// TODO allow set charset by JS Config
@@ -37,21 +56,24 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
 			var item define.InfoItem
 
-			title := strings.TrimSpace(s.Find(config.Title).Text())
-			author := strings.TrimSpace(s.Find(config.Author).Text())
-			time := strings.TrimSpace(s.Find(config.DateTime).Text())
-			category := strings.TrimSpace(s.Find(config.Category).Text())
-			description := strings.TrimSpace(s.Find(config.Description).Text())
-
-			href, _ := s.Find(config.Link).Attr("href")
-			link := strings.TrimSpace(href)
-
+			title := jsBridge(config.Title, "text", s)
 			item.Title = title
+
+			author := jsBridge(config.Author, "text", s)
 			item.Author = author
+
+			time := jsBridge(config.DateTime, "text", s)
 			item.Date = time
+
+			category := jsBridge(config.Category, "text", s)
 			item.Category = category
+
+			description := jsBridge(config.Description, "text", s)
 			item.Description = description
+
+			link := jsBridge(config.Link, "href", s)
 			item.Link = link
+
 			items = append(items, item)
 		})
 		return items

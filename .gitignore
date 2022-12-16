@@ -15,3 +15,5 @@
 # vendor/
 
 .DS_Store
+
+rules/test

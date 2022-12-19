@@ -1,5 +1,11 @@
 package server
 
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
+
 const welcomePageForTest = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,3 +21,9 @@ const welcomePageForTest = `<!DOCTYPE html>
 	RSS Feed Discovery.
 </body>
 </html>`
+
+func welcomePage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Data(http.StatusOK, "text/html", []byte(welcomePageForTest))
+	}
+}

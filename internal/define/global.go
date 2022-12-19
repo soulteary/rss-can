@@ -18,3 +18,5 @@ const GLOBAL_DEBUG_MODE = true
 const GLOBAL_DEBUG_LEVEL = "info"
 
 const DEFAULT_RULES_DIRECTORY = "./rules"
+
+const DEFAULT_HTT_PORT = 8080

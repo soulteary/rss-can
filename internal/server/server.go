@@ -80,11 +80,7 @@ func ServAPI() {
 		}
 
 		if strings.ToLower(config.Type) == "set-loglevel" {
-			logLevel := strings.ToLower(config.Value)
-			if (logLevel == "debug") || (logLevel == "info") || (logLevel == "warn") || (logLevel == "error") {
-				logger.SetLevel(logLevel)
-			}
-
+			logger.SetLevel(config.Value)
 		}
 	})
 

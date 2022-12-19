@@ -2,8 +2,8 @@ package logger
 
 import (
 	"os"
+	"strings"
 
-	"github.com/soulteary/RSS-Can/internal/define"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -29,11 +29,7 @@ func Initialize() {
 	))
 	defer logger.Sync()
 
-	if define.GLOBAL_DEBUG_MODE {
-		atom.SetLevel(zap.DebugLevel)
-	} else {
-		atom.SetLevel(zap.WarnLevel)
-	}
+	atom.SetLevel(zap.ErrorLevel)
 
 	Instance = logger.Sugar()
 	initMutex = true
@@ -42,7 +38,12 @@ func Initialize() {
 }
 
 func SetLevel(level string) {
-	switch level {
+	newLevel := strings.ToLower(level)
+	if !((newLevel == "debug") || (newLevel == "info") || (newLevel == "warn") || (newLevel == "error")) {
+		return
+	}
+
+	switch newLevel {
 	case "debug":
 		atom.SetLevel(zap.DebugLevel)
 		return

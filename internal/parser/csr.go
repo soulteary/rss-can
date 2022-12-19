@@ -16,7 +16,7 @@ func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, pro
 	return ParsePageByGoRod(config, container, proxyAddr, false)
 }
 
-func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
+func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 	var browser *rod.Browser
 	var page *rod.Page
 
@@ -42,7 +42,47 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		page = browser.MustPage()
 	}
 
+	// avoid data process hang due to pop-up windows
 	page.MustEvalOnNewDocument(`window.alert = () => {};window.prompt = () => {}`)
+
+	return page
+}
+
+const INJECT_CODE_MIX_PARSER = `()=> document.documentElement.innerHTML`
+const INJECT_CODE_CSR_PARSER = `
+()=> (function(window){
+%s
+var potted = new POTTED();
+%s;
+potted.GetData();
+return potted.value;
+})(window)`
+
+func GetCSRInjectCode(file string) string {
+	jsCSR, err := os.ReadFile("./internal/jssdk/jquery.min.js")
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	jsRule, err := os.ReadFile(file)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	jsApp := fmt.Sprintf("%s\n%s\n", jsCSR, jsSDK)
+	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jsApp, string(jsRule))
+}
+
+func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
+	page := GetRodPageObject(container, proxyAddr)
 
 	page.
 		Timeout(5 * time.Second).
@@ -52,37 +92,22 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		CancelTimeout()
 
 	if useMixParser {
-		pageHTML := page.MustEval(`()=> document.documentElement.innerHTML`)
+		pageHTML := page.MustEval(INJECT_CODE_MIX_PARSER)
 		var emptyBody define.RemoteBodySanitized
 		return ParseDataAndConfigBySSR(config, emptyBody, fmt.Sprint(pageHTML))
 	}
 
-	jsCSR, _ := os.ReadFile("./internal/jssdk/jquery.min.js")
-	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
-	jsApp := fmt.Sprintf("%s\n%s\n", jsCSR, jsSDK)
-
-	jsRule, err := os.ReadFile(config.File)
-	if err != nil {
-		fmt.Println(err)
-		return result
-	}
-	inject := page.MustEval(fmt.Sprintf(`
-()=> (function(window){
-%s
-var potted = new POTTED();
-%s;
-potted.GetData();
-return potted.value;
-})(window)`, string(jsApp), string(jsRule)))
-
-	now := time.Now()
+	injectCode := GetCSRInjectCode(config.File)
+	pageData := page.MustEval(injectCode)
 	var items []define.InfoItem
-	json.Unmarshal([]byte(fmt.Sprint(inject)), &items)
+	err := json.Unmarshal([]byte(fmt.Sprint(pageData)), &items)
 	if err != nil {
 		fmt.Println(err)
 		return result
 	}
+
 	code := define.ERROR_CODE_NULL
 	status := define.ERROR_STATUS_NULL
+	now := time.Now()
 	return define.MixupBodyParsed(code, status, now, items)
 }

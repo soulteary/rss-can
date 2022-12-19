@@ -77,6 +77,10 @@ func GetRemoteDocumentAsMarkdown(url string, selector string) string {
 		return ""
 	}
 
+	// default selector use whole document body
+	if selector == "" {
+		selector = "body"
+	}
 	html, err := document.Find(selector).Html()
 	if err != nil {
 		return ""

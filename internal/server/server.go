@@ -1,34 +1,24 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
-func makeMap(list []string) map[string]string {
-	result := make(map[string]string)
-	for _, s := range list {
-		result[strings.Split(s, "/")[1]] = s
-	}
-	return result
-}
-
 func ServAPI() {
-
-	// TODO dynamic refresh rules
-	rules := rule.LoadRules(define.DEFAULT_RULES_DIRECTORY)
-	rulesAlived := makeMap(rules)
 
 	type RSS struct {
 		Type string `uri:"type" binding:"required"` // RSS Type
 		ID   string `uri:"id" binding:"required"`
 	}
+
+	rule.InitRules()
 
 	route := gin.Default()
 	route.GET("/:id/:type/", func(c *gin.Context) {
@@ -38,8 +28,8 @@ func ServAPI() {
 			return
 		}
 
-		ruleFile, ok := rulesAlived[rss.ID]
-		if !ok {
+		ruleFile, exist := rule.GetRuleByName(rss.ID)
+		if !exist {
 			c.JSON(http.StatusNotFound, gin.H{"msg": "rule not found"})
 			return
 		}
@@ -80,9 +70,19 @@ func ServAPI() {
 			return
 		}
 
-		if strings.ToLower(config.Type) == "set-loglevel" {
+		switch strings.ToLower(config.Type) {
+		case "set-loglevel":
 			logger.SetLevel(config.Value)
+			c.JSON(http.StatusOK, gin.H{"msg": fmt.Sprintf("Update loglevel with %s", config.Value)})
+			return
+		case "rules":
+			if strings.ToLower(config.Value) == "fresh" {
+				rule.InitRules()
+				c.JSON(http.StatusOK, gin.H{"msg": "Rules refreshed"})
+			}
+			return
 		}
+
 	})
 
 	route.GET("/", func(c *gin.Context) {

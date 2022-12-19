@@ -2,12 +2,25 @@ package ssr
 
 import (
 	"fmt"
+	"log"
+	"net/url"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/network"
+
+	markdown "github.com/JohannesKaufmann/html-to-markdown"
 )
+
+func html2md(html string) string {
+	converter := markdown.NewConverter("", true, nil)
+	markdown, err := converter.ConvertString(html)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return markdown
+}
 
 func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document *goquery.Document) []define.InfoItem) define.BodyParsed {
 	document, err := goquery.NewDocumentFromReader(strings.NewReader(data.Body))
@@ -30,6 +43,12 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 		find := strings.ToLower(method)
 		if find == "text" {
 			return strings.TrimSpace(s.Find(field).Text())
+		} else if find == "html" {
+			html, err := s.Find(field).Html()
+			if err != nil {
+				return ""
+			}
+			return html
 		} else if find == "href" || strings.HasPrefix(find, "data-") {
 			prop, exists := s.Find(field).Attr(method)
 			if !exists {
@@ -41,6 +60,17 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 
 	// if not a selector, fallback the original content
 	return field
+}
+
+func parseRemoteBodyAsMarkdown(url string, selector string) string {
+	doc := network.GetRemoteDocument(url, "utf-8")
+	if doc.Body == "" {
+		fmt.Println("no content")
+		return ""
+	}
+	document, _ := goquery.NewDocumentFromReader(strings.NewReader(doc.Body))
+	html, _ := document.Find(selector).Html()
+	return html2md(html)
 }
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
@@ -82,7 +112,32 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 
 				if config.Link != "" {
 					link := jsBridge(config.Link, "href", s)
-					item.Link = link
+					if !(strings.HasPrefix("http://", link) || strings.HasPrefix("https://", link)) {
+						base, err := url.Parse(config.URL)
+						if err != nil {
+							log.Fatal(err)
+						}
+						ref, err := url.Parse(link)
+						if err != nil {
+							log.Fatal(err)
+						}
+						u := base.ResolveReference(ref)
+						item.Link = u.String()
+					} else {
+						item.Link = link
+					}
+				}
+
+				// TODO bind hook action
+				if config.ContentBefore.Action != "" {
+					contentBefore := parseRemoteBodyAsMarkdown(item.Link, config.ContentBefore.Object)
+					item.Content = contentBefore
+				}
+
+				if item.Content == "" {
+					if config.Content != "" {
+						item.Content = config.Content
+					}
 				}
 
 				items = append(items, item)

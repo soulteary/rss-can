@@ -22,4 +22,11 @@ type JavaScriptConfig struct {
 	DateTime      string `json:"DateTime"`
 	Description   string `json:"Description"`
 	Link          string `json:"Link"`
+
+	Content       string `json:"Content"`
+	ContentBefore struct {
+		Action string `json:"action"`
+		Object string `json:"object"`
+		URL    string `json:"URL"`
+	} `json:"ContentBefore"`
 }

@@ -27,6 +27,11 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 			// 时间处理这块比较麻烦，后续文章再展开
 			Created: now,
 		}
+
+		if data.Content != "" {
+			feedItem.Content = data.Content
+		}
+
 		rssFeed.Items = append(rssFeed.Items, &feedItem)
 	}
 

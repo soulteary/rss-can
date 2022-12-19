@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
@@ -21,7 +22,7 @@ func makeMap(list []string) map[string]string {
 func ServAPI() {
 
 	// TODO dynamic refresh rules
-	rules := rule.LoadRules()
+	rules := rule.LoadRules(define.DEFAULT_RULES_DIRECTORY)
 	rulesAlived := makeMap(rules)
 
 	type RSS struct {

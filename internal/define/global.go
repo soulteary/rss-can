@@ -16,3 +16,5 @@ const DEFAULT_PARSE_MODE = PARSE_MODE_SSR
 
 const GLOBAL_DEBUG_MODE = true
 const GLOBAL_DEBUG_LEVEL = "info"
+
+const DEFAULT_RULES_DIRECTORY = "./rules"

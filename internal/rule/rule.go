@@ -1,7 +1,6 @@
 package rule
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,17 +8,24 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/javascript"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
-func scanFiles(dir string) (result []string) {
-	files, err := os.ReadDir(dir)
+func getDirRuleFiles(baseDir string) (ruleFiles []string) {
+	rules, err := os.ReadDir(baseDir)
 	if err != nil {
+		logger.Instance.Errorf("Scan rule rules not complete: %v", err)
 		return nil
 	}
-	for _, item := range files {
-		result = append(result, filepath.Join(dir, item.Name()))
+
+	for _, file := range rules {
+		ruleFiles = append(ruleFiles, filepath.Join(baseDir, file.Name()))
 	}
-	return result
+
+	if len(ruleFiles) == 0 {
+		logger.Instance.Warnln("Scanning the rules directory completed, but no configuration files were found.")
+	}
+	return ruleFiles
 }
 
 func isDir(input string) int {
@@ -33,14 +39,13 @@ func isDir(input string) int {
 	return 0
 }
 
-func LoadRules() []string {
-	const configDir = "./rules"
-	files := scanFiles(configDir)
+func LoadRules(ruleDir string) []string {
+	ruleFiles := getDirRuleFiles(ruleDir)
 
 	var rules []string
-	for _, file := range files {
-		if isDir(file) == 1 {
-			subFiles := scanFiles(file)
+	for _, item := range ruleFiles {
+		if isDir(item) == 1 {
+			subFiles := getDirRuleFiles(item)
 			for _, sItem := range subFiles {
 				if isDir(sItem) == 0 {
 					rules = append(rules, sItem)
@@ -48,13 +53,15 @@ func LoadRules() []string {
 			}
 		}
 	}
+
+	logger.Instance.Infof("Load rules, count: %d", len(rules))
 	return rules
 }
 
-func GetSDKs(file string) (sdk string, app string, err error) {
+func generateSDKsByRuleFile(file string) (sdk string, app string, err error) {
 	jsRule, err := os.ReadFile(file)
 	if err != nil {
-		return sdk, app, errors.New("SSR JavaScript Rule load failed")
+		return sdk, app, err
 	}
 
 	sdk = fmt.Sprintf("%s\n%s\n", jssdk.SSR_SHIM, jssdk.SDK)
@@ -63,16 +70,21 @@ func GetSDKs(file string) (sdk string, app string, err error) {
 }
 
 func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {
-	base, app, err := GetSDKs(rule)
+	base, app, err := generateSDKsByRuleFile(rule)
 	if err != nil {
+		logger.Instance.Errorf("Read rule file failed: %v", err)
 		return config, err
 	}
 
 	jsConfig, err := javascript.RunCode(base, app)
 	if err != nil {
+		logger.Instance.Errorf("Executing rule file failed: %v", err)
 		return config, err
 	}
 
 	config, err = ParseConfigFromJSON(jsConfig, rule)
+	if err != nil {
+		logger.Instance.Errorf("Parsing rule file failed: %v", err)
+	}
 	return config, err
 }

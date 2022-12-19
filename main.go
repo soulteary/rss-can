@@ -15,5 +15,5 @@ func main() {
 		logger.SetLevel(define.GLOBAL_DEBUG_LEVEL)
 	}
 
-	server.ServAPI()
+	server.StartWebServer()
 }

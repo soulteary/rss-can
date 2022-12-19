@@ -42,6 +42,6 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 
-	// TODO handle remote ...
+	// TODO handle remote mode(api) ...
 	return result
 }

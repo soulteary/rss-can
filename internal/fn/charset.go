@@ -1,4 +1,4 @@
-package charset
+package fn
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 )
 
 // According to the returned content, automatically determine the content encoding format
-func DetectContentCharset(body io.Reader) string {
+func DetectContentEncoding(body io.Reader) string {
 	r := bufio.NewReader(body)
 	if data, err := r.Peek(1024); err == nil {
 		if _, name, ok := charset.DetermineEncoding(data, ""); ok {
@@ -24,7 +24,7 @@ func DetectContentCharset(body io.Reader) string {
 // If `charset` is empty, decodeHTMLBody tries to guess the encoding from the content
 func DecodeHTMLBody(body io.Reader, charset string) (io.Reader, error) {
 	if charset == "" {
-		charset = DetectContentCharset(body)
+		charset = DetectContentEncoding(body)
 	} else {
 		// use UTF-8 as fallback
 		// TODO maybe support more preset types

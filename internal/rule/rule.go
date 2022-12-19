@@ -8,6 +8,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/javascript"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 )
 
 func scanFiles(dir string) (result []string) {
@@ -51,22 +52,12 @@ func LoadRules() []string {
 }
 
 func GetSDKs(file string) (sdk string, app string, err error) {
-	jsSSR, err := os.ReadFile("./internal/jssdk/ssr.js")
-	if err != nil {
-		return sdk, app, errors.New("SSR JavaScript SDK(shim) load failed")
-	}
-
-	jsSDK, err := os.ReadFile("./internal/jssdk/sdk.js")
-	if err != nil {
-		return sdk, app, errors.New("SSR JavaScript SDK(app) load failed")
-	}
-
 	jsRule, err := os.ReadFile(file)
 	if err != nil {
 		return sdk, app, errors.New("SSR JavaScript Rule load failed")
 	}
 
-	sdk = fmt.Sprintf("%s\n%s\n", jsSSR, jsSDK)
+	sdk = fmt.Sprintf("%s\n%s\n", jssdk.SSR_SHIM, jssdk.SDK)
 	app = fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
 	return sdk, app, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 )
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
@@ -59,25 +60,13 @@ return potted.value;
 })(window)`
 
 func GetCSRInjectCode(file string) string {
-	jsCSR, err := os.ReadFile("./internal/jssdk/jquery.min.js")
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-
-	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-
 	jsRule, err := os.ReadFile(file)
 	if err != nil {
 		fmt.Println(err)
 		return ""
 	}
 
-	jsApp := fmt.Sprintf("%s\n%s\n", jsCSR, jsSDK)
+	jsApp := fmt.Sprintf("%s\n%s\n", jssdk.CSR_SHIM, jssdk.SDK)
 	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jsApp, string(jsRule))
 }
 

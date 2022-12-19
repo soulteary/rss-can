@@ -41,3 +41,5 @@ replace github.com/PuerkitoBio/goquery => ./pkg/PuerkitoBio/goquery
 replace github.com/andybalholm/cascadia => ./pkg/andybalholm/cascadia
 
 replace github.com/gorilla/feeds => ./pkg/gorilla/feeds
+
+replace github.com/JohannesKaufmann/html-to-markdown => ./pkg/JohannesKaufmann/html-to-markdown

@@ -31,6 +31,8 @@ on:
       - 'pkg/andybalholm/cascadia/test_resources'
       - 'pkg/PuerkitoBio/goquery/bench'
       - 'pkg/PuerkitoBio/goquery/testdata'
+      - 'pkg/JohannesKaufmann/html-to-markdown/testdata'
+      - 'pkg/JohannesKaufmann/html-to-markdown/examples'
   schedule:
     - cron: '0 0 * * *'
 

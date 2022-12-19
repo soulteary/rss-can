@@ -22,6 +22,7 @@
 - AI: NLP tasks
 - Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
 - Tools: Quick RSS rules generator, like: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
+- [x] 2022.12.20 Support dynamic loading rules.
 - [x] 2022.12.19 Support document charset auto detection.
 - [x] 2022.12.19 Support MIX parser, both use CSR and SSR parser, faster batch CSR processing.
 - [x] 2022.12.19 Support extract combined data from multiple pages and assemble detailed RSS feed data.

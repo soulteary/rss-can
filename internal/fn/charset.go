@@ -26,9 +26,7 @@ func DecodeHTMLBody(body io.Reader, charset string) (io.Reader, error) {
 	if charset == "" {
 		charset = DetectContentEncoding(body)
 	} else {
-		// use UTF-8 as fallback
-		// TODO maybe support more preset types
-		if !(charset == define.CHARSET_UTF8 || charset == define.CHARSET_GB2312 || charset == define.CHARSET_GBK) {
+		if !(charset == define.CHARSET_UTF8 || charset == define.CHARSET_GB2312 || charset == define.CHARSET_GBK || charset == define.CHARSET_GB18030) {
 			charset = define.DEFAULT_DOCUMENT_CHARSET
 		}
 	}

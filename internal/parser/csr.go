@@ -12,6 +12,10 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 )
 
+func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
+	return ParsePageByGoRod(config, container, proxyAddr)
+}
+
 func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
 	var browser *rod.Browser
 	var page *rod.Page

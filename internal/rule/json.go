@@ -31,13 +31,13 @@ func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
 	if config.Mode == "ssr" {
-		return parser.GetWebsiteDataWithConfig(config)
+		return parser.GetDataAndConfigBySSR(config)
 	}
 
 	if config.Mode == "csr" {
 		const container = "127.0.0.1:9222"
 		const proxy = ""
-		return parser.ParsePageByGoRod(config, container, proxy)
+		return parser.GetDataAndConfigByCSR(config, container, proxy)
 	}
 
 	// TODO handle mix, remote ...

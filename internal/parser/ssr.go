@@ -51,7 +51,7 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 	return field
 }
 
-func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
+func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {
 	// TODO allows for automatic charset recognition
 	// TODO allow set charset by JS Config
 	doc := network.GetRemoteDocument(config.URL, "utf-8")

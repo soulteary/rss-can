@@ -11,9 +11,10 @@ type InfoItem struct {
 }
 
 type JavaScriptConfig struct {
-	URL  string `json:"URL"`
-	Mode string `json:"Mode"`
-	File string //private field
+	URL     string `json:"URL"`
+	Mode    string `json:"Mode"`
+	File    string //private field
+	Charset string `json:"Charset"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

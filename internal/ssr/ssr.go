@@ -8,7 +8,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
-	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/network"
 )
 
@@ -50,17 +49,6 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 
 	// if not a selector, fallback the original content
 	return field
-}
-
-func parseRemoteBodyAsMarkdown(url string, selector string) string {
-	doc := network.GetRemoteDocument(url, "utf-8")
-	if doc.Body == "" {
-		fmt.Println("no content")
-		return ""
-	}
-	document, _ := goquery.NewDocumentFromReader(strings.NewReader(doc.Body))
-	html, _ := document.Find(selector).Html()
-	return fn.Html2Md(html)
 }
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
@@ -120,7 +108,7 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 
 				// TODO bind hook action
 				if config.ContentBefore.Action != "" {
-					contentBefore := parseRemoteBodyAsMarkdown(item.Link, config.ContentBefore.Object)
+					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object)
 					item.Content = contentBefore
 				}
 

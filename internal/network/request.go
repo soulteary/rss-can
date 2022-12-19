@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/charset"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 )
 
 func Get(url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
@@ -61,4 +64,23 @@ func GetRemoteDocument(url string, documentCharset string) define.RemoteBodySani
 	buffer := new(bytes.Buffer)
 	buffer.ReadFrom(bodyParsed)
 	return define.MixupRemoteBodySanitized(code, status, now, buffer.String())
+}
+
+func GetRemoteDocumentAsMarkdown(url string, selector string) string {
+	doc := GetRemoteDocument(url, "utf-8")
+	if doc.Body == "" {
+		return ""
+	}
+
+	document, err := goquery.NewDocumentFromReader(strings.NewReader(doc.Body))
+	if err != nil {
+		return ""
+	}
+
+	html, err := document.Find(selector).Html()
+	if err != nil {
+		return ""
+	}
+
+	return fn.Html2Md(html)
 }

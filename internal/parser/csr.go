@@ -16,10 +16,6 @@ func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, pro
 	return ParsePageByGoRod(config, container, proxyAddr, false)
 }
 
-func GetDataAndConfigByMix(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
-	return ParsePageByGoRod(config, container, proxyAddr, false)
-}
-
 func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
 	var browser *rod.Browser
 	var page *rod.Page

@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/generator"
-	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
@@ -49,7 +48,7 @@ func ServAPI() {
 			return
 		}
 
-		data := parser.GetWebsiteDataWithConfig(config)
+		data := rule.GetWebsiteDataWithConfig(config)
 
 		var response string
 		var mimetype string

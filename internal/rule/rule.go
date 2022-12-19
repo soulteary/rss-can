@@ -7,7 +7,6 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/javascript"
-	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
 func scanFiles(dir string) (result []string) {
@@ -67,6 +66,6 @@ func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err erro
 		return config, err
 	}
 
-	config, err = parser.ParseConfigFromJSON(jsConfig, rule)
+	config, err = ParseConfigFromJSON(jsConfig, rule)
 	return config, err
 }

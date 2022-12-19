@@ -8,19 +8,9 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/network"
-
-	markdown "github.com/JohannesKaufmann/html-to-markdown"
 )
-
-func html2md(html string) string {
-	converter := markdown.NewConverter("", true, nil)
-	markdown, err := converter.ConvertString(html)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return markdown
-}
 
 func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document *goquery.Document) []define.InfoItem) define.BodyParsed {
 	document, err := goquery.NewDocumentFromReader(strings.NewReader(data.Body))
@@ -70,7 +60,7 @@ func parseRemoteBodyAsMarkdown(url string, selector string) string {
 	}
 	document, _ := goquery.NewDocumentFromReader(strings.NewReader(doc.Body))
 	html, _ := document.Find(selector).Html()
-	return html2md(html)
+	return fn.Html2Md(html)
 }
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {

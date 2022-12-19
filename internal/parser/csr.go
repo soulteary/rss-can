@@ -13,10 +13,14 @@ import (
 )
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
-	return ParsePageByGoRod(config, container, proxyAddr)
+	return ParsePageByGoRod(config, container, proxyAddr, false)
 }
 
-func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
+func GetDataAndConfigByMix(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
+	return ParsePageByGoRod(config, container, proxyAddr, false)
+}
+
+func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
 	var browser *rod.Browser
 	var page *rod.Page
 
@@ -50,6 +54,12 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		MustWaitLoad().
 		MustElement(config.ListContainer).
 		CancelTimeout()
+
+	if useMixParser {
+		pageHTML := page.MustEval(`()=> document.documentElement.innerHTML`)
+		var emptyBody define.RemoteBodySanitized
+		return ParseDataAndConfigBySSR(config, emptyBody, fmt.Sprint(pageHTML))
+	}
 
 	jsCSR, _ := os.ReadFile("./internal/jssdk/jquery.min.js")
 	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")

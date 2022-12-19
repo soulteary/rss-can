@@ -23,7 +23,7 @@ func ParseConfigFromJSON(str string, ruleFile string) (define.JavaScriptConfig, 
 // TODO: warning when value fixed by default
 func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
 	modeInRuls := strings.ToLower(config.Mode)
-	if !(modeInRuls == "ssr" || modeInRuls == "csr") {
+	if !(modeInRuls == "ssr" || modeInRuls == "csr" || modeInRuls == "mix") {
 		config.Mode = "ssr"
 	}
 	return config
@@ -32,12 +32,14 @@ func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
 	if config.Mode == "ssr" {
 		return parser.GetDataAndConfigBySSR(config)
-	}
-
-	if config.Mode == "csr" {
+	} else if config.Mode == "csr" {
 		const container = "127.0.0.1:9222"
 		const proxy = ""
 		return parser.GetDataAndConfigByCSR(config, container, proxy)
+	} else if config.Mode == "mix" {
+		const container = "127.0.0.1:9222"
+		const proxy = ""
+		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 
 	// TODO handle mix, remote ...

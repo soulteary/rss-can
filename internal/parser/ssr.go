@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -57,6 +58,21 @@ func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyPa
 	doc := network.GetRemoteDocument(config.URL, "utf-8")
 	if doc.Body == "" {
 		return result
+	}
+	return ParseDataAndConfigBySSR(config, doc, "")
+}
+
+func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
+	var doc define.RemoteBodySanitized
+	if userHtml != "" {
+		doc.Code = define.ERROR_CODE_NULL
+		doc.Status = define.ERROR_STATUS_NULL
+		doc.Body = userHtml
+		doc.Date = time.Now()
+	} else {
+		if userDoc.Code == define.ERROR_CODE_NULL {
+			doc = userDoc
+		}
 	}
 
 	return ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {

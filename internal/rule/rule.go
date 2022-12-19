@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -49,19 +50,34 @@ func LoadRules() []string {
 	return rules
 }
 
-func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {
-	jsSSR, _ := os.ReadFile("./internal/jssdk/ssr.js")
-	jsSDK, _ := os.ReadFile("./internal/jssdk/sdk.js")
-	base := fmt.Sprintf("%s\n%s\n", jsSSR, jsSDK)
+func GetSDKs(file string) (sdk string, app string, err error) {
+	jsSSR, err := os.ReadFile("./internal/jssdk/ssr.js")
+	if err != nil {
+		return sdk, app, errors.New("SSR JavaScript SDK(shim) load failed")
+	}
 
-	jsRule, err := os.ReadFile(rule)
+	jsSDK, err := os.ReadFile("./internal/jssdk/sdk.js")
+	if err != nil {
+		return sdk, app, errors.New("SSR JavaScript SDK(app) load failed")
+	}
+
+	jsRule, err := os.ReadFile(file)
+	if err != nil {
+		return sdk, app, errors.New("SSR JavaScript Rule load failed")
+	}
+
+	sdk = fmt.Sprintf("%s\n%s\n", jsSSR, jsSDK)
+	app = fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
+	return sdk, app, nil
+}
+
+func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {
+	base, app, err := GetSDKs(rule)
 	if err != nil {
 		return config, err
 	}
 
-	inject := fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
-
-	jsConfig, err := javascript.RunCode(base, inject)
+	jsConfig, err := javascript.RunCode(base, app)
 	if err != nil {
 		return config, err
 	}

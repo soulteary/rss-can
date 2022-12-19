@@ -30,18 +30,19 @@ func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
 }
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
-	if config.Mode == "ssr" {
+	switch strings.ToLower(config.Mode) {
+	case "ssr":
 		return parser.GetDataAndConfigBySSR(config)
-	} else if config.Mode == "csr" {
+	case "csr":
 		const container = "127.0.0.1:9222"
 		const proxy = ""
 		return parser.GetDataAndConfigByCSR(config, container, proxy)
-	} else if config.Mode == "mix" {
+	case "mix":
 		const container = "127.0.0.1:9222"
 		const proxy = ""
 		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 
-	// TODO handle mix, remote ...
+	// TODO handle remote ...
 	return result
 }

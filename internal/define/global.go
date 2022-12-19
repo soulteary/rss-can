@@ -8,4 +8,5 @@ const JS_EXECUTE_THORTTLING = 2 * time.Second
 const GLOBAL_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
 const GLOBAL_REQ_TIMEOUT = 5 * time.Second
 
-const DEFAULT_DOCUMENT_CHARSET = "utf-8"
+// Use UTF-8 encoding as default and fallback for document detection
+const DEFAULT_DOCUMENT_CHARSET = CHARSET_UTF8

@@ -20,10 +20,6 @@ func DetectContentCharset(body io.Reader) string {
 	return define.DEFAULT_DOCUMENT_CHARSET
 }
 
-const CHARSET_GBK = "gbk"
-const CHARSET_GB2312 = "gb2312"
-const CHARSET_UTF8 = "utf-8"
-
 // decodeHTMLBody returns an decoding reader of the html Body for the specified `charset`
 // If `charset` is empty, decodeHTMLBody tries to guess the encoding from the content
 func DecodeHTMLBody(body io.Reader, charset string) (io.Reader, error) {
@@ -32,7 +28,7 @@ func DecodeHTMLBody(body io.Reader, charset string) (io.Reader, error) {
 	} else {
 		// use UTF-8 as fallback
 		// TODO maybe support more preset types
-		if !(charset == CHARSET_UTF8 || charset == CHARSET_GB2312 || charset == CHARSET_GBK) {
+		if !(charset == define.CHARSET_UTF8 || charset == define.CHARSET_GB2312 || charset == define.CHARSET_GBK) {
 			charset = define.DEFAULT_DOCUMENT_CHARSET
 		}
 	}

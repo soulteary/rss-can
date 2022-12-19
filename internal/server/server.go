@@ -32,7 +32,7 @@ func StartWebServer() {
 	}
 
 	route.Use(Logger(logger.Instance), gin.Recovery())
-	route.GET("/:id/:type/", apiRSS())
+	route.GET("/feed/:id/:type/", apiRSS())
 	route.GET("/config/:type/:value/", apiConfig())
 	route.GET("/_/health/", apiHealth())
 	route.GET("/", welcomePage())

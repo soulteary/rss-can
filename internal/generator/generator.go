@@ -39,11 +39,11 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 	var err error
 
 	switch rssType {
-	case "RSS":
+	case define.FEED_TYPE_RSS:
 		rss, err = rssFeed.ToRss()
-	case "ATOM":
+	case define.FEED_TYPE_ATOM:
 		rss, err = rssFeed.ToAtom()
-	case "JSON":
+	case define.FEED_TYPE_JSON:
 		rss, err = rssFeed.ToJSON()
 	default:
 		rss = ""

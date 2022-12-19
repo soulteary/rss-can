@@ -1,5 +1,18 @@
 package define
 
+const (
+	FEED_TYPE_RSS  = "rss"
+	FEED_TYPE_ATOM = "atom"
+	FEED_TYPE_JSON = "json"
+)
+
+const (
+	FEED_MIME_TYPE_RSS     = "application/rss+xml"
+	FEED_MIME_TYPE_ATOM    = "application/atom+xml"
+	FEED_MIME_TYPE_JSON    = "application/feed+json"
+	FEED_MIME_TYPE_DEFAULT = "text/plain"
+)
+
 type InfoItem struct {
 	Title       string `json:"title"`
 	Link        string `json:"link"`

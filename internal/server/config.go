@@ -10,14 +10,14 @@ import (
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
-type DynamicConfig struct {
-	Type  string `uri:"type" binding:"required"`
-	Value string `uri:"value" binding:"required"`
-}
-
 func apiConfig() gin.HandlerFunc {
+	type Params struct {
+		Type  string `uri:"type" binding:"required"`
+		Value string `uri:"value" binding:"required"`
+	}
+
 	return func(c *gin.Context) {
-		var config DynamicConfig
+		var config Params
 		if err := c.ShouldBindUri(&config); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"msg": err})
 			return

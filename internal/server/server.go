@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/generator"
+	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
@@ -64,6 +65,27 @@ func ServAPI() {
 			response = generator.GenerateFeedsByType(config, data, "JSON")
 		}
 		c.Data(http.StatusOK, mimetype, []byte(response))
+	})
+
+	type DynamicConfig struct {
+		Type  string `uri:"type" binding:"required"`
+		Value string `uri:"value" binding:"required"`
+	}
+
+	route.GET("/config/:type/:value/", func(c *gin.Context) {
+		var config DynamicConfig
+		if err := c.ShouldBindUri(&config); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"msg": err})
+			return
+		}
+
+		if strings.ToLower(config.Type) == "set-loglevel" {
+			logLevel := strings.ToLower(config.Value)
+			if (logLevel == "debug") || (logLevel == "info") || (logLevel == "warn") || (logLevel == "error") {
+				logger.SetLevel(logLevel)
+			}
+
+		}
 	})
 
 	route.GET("/", func(c *gin.Context) {

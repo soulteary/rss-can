@@ -13,3 +13,5 @@ const DEFAULT_DOCUMENT_CHARSET = CHARSET_UTF8
 
 // Use `ssr` as default and fallback for document parsing
 const DEFAULT_PARSE_MODE = PARSE_MODE_SSR
+
+const GLOBAL_DEBUG_MODE = true

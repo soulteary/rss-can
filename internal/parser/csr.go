@@ -1,4 +1,4 @@
-package csr
+package parser
 
 import (
 	"encoding/json"

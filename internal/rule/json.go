@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/soulteary/RSS-Can/internal/csr"
 	"github.com/soulteary/RSS-Can/internal/define"
-	"github.com/soulteary/RSS-Can/internal/ssr"
+	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
 func ParseConfigFromJSON(str string, ruleFile string) (define.JavaScriptConfig, error) {
@@ -32,13 +31,13 @@ func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {
 	if config.Mode == "ssr" {
-		return ssr.GetWebsiteDataWithConfig(config)
+		return parser.GetWebsiteDataWithConfig(config)
 	}
 
 	if config.Mode == "csr" {
 		const container = "127.0.0.1:9222"
 		const proxy = ""
-		return csr.ParsePageByGoRod(config, container, proxy)
+		return parser.ParsePageByGoRod(config, container, proxy)
 	}
 
 	// TODO handle mix, remote ...

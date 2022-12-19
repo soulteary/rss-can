@@ -1,4 +1,4 @@
-package ssr
+package parser
 
 import (
 	"fmt"

@@ -43,12 +43,14 @@ func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
 	var status string
 	var now = time.Now()
 
-	cache, err := cacher.Get(url)
-	if err == nil && cache != "" {
-		logger.Instance.Debugln("Get remote document from cache")
-		code = define.ERROR_CODE_NULL
-		status = define.ERROR_STATUS_NULL
-		return define.MixupRemoteBodySanitized(code, status, now, cache)
+	if cacher.IsEnable() {
+		cache, err := cacher.Get(url)
+		if err == nil && cache != "" {
+			logger.Instance.Debugln("Get remote document from cache")
+			code = define.ERROR_CODE_NULL
+			status = define.ERROR_STATUS_NULL
+			return define.MixupRemoteBodySanitized(code, status, now, cache)
+		}
 	}
 
 	code, status, res := Get(url, define.GLOBAL_USER_AGENT)
@@ -74,13 +76,15 @@ func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
 	buffer := new(bytes.Buffer)
 	buffer.ReadFrom(bodyParsed)
 
-	err = cacher.Set(url, buffer.String())
-	if err != nil {
-		logger.Instance.Warn("Unable to use cache")
-	} else {
-		// TODO set with rule config
-		// 10mins
-		cacher.Expire(url, 10*60*time.Second)
+	if cacher.IsEnable() {
+		err = cacher.Set(url, buffer.String())
+		if err != nil {
+			logger.Instance.Warn("Unable to use cache")
+		} else {
+			// TODO set with rule config
+			// 10mins
+			cacher.Expire(url, 10*60*time.Second)
+		}
 	}
 	return define.MixupRemoteBodySanitized(code, status, now, buffer.String())
 }

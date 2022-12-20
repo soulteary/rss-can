@@ -101,3 +101,7 @@ func Expire(key string, expire time.Duration) error {
 	}
 	return NO_CACHE_ENABLED
 }
+
+func IsEnable() bool {
+	return define.MEMORY_CACHE_ENABLED || define.REDIS_ENABLED
+}

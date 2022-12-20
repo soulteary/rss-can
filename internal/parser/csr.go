@@ -9,8 +9,10 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
+	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
@@ -70,7 +72,29 @@ func GetCSRInjectCode(file string) string {
 	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jsApp, string(jsRule))
 }
 
+func parseHTMLtoItems(data string) []define.InfoItem {
+	var items []define.InfoItem
+	err := json.Unmarshal([]byte(data), &items)
+	if err != nil {
+		fmt.Println(err)
+		return items
+	}
+	return items
+}
+
 func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
+	if cacher.IsEnable() {
+		cache, err := cacher.Get(config.URL)
+		if err == nil && cache != "" {
+			logger.Instance.Debugln("Get remote document from cache")
+			code := define.ERROR_CODE_NULL
+			status := define.ERROR_STATUS_NULL
+			items := parseHTMLtoItems(cache)
+			now := time.Now()
+			return define.MixupBodyParsed(code, status, now, items)
+		}
+	}
+
 	page := GetRodPageObject(container, proxyAddr)
 
 	page.
@@ -81,22 +105,41 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		CancelTimeout()
 
 	if useMixParser {
-		pageHTML := page.MustEval(INJECT_CODE_MIX_PARSER)
+		pageData := page.MustEval(INJECT_CODE_MIX_PARSER)
+		pageHTML := fmt.Sprint(pageData)
+		if cacher.IsEnable() {
+			err := cacher.Set(config.URL, pageHTML)
+			if err != nil {
+				logger.Instance.Warn("Unable to use cache")
+			} else {
+				// TODO set with rule config
+				// 10mins
+				cacher.Expire(config.URL, 10*60*time.Second)
+			}
+		}
 		var emptyBody define.RemoteBodySanitized
-		return ParseDataAndConfigBySSR(config, emptyBody, fmt.Sprint(pageHTML))
+		return ParseDataAndConfigBySSR(config, emptyBody, pageHTML)
 	}
 
 	injectCode := GetCSRInjectCode(config.File)
 	pageData := page.MustEval(injectCode)
-	var items []define.InfoItem
-	err := json.Unmarshal([]byte(fmt.Sprint(pageData)), &items)
-	if err != nil {
-		fmt.Println(err)
-		return result
+	pageHTML := fmt.Sprint(pageData)
+
+	// todo check config
+	if cacher.IsEnable() {
+		err := cacher.Set(config.URL, pageHTML)
+		if err != nil {
+			logger.Instance.Warn("Unable to use cache")
+		} else {
+			// TODO set with rule config
+			// 10mins
+			cacher.Expire(config.URL, 10*60*time.Second)
+		}
 	}
 
 	code := define.ERROR_CODE_NULL
 	status := define.ERROR_STATUS_NULL
+	items := parseHTMLtoItems(pageHTML)
 	now := time.Now()
 	return define.MixupBodyParsed(code, status, now, items)
 }

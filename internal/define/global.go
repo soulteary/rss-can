@@ -37,7 +37,7 @@ const (
 
 const (
 	MEMORY_CACHE_ENABLED       = true
-	IN_MEMORY_CACHE_EXPIRATION = 10 * 60 * time.Second
+	IN_MEMORY_CACHE_EXPIRATION = 10 * 60 //seconds, 10min
 	IN_MEMORY_CACHE_STORE_NAME = "memory_cache"
 )
 

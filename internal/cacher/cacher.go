@@ -77,10 +77,10 @@ func Del(key string) error {
 
 func Expire(key string, expire time.Duration) error {
 	if define.REDIS_ENABLED {
-		err := SetDataExpireByKeyFromRedis(key, expire)
+		err := SetDataExpireByKeyFromRedis(key, expire*time.Second)
 		if err != nil {
 			if define.MEMORY_CACHE_ENABLED {
-				err := SetDataExpireByKeyFromMemory(key, expire)
+				err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
 				if err != nil {
 					return err
 				}
@@ -91,7 +91,7 @@ func Expire(key string, expire time.Duration) error {
 	}
 
 	if define.MEMORY_CACHE_ENABLED {
-		err := SetDataExpireByKeyFromMemory(key, expire)
+		err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
 		if err != nil {
 			return err
 		}

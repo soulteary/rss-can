@@ -33,13 +33,22 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 	case define.PARSE_MODE_SSR:
 		return parser.GetDataAndConfigBySSR(config)
 	case define.PARSE_MODE_CSR:
-		// TODO read config
-		const container = define.DEFAULT_HEADLESS_CHROME
-		const proxy = define.DEFAULT_PROXY_ADDRESS
+		// TODO check headless addr is valid
+		// TODO set proxy by config
+		container := define.DEFAULT_HEADLESS_CHROME
+		proxy := define.DEFAULT_PROXY_ADDRESS
+		if config.Headless != "" && strings.Contains(config.Headless, ":") {
+			container = config.Headless
+		}
 		return parser.GetDataAndConfigByCSR(config, container, proxy)
 	case define.PARSE_MODE_MIX:
-		const container = define.DEFAULT_HEADLESS_CHROME
-		const proxy = define.DEFAULT_PROXY_ADDRESS
+		// TODO check headless addr is valid
+		// TODO set proxy by config
+		container := define.DEFAULT_HEADLESS_CHROME
+		proxy := define.DEFAULT_PROXY_ADDRESS
+		if config.Headless != "" && strings.Contains(config.Headless, ":") {
+			container = config.Headless
+		}
 		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 

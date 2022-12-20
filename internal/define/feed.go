@@ -26,11 +26,12 @@ type InfoItem struct {
 }
 
 type JavaScriptConfig struct {
-	URL     string        `json:"URL"`
-	Mode    string        `json:"Mode"`
-	File    string        //private field
-	Charset string        `json:"Charset"`
-	Expire  time.Duration `json:"Expire"`
+	URL      string        `json:"URL"`
+	Mode     string        `json:"Mode"`
+	File     string        //private field
+	Charset  string        `json:"Charset"`
+	Expire   time.Duration `json:"Expire"`
+	Headless string        `json:"Headless"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

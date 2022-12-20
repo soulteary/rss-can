@@ -14,23 +14,22 @@
 
 ## PLAN
 
-- Dockerize: Provide a simple tutorial on how to use Docker images with common technology stacks
-- Stateful: Persistent data storage solution, supporting at least two databases
-- JS SDK: Games and Fun for everyone
-- Golang: Optimized for Golang 1.19
-- Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software
-- AI: NLP tasks
-- Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
-- Tools: Quick RSS rules generator, like: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
-- [x] 2022.12.20 Support lightweight caching to avoid sending meaningless requests.
-- [x] 2022.12.20 Support dynamic loading rules.
-- [x] 2022.12.19 Support document charset auto detection.
-- [x] 2022.12.19 Support MIX parser, both use CSR and SSR parser, faster batch CSR processing.
-- [x] 2022.12.19 Support extract combined data from multiple pages and assemble detailed RSS feed data.
-- [x] 2022.12.15 Support websites parsing via CSR render, [Blog](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
-- [x] 2022.12.14 Support convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
-- [x] 2022.12.13 Support dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
-- [x] 2022.12.12 Support websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK
+- [x] 2022.12.20 Support Redis, in-memory caching to avoid sending meaningless requests, dynamic loading rules.
+- [x] 2022.12.19 Support document charset auto detection, MIX parser, both use CSR and SSR parser, faster batch CSR processing, Extract combined data from detail pages and assemble detailed RSS feed data.
+- [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+- [x] 2022.12.14 Convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
+- [x] 2022.12.13 Dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
+- [x] 2022.12.12  Websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+
+- [ ] Dockerize: Provide a simple tutorial on how to use Docker images with common technology stacks
+- [ ] Golang: Optimized for Golang 1.19
+- [ ] Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software
+- [ ] AI: NLP tasks
+- [ ] Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
+- [ ] Tools: Quick RSS rules generator, like: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
+
+
 
 ## License
 

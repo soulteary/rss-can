@@ -33,6 +33,7 @@ on:
       - 'pkg/PuerkitoBio/goquery/testdata'
       - 'pkg/JohannesKaufmann/html-to-markdown/testdata'
       - 'pkg/JohannesKaufmann/html-to-markdown/examples'
+      - 'pkg/muesli/cache2go/examples'
   schedule:
     - cron: '0 0 * * *'
 

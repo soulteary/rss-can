@@ -1,5 +1,6 @@
 package define
 
+// RSS Can supported page charsets
 const (
 	CHARSET_GBK     = "gbk"
 	CHARSET_GB2312  = "gb2312"

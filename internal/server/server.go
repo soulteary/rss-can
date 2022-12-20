@@ -38,7 +38,7 @@ func StartWebServer() {
 	route.GET("/", welcomePage())
 
 	srv := &http.Server{
-		Addr:              ":" + strconv.Itoa(define.DEFAULT_HTT_PORT),
+		Addr:              ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT),
 		Handler:           route,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       5 * time.Second,

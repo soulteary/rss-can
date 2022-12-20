@@ -1,5 +1,7 @@
 package define
 
+import "time"
+
 const (
 	FEED_TYPE_RSS  = "rss"
 	FEED_TYPE_ATOM = "atom"
@@ -24,10 +26,11 @@ type InfoItem struct {
 }
 
 type JavaScriptConfig struct {
-	URL     string `json:"URL"`
-	Mode    string `json:"Mode"`
-	File    string //private field
-	Charset string `json:"Charset"`
+	URL     string        `json:"URL"`
+	Mode    string        `json:"Mode"`
+	File    string        //private field
+	Charset string        `json:"Charset"`
+	Expire  time.Duration `json:"Expire"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

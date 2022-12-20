@@ -53,7 +53,7 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 }
 
 func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {
-	doc := network.GetRemoteDocument(config.URL, config.Charset)
+	doc := network.GetRemoteDocument(config.URL, config.Charset, config.Expire)
 	if doc.Body == "" {
 		return result
 	}
@@ -122,7 +122,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 				// TODO bind hook action
 				if config.ContentBefore.Action != "" {
-					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object, config.Charset)
+					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object, config.Charset, config.Expire)
 					item.Content = contentBefore
 				}
 

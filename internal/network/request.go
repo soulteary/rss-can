@@ -38,7 +38,7 @@ func Get(url string, userAgent string) (code define.ErrorCode, status string, re
 	return code, status, response
 }
 
-func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
+func GetRemoteDocument(url string, charset string, expire time.Duration) define.RemoteBodySanitized {
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
@@ -81,16 +81,18 @@ func GetRemoteDocument(url string, charset string) define.RemoteBodySanitized {
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		} else {
-			// TODO set with rule config
-			const expire = define.IN_MEMORY_CACHE_EXPIRATION
-			cacher.Expire(url, expire)
+			if expire > 0 {
+				cacher.Expire(url, expire*time.Second)
+			} else {
+				cacher.Expire(url, define.IN_MEMORY_CACHE_EXPIRATION)
+			}
 		}
 	}
 	return define.MixupRemoteBodySanitized(code, status, now, buffer.String())
 }
 
-func GetRemoteDocumentAsMarkdown(url string, selector string, charset string) string {
-	doc := GetRemoteDocument(url, charset)
+func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, expire time.Duration) string {
+	doc := GetRemoteDocument(url, charset, expire)
 	if doc.Body == "" {
 		return ""
 	}

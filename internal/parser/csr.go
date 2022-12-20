@@ -83,7 +83,7 @@ func parseHTMLtoItems(data string) []define.InfoItem {
 }
 
 func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) (result define.BodyParsed) {
-	if cacher.IsEnable() {
+	if cacher.IsEnable() && !config.DisableCache {
 		cache, err := cacher.Get(config.URL)
 		if err == nil && cache != "" {
 			logger.Instance.Debugln("Get remote document from cache")
@@ -107,7 +107,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	if useMixParser {
 		pageData := page.MustEval(INJECT_CODE_MIX_PARSER)
 		pageHTML := fmt.Sprint(pageData)
-		if cacher.IsEnable() {
+		if cacher.IsEnable() && !config.DisableCache {
 			err := cacher.Set(config.URL, pageHTML)
 			if err != nil {
 				logger.Instance.Warn("Unable to use cache")
@@ -127,8 +127,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	pageData := page.MustEval(injectCode)
 	pageHTML := fmt.Sprint(pageData)
 
-	// todo check config
-	if cacher.IsEnable() {
+	if cacher.IsEnable() && !config.DisableCache {
 		err := cacher.Set(config.URL, pageHTML)
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")

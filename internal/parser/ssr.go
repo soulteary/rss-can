@@ -2,13 +2,13 @@ package parser
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
 )
 
@@ -25,6 +25,15 @@ func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document 
 	status := define.ERROR_STATUS_NULL
 	items := callback(document)
 	return define.MixupBodyParsed(code, status, data.Date, items)
+}
+
+func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document *goquery.Document) []string) (result []string) {
+	document, err := goquery.NewDocumentFromReader(strings.NewReader(data.Body))
+	if err != nil {
+		return result
+	}
+	result = callback(document)
+	return result
 }
 
 func jsBridge(field string, method string, s *goquery.Selection) string {
@@ -53,11 +62,46 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 }
 
 func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {
-	doc := network.GetRemoteDocument(config.URL, config.Charset, config.Expire)
+	doc := network.GetRemoteDocument(config.URL, config.Charset, config.Expire, config.DisableCache)
 	if doc.Body == "" {
 		return result
 	}
 	return ParseDataAndConfigBySSR(config, doc, "")
+}
+
+func fixLink(link string, baseUrl string) (string, error) {
+	if !(strings.HasPrefix("http://", link) || strings.HasPrefix("https://", link)) {
+		base, err := url.Parse(baseUrl)
+		if err != nil {
+			logger.Instance.Infof("Parsing link failed %s", link)
+			return "", err
+		}
+
+		ref, err := url.Parse(link)
+		if err != nil {
+			logger.Instance.Infof("Parsing ref link failed %s", link)
+			return "", err
+		}
+		u := base.ResolveReference(ref)
+		return u.String(), nil
+	}
+	return link, nil
+}
+
+func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links []string) {
+	if config.Pager != "" {
+		document.Find(config.Pager).Each(func(i int, s *goquery.Selection) {
+			rawLink, exist := s.Attr("href")
+			if exist {
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					links = append(links, link)
+				}
+			}
+		})
+		return links
+	}
+	return links
 }
 
 func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
@@ -71,6 +115,19 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 		if userDoc.Code == define.ERROR_CODE_NULL {
 			doc = userDoc
 		}
+	}
+
+	// TODO combine page links content
+	if config.Pager != "" {
+		pageLinks := ParsePagerByGoQuery(doc, func(document *goquery.Document) []string {
+			return GetPager(config, document)
+		})
+
+		if len(pageLinks) > config.PagerLimit {
+			pageLinks = pageLinks[:config.PagerLimit]
+		}
+
+		fmt.Println(pageLinks)
 	}
 
 	return ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {
@@ -103,26 +160,16 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				}
 
 				if config.Link != "" {
-					link := jsBridge(config.Link, "href", s)
-					if !(strings.HasPrefix("http://", link) || strings.HasPrefix("https://", link)) {
-						base, err := url.Parse(config.URL)
-						if err != nil {
-							log.Fatal(err)
-						}
-						ref, err := url.Parse(link)
-						if err != nil {
-							log.Fatal(err)
-						}
-						u := base.ResolveReference(ref)
-						item.Link = u.String()
-					} else {
+					rawLink := jsBridge(config.Link, "href", s)
+					link, err := fixLink(rawLink, config.URL)
+					if err == nil {
 						item.Link = link
 					}
 				}
 
 				// TODO bind hook action
 				if config.ContentBefore.Action != "" {
-					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object, config.Charset, config.Expire)
+					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Content = contentBefore
 				}
 

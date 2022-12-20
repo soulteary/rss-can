@@ -38,12 +38,12 @@ func Get(url string, userAgent string) (code define.ErrorCode, status string, re
 	return code, status, response
 }
 
-func GetRemoteDocument(url string, charset string, expire time.Duration) define.RemoteBodySanitized {
+func GetRemoteDocument(url string, charset string, expire time.Duration, disableCache bool) define.RemoteBodySanitized {
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
 
-	if cacher.IsEnable() {
+	if cacher.IsEnable() && !disableCache {
 		cache, err := cacher.Get(url)
 		if err == nil && cache != "" {
 			logger.Instance.Debugln("Get remote document from cache")
@@ -76,7 +76,7 @@ func GetRemoteDocument(url string, charset string, expire time.Duration) define.
 	buffer := new(bytes.Buffer)
 	buffer.ReadFrom(bodyParsed)
 
-	if cacher.IsEnable() {
+	if cacher.IsEnable() && !disableCache {
 		err = cacher.Set(url, buffer.String())
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
@@ -91,8 +91,8 @@ func GetRemoteDocument(url string, charset string, expire time.Duration) define.
 	return define.MixupRemoteBodySanitized(code, status, now, buffer.String())
 }
 
-func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, expire time.Duration) string {
-	doc := GetRemoteDocument(url, charset, expire)
+func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, expire time.Duration, disableCache bool) string {
+	doc := GetRemoteDocument(url, charset, expire, disableCache)
 	if doc.Body == "" {
 		return ""
 	}

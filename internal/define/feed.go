@@ -26,12 +26,13 @@ type InfoItem struct {
 }
 
 type JavaScriptConfig struct {
-	URL      string        `json:"URL"`
-	Mode     string        `json:"Mode"`
-	File     string        //private field
-	Charset  string        `json:"Charset"`
-	Expire   time.Duration `json:"Expire"`
-	Headless string        `json:"Headless"`
+	URL          string        `json:"URL"`
+	Mode         string        `json:"Mode"`
+	File         string        //private field
+	Charset      string        `json:"Charset"`
+	Expire       time.Duration `json:"Expire"`
+	Headless     string        `json:"Headless"`
+	DisableCache bool          `json:"DisableCache"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`
@@ -47,4 +48,7 @@ type JavaScriptConfig struct {
 		Object string `json:"object"`
 		URL    string `json:"URL"`
 	} `json:"ContentBefore"`
+
+	Pager      string `json:"Pager"`
+	PagerLimit int    `json:"PagerLimit"`
 }

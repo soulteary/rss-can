@@ -76,7 +76,7 @@ func (table *CacheTable) SetAddedItemCallback(f func(*CacheItem)) {
 	table.addedItem = append(table.addedItem, f)
 }
 
-//AddAddedItemCallback appends a new callback to the addedItem queue
+// AddAddedItemCallback appends a new callback to the addedItem queue
 func (table *CacheTable) AddAddedItemCallback(f func(*CacheItem)) {
 	table.Lock()
 	defer table.Unlock()

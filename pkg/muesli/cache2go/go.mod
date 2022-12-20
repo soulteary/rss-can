@@ -1,3 +1,3 @@
 module github.com/muesli/cache2go
 
-go 1.15
+go 1.19

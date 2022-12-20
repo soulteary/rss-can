@@ -37,6 +37,11 @@ const (
 
 const (
 	MEMORY_CACHE_ENABLED       = true
-	IN_MEMORY_CACHE_EXPIRATION = 60 * time.Second
+	IN_MEMORY_CACHE_EXPIRATION = 10 * 60 * time.Second
 	IN_MEMORY_CACHE_STORE_NAME = "memory_cache"
+)
+
+const (
+	DEFAULT_HEADLESS_CHROME = "127.0.0.1:9222"
+	DEFAULT_PROXY_ADDRESS   = ""
 )

@@ -113,8 +113,8 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 				logger.Instance.Warn("Unable to use cache")
 			} else {
 				// TODO set with rule config
-				// 10mins
-				cacher.Expire(config.URL, 10*60*time.Second)
+				const expire = define.IN_MEMORY_CACHE_EXPIRATION
+				cacher.Expire(config.URL, expire)
 			}
 		}
 		var emptyBody define.RemoteBodySanitized
@@ -132,8 +132,8 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 			logger.Instance.Warn("Unable to use cache")
 		} else {
 			// TODO set with rule config
-			// 10mins
-			cacher.Expire(config.URL, 10*60*time.Second)
+			const expire = define.IN_MEMORY_CACHE_EXPIRATION
+			cacher.Expire(config.URL, expire)
 		}
 	}
 

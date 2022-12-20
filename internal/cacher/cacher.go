@@ -7,8 +7,6 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 )
 
-const enableMemory = false
-
 var NO_CACHE_ENABLED = (func() error {
 	return errors.New("no cache enabled")
 })()

@@ -28,6 +28,10 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 			Created: now,
 		}
 
+		if data.ID != "" {
+			feedItem.Id = data.ID
+		}
+
 		if data.Content != "" {
 			feedItem.Content = data.Content
 		}

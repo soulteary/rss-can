@@ -3,6 +3,7 @@ package parser
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -37,7 +38,8 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 }
 
 func jsBridge(field string, method string, s *goquery.Selection) string {
-	if strings.Contains(field, ".") || strings.Contains(field, "#") {
+	// TODO use allowlist
+	if strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, "p") || strings.Contains(field, "a") || strings.Contains(field, "li") {
 		// extract information by attributes
 		find := strings.ToLower(method)
 		if find == "text" {
@@ -188,6 +190,16 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 					link, err := fixLink(rawLink, config.URL)
 					if err == nil {
 						item.Link = link
+					}
+
+					// todo prepare regexp
+					if config.IdByRegexp != "" {
+						re := regexp.MustCompile("`" + config.IdByRegexp + "`")
+						match := re.FindAllStringSubmatch(rawLink, -1)
+						fmt.Println(match)
+						if len(match) == 1 {
+							item.ID = match[0][1]
+						}
 					}
 				}
 

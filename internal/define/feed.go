@@ -16,6 +16,7 @@ const (
 )
 
 type InfoItem struct {
+	ID          string `json:"id,omitempty"`
 	Title       string `json:"title"`
 	Link        string `json:"link"`
 	Date        string `json:"date"`
@@ -33,6 +34,7 @@ type JavaScriptConfig struct {
 	Expire       time.Duration `json:"Expire"`
 	Headless     string        `json:"Headless"`
 	DisableCache bool          `json:"DisableCache"`
+	IdByRegexp   string        `json:"IdByRegexp"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

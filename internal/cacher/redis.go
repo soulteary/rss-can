@@ -9,7 +9,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
-var instance *redis.Client
+var instanceRedis *redis.Client
 var ctx = context.Background()
 
 const REDIS_KEY_NOT_EXIST = redis.Nil
@@ -20,29 +20,32 @@ func init() {
 
 func connect(init bool) *redis.Client {
 	if !init {
-		err := instance.Ping(ctx).Err()
+		err := instanceRedis.Ping(ctx).Err()
 		if err == nil {
-			return instance
+			return instanceRedis
 		}
 	}
 
 	addr := ""
 	password := ""
+	db := 0
 	if define.GLOBAL_DEBUG_MODE {
 		addr = define.DEV_REDIS_ADDRESS
 		password = define.DEV_REDIS_PASSWORD
+		db = define.DEV_REDIS_DB
 	} else {
 		addr = define.PROD_REDIS_ADDRESS
 		password = define.PROD_REDIS_PASSWORD
+		db = define.PROD_REDIS_DB
 	}
 
 	if !init {
-		instance.Close()
+		instanceRedis.Close()
 	}
-	instance = redis.NewClient(&redis.Options{
+	instanceRedis = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
-		DB:       0,
+		DB:       db,
 		PoolSize: 100,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
 			logger.Instance.Info("Restore the connection to Redis.")
@@ -51,11 +54,11 @@ func connect(init bool) *redis.Client {
 		MaxRetries: 3,
 	})
 
-	return instance
+	return instanceRedis
 }
 
 func Disconnect() (err error) {
-	return instance.Close()
+	return instanceRedis.Close()
 }
 
 func UpdateDataToRedis(key string, value string) (err error) {

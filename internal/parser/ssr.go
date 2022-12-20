@@ -104,6 +104,15 @@ func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links
 	return links
 }
 
+func taskLinkInPager(pageLinks []string, link string) bool {
+	for _, item := range pageLinks {
+		if item == link {
+			return true
+		}
+	}
+	return false
+}
+
 func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
 	var doc define.RemoteBodySanitized
 	if userHtml != "" {
@@ -117,21 +126,36 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 		}
 	}
 
-	// TODO combine page links content
+	var items []define.InfoItem
+
 	if config.Pager != "" {
 		pageLinks := ParsePagerByGoQuery(doc, func(document *goquery.Document) []string {
 			return GetPager(config, document)
 		})
 
 		if len(pageLinks) > config.PagerLimit {
-			pageLinks = pageLinks[:config.PagerLimit]
+			if taskLinkInPager(pageLinks, config.URL) {
+				pageLinks = pageLinks[:config.PagerLimit]
+			} else {
+				if config.PagerLimit > 2 {
+					pageLinks = pageLinks[:config.PagerLimit-1]
+				}
+			}
 		}
 
-		fmt.Println(pageLinks)
+		for _, link := range pageLinks {
+			newConfig := config
+			newConfig.URL = link
+			newConfig.Pager = ""
+			ret := GetDataAndConfigBySSR(newConfig)
+			items = append(items, ret.Body...)
+		}
+		code := define.ERROR_CODE_NULL
+		status := define.ERROR_STATUS_NULL
+		return define.MixupBodyParsed(code, status, time.Now(), items)
 	}
 
-	return ParsePageByGoQuery(doc, func(document *goquery.Document) []define.InfoItem {
-		var items []define.InfoItem
+	return ParsePageByGoQuery(doc, func(document *goquery.Document) (items []define.InfoItem) {
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
 			var item define.InfoItem
 			// title must exist in the config

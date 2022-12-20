@@ -15,7 +15,9 @@ var ctx = context.Background()
 const REDIS_KEY_NOT_EXIST = redis.Nil
 
 func init() {
-	connect(true)
+	if define.REDIS_ENABLED {
+		connect(true)
+	}
 }
 
 func connect(init bool) *redis.Client {

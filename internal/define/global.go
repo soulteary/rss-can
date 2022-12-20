@@ -26,6 +26,7 @@ const (
 )
 
 const (
+	REDIS_ENABLED       = true
 	PROD_REDIS_ADDRESS  = "127.0.0.1:6379"
 	PROD_REDIS_PASSWORD = ""
 	PROD_REDIS_DB       = 0
@@ -35,6 +36,7 @@ const (
 )
 
 const (
+	MEMORY_CACHE_ENABLED       = true
 	IN_MEMORY_CACHE_EXPIRATION = 60 * time.Second
 	IN_MEMORY_CACHE_STORE_NAME = "memory_cache"
 )

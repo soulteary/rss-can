@@ -16,7 +16,9 @@ type InMemoryPageCache struct {
 var instanceMemory *cache2go.CacheTable
 
 func init() {
-	instanceMemory = cache2go.Cache(define.IN_MEMORY_CACHE_STORE_NAME)
+	if define.MEMORY_CACHE_ENABLED {
+		instanceMemory = cache2go.Cache(define.IN_MEMORY_CACHE_STORE_NAME)
+	}
 }
 
 func UpdateDataToMemory(key, value string) {

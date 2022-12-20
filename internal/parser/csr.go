@@ -97,6 +97,8 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 
 	page := GetRodPageObject(container, proxyAddr)
 
+	// TODO timeout set by config
+	// TODO support pager config
 	page.
 		Timeout(5 * time.Second).
 		MustNavigate(config.URL).

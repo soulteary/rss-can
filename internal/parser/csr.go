@@ -65,7 +65,7 @@ return potted.value;
 func GetCSRInjectCode(file string) string {
 	jsRule, err := os.ReadFile(file)
 	if err != nil {
-		fmt.Println(err)
+		logger.Instance.Errorf("Open rule failed %v", err)
 		return ""
 	}
 
@@ -77,7 +77,7 @@ func parseHTMLtoItems(data string) []define.InfoItem {
 	var items []define.InfoItem
 	err := json.Unmarshal([]byte(data), &items)
 	if err != nil {
-		fmt.Println(err)
+		logger.Instance.Errorf("Parsing HTML to Items failed: %v", err)
 		return items
 	}
 	return items

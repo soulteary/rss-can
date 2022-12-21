@@ -205,7 +205,6 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				rawLink := jsBridge(config.DescriptionHook.URL, "href", s)
 				link, err := fixLink(rawLink, config.URL)
 				if err == nil {
-					fmt.Println(link)
 					description := network.GetRemoteDocumentAsMarkdown(link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Description = description
 				}

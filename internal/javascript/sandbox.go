@@ -2,11 +2,11 @@ package javascript
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/logger"
 
 	v8 "rogchap.com/v8go"
 )
@@ -33,7 +33,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		if !timeout.Stop() {
 			<-timeout.C
 		}
-		fmt.Fprintf(os.Stderr, "cost time: %v\n", duration)
+		logger.Instance.Infof("Parsing config successed, cost time: %v", duration)
 		return val, nil
 	case err := <-errs:
 		return nil, err
@@ -42,7 +42,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		vm := ctx.Isolate()
 		vm.TerminateExecution()
 		err := <-errs
-		fmt.Fprintf(os.Stderr, "execution timeout: %v\n", duration)
+		logger.Instance.Infof("execution timeout: %v", duration)
 		time.Sleep(fn.I2T(define.JS_EXECUTE_THORTTLING) * time.Second)
 		return nil, err
 	}

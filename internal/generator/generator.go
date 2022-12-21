@@ -1,11 +1,11 @@
 package generator
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/gorilla/feeds"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
 func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed, rssType string) string {
@@ -54,7 +54,7 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 	}
 
 	if err != nil {
-		fmt.Println(err)
+		logger.Instance.Errorf("Generate feed failed: %v", err)
 		return ""
 	}
 

@@ -221,11 +221,10 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				if err == nil {
 					item.Link = link
 				}
-				// todo prepare regexp
+
 				if config.IdByRegexp != "" {
-					re := regexp.MustCompile("`" + config.IdByRegexp + "`")
+					re := regexp.MustCompile(config.IdByRegexp)
 					match := re.FindAllStringSubmatch(rawLink, -1)
-					fmt.Println(match)
 					if len(match) == 1 {
 						item.ID = match[0][1]
 					}

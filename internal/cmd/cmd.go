@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -37,30 +38,30 @@ type AppFlags struct {
 }
 
 func ParseFlags() (appFlags AppFlags) {
-	flag.BoolVar(&appFlags.DEBUG_MODE, "debug", define.DEFAULT_DEBUG_MODE, "whether to output debugging logging")
-	flag.StringVar(&appFlags.DEBUG_LEVEL, "debug-level", define.DEFAULT_DEBUG_LEVEL, "set debug log printing level")
+	flag.BoolVar(&appFlags.DEBUG_MODE, "debug", define.DEFAULT_DEBUG_MODE, fmt.Sprintf("whether to output debugging logging, env: `%s`", ENV_KEY_DEBUG))
+	flag.StringVar(&appFlags.DEBUG_LEVEL, "debug-level", define.DEFAULT_DEBUG_LEVEL, fmt.Sprintf("set debug log printing level, env: `%s`", ENV_KEY_DEBUG_LEVEL))
 
-	flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "web service listening address")
-	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, "web service listening port")
+	// flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "web service listening address")
+	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, fmt.Sprintf("web service listening port, env: `%s`", ENV_KEY_PORT))
 
-	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQ_TIMEOUT, "set request timeout")
-	flag.IntVar(&appFlags.SERVER_TIMEOUT, "timeout-server", define.DEFAULT_SERVER_TIMEOUT, "set web server response timeout")
-	flag.IntVar(&appFlags.JS_EXECUTE_TIMEOUT, "timeout-js", define.DEFAULT_JS_EXECUTE_TIMEOUT, "set js sandbox code execution timeout")
-	flag.IntVar(&appFlags.HEADLESS_EXCUTE_TIMEOUT, "timeout-headless", define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, "set headless execution timeout")
+	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQ_TIMEOUT, fmt.Sprintf("set request timeout, env: `%s`", ENV_KEY_REQUEST_TIMEOUT))
+	flag.IntVar(&appFlags.SERVER_TIMEOUT, "timeout-server", define.DEFAULT_SERVER_TIMEOUT, fmt.Sprintf("set web server response timeout, env: `%s`", ENV_KEY_SERVER_TIMEOUT))
+	flag.IntVar(&appFlags.JS_EXECUTE_TIMEOUT, "timeout-js", define.DEFAULT_JS_EXECUTE_TIMEOUT, fmt.Sprintf("set js sandbox code execution timeout, env: `%s`", ENV_KEY_JS_EXEC_TIMEOUT))
+	flag.IntVar(&appFlags.HEADLESS_EXCUTE_TIMEOUT, "timeout-headless", define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, fmt.Sprintf("set headless execution timeout, env: `%s`", ENV_KEY_HEADLESS_EXEC_TIMEOUT))
 
-	flag.BoolVar(&appFlags.REDIS, "redis", define.DEFAULT_REDIS, "using Redis as a cache service")
-	flag.StringVar(&appFlags.REDIS_SERVER, "redis-addr", define.DEFAULT_REDIS_SERVER, "set Redis server address")
-	flag.StringVar(&appFlags.REDIS_PASS, "redis-pass", define.DEFAULT_REDIS_PASS, "set Redis password")
-	flag.IntVar(&appFlags.REDIS_DB, "redis-db", define.DEFAULT_REDIS_DB, "set Redis db")
+	flag.BoolVar(&appFlags.REDIS, "redis", define.DEFAULT_REDIS, fmt.Sprintf("using Redis as a cache service, env: `%s`", ENV_KEY_REDIS))
+	flag.StringVar(&appFlags.REDIS_SERVER, "redis-addr", define.DEFAULT_REDIS_SERVER, fmt.Sprintf("set Redis server address, env: `%s`", ENV_KEY_REDIS_SERVER))
+	flag.StringVar(&appFlags.REDIS_PASS, "redis-pass", define.DEFAULT_REDIS_PASS, fmt.Sprintf("set Redis password, env: `%s`", ENV_KEY_REDIS_PASSWD))
+	flag.IntVar(&appFlags.REDIS_DB, "redis-db", define.DEFAULT_REDIS_DB, fmt.Sprintf("set Redis db, env: `%s`", ENV_KEY_REDIS_DB))
 
-	flag.BoolVar(&appFlags.IN_MEMORY_CACHE, "memory", define.DEFAULT_IN_MEMORY_CACHE, "using Memory(build-in) as a cache service")
-	flag.IntVar(&appFlags.IN_MEMORY_EXPIRATION, "memory-expiration", define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, "set Memory cache expiration")
+	flag.BoolVar(&appFlags.IN_MEMORY_CACHE, "memory", define.DEFAULT_IN_MEMORY_CACHE, fmt.Sprintf("using Memory(build-in) as a cache service, env: `%s`", ENV_MEMORY))
+	flag.IntVar(&appFlags.IN_MEMORY_EXPIRATION, "memory-expiration", define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, fmt.Sprintf("set Memory cache expiration, env: `%s`", ENV_MEMORY_EXPIRATION))
 
-	flag.StringVar(&appFlags.HEADLESS_SERVER, "headless-addr", define.DEFAULT_HEADLESS_SERVER, "set Headless server address")
-	flag.IntVar(&appFlags.HEADLESS_SLOW_MOTION, "headless-slow-motion", define.DEFAULT_HEADLESS_SLOW_MOTION, "set Headless slow motion")
+	flag.StringVar(&appFlags.HEADLESS_SERVER, "headless-addr", define.DEFAULT_HEADLESS_SERVER, fmt.Sprintf("set Headless server address, env: `%s`", ENV_KEY_HEADLESS_SERVER))
+	flag.IntVar(&appFlags.HEADLESS_SLOW_MOTION, "headless-slow-motion", define.DEFAULT_HEADLESS_SLOW_MOTION, fmt.Sprintf("set Headless slow motion, env: `%s`", ENV_KEY_HEADLESS_SLOW_MOTION))
 
-	flag.StringVar(&appFlags.RULES_DIRECTORY, "rule", define.DEFAULT_RULES_DIRECTORY, "set Rule directory")
-	flag.StringVar(&appFlags.PROXY_SERVER, "proxy", define.DEFAULT_PROXY_ADDRESS, "Proxy")
+	flag.StringVar(&appFlags.RULES_DIRECTORY, "rule", define.DEFAULT_RULES_DIRECTORY, fmt.Sprintf("set Rule directory, env: `%s`", ENV_KEY_RULE))
+	flag.StringVar(&appFlags.PROXY_SERVER, "proxy", define.DEFAULT_PROXY_ADDRESS, fmt.Sprintf("Proxy, env: `%s`", ENV_KEY_PROXY))
 
 	flag.Parse()
 
@@ -92,10 +93,30 @@ func IsVaildPortRange(port int) bool {
 	return port > 0 && port < 65535
 }
 
+const (
+	ENV_KEY_DEBUG                 = "RSS_DEBUG"
+	ENV_KEY_DEBUG_LEVEL           = "RSS_DEBUG_LEVEL"
+	ENV_KEY_REQUEST_TIMEOUT       = "RSS_REQUEST_TIMEOUT"
+	ENV_KEY_SERVER_TIMEOUT        = "RSS_SERVER_TIMEOUT"
+	ENV_KEY_RULE                  = "RSS_RULE"
+	ENV_KEY_PORT                  = "RSS_PORT"
+	ENV_KEY_REDIS                 = "RSS_REDIS"
+	ENV_KEY_REDIS_SERVER          = "RSS_SERVER"
+	ENV_KEY_REDIS_PASSWD          = "RSS_REDIS_PASSWD"
+	ENV_KEY_REDIS_DB              = "RSS_REDIS_DB"
+	ENV_MEMORY                    = "RSS_MEMORY"
+	ENV_MEMORY_EXPIRATION         = "RSS_MEMORY_EXPIRATION"
+	ENV_KEY_HEADLESS_SERVER       = "RSS_HEADLESS_SERVER"
+	ENV_KEY_PROXY                 = "RSS_PROXY"
+	ENV_KEY_JS_EXEC_TIMEOUT       = "RSS_JS_EXEC_TIMEOUT"
+	ENV_KEY_HEADLESS_SLOW_MOTION  = "RSS_HEADLESS_SLOW_MOTION"
+	ENV_KEY_HEADLESS_EXEC_TIMEOUT = "RSS_HEADLESS_EXEC_TIMEOUT"
+)
+
 func ApplyFlags() {
 	args := ParseFlags()
 
-	envDebugMode := os.Getenv("RSS_DEBUG")
+	envDebugMode := os.Getenv(ENV_KEY_DEBUG)
 	if envDebugMode != "" {
 		define.DEBUG_MODE = IsBool(envDebugMode)
 	}
@@ -103,7 +124,7 @@ func ApplyFlags() {
 		define.DEBUG_MODE = args.DEBUG_MODE
 	}
 
-	envDebugLevel := os.Getenv("RSS_DEBUG_LEVEL")
+	envDebugLevel := os.Getenv(ENV_KEY_DEBUG_LEVEL)
 	if IsVaildLogLevel(envDebugLevel) {
 		define.DEBUG_LEVEL = envDebugLevel
 	}
@@ -112,7 +133,7 @@ func ApplyFlags() {
 		define.DEBUG_LEVEL = args.DEBUG_LEVEL
 	}
 
-	envRequestTimeout := ConvertStringToPositiveInteger(os.Getenv("RSS_REQUEST_TIMEOUT"))
+	envRequestTimeout := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_REQUEST_TIMEOUT))
 	if envRequestTimeout > 0 {
 		define.REQUEST_TIMEOUT = envRequestTimeout
 	}
@@ -120,7 +141,7 @@ func ApplyFlags() {
 		define.REQUEST_TIMEOUT = args.REQUEST_TIMEOUT
 	}
 
-	envServerTimeout := ConvertStringToPositiveInteger(os.Getenv("RSS_SERVER_TIMEOUT"))
+	envServerTimeout := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_SERVER_TIMEOUT))
 	if envServerTimeout > 0 {
 		define.SERVER_TIMEOUT = envServerTimeout
 	}
@@ -128,7 +149,7 @@ func ApplyFlags() {
 		define.SERVER_TIMEOUT = args.SERVER_TIMEOUT
 	}
 
-	envRuleDir := os.Getenv("RSS_RULE")
+	envRuleDir := os.Getenv(ENV_KEY_RULE)
 	if envRuleDir != "" {
 		define.RULES_DIRECTORY = envRuleDir
 	}
@@ -136,7 +157,7 @@ func ApplyFlags() {
 		define.RULES_DIRECTORY = args.RULES_DIRECTORY
 	}
 
-	envPort := ConvertStringToPositiveInteger(os.Getenv("RSS_PORT"))
+	envPort := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_PORT))
 	if IsVaildPortRange(envPort) {
 		define.HTTP_PORT = envPort
 	}
@@ -144,7 +165,7 @@ func ApplyFlags() {
 		define.HTTP_PORT = args.HTTP_PORT
 	}
 
-	envRedis := os.Getenv("RSS_REDIS")
+	envRedis := os.Getenv(ENV_KEY_REDIS)
 	if envRedis != "" {
 		define.REDIS = IsBool(envRedis)
 	}
@@ -154,7 +175,7 @@ func ApplyFlags() {
 
 	if define.REDIS {
 		// todo check `addr:port` is vaild
-		envRedisServer := os.Getenv("RSS_SERVER")
+		envRedisServer := os.Getenv(ENV_KEY_REDIS_SERVER)
 		if envRedisServer != "" {
 			define.REDIS_SERVER = envRedisServer
 		}
@@ -162,7 +183,7 @@ func ApplyFlags() {
 			define.REDIS_SERVER = args.REDIS_SERVER
 		}
 
-		envRedisPass := os.Getenv("RSS_REDIS_PASSWD")
+		envRedisPass := os.Getenv(ENV_KEY_REDIS_PASSWD)
 		if envRedisPass != "" {
 			define.REDIS_PASS = envRedisPass
 		}
@@ -170,7 +191,7 @@ func ApplyFlags() {
 			define.REDIS_PASS = args.REDIS_PASS
 		}
 
-		envRedisDB := ConvertStringToPositiveInteger(os.Getenv("RSS_REDIS_DB"))
+		envRedisDB := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_REDIS_DB))
 		if envRedisDB >= 0 {
 			define.REDIS_DB = envRedisDB
 		}
@@ -179,7 +200,7 @@ func ApplyFlags() {
 		}
 	}
 
-	envMemory := os.Getenv("RSS_MEMORY")
+	envMemory := os.Getenv(ENV_MEMORY)
 	if envMemory != "" {
 		define.IN_MEMORY_CACHE = IsBool(envMemory)
 	}
@@ -187,7 +208,7 @@ func ApplyFlags() {
 		define.IN_MEMORY_CACHE = args.IN_MEMORY_CACHE
 	}
 	if define.IN_MEMORY_CACHE {
-		envMemoryExpiration := ConvertStringToPositiveInteger(os.Getenv("RSS_MEMORY_EXPIRATION"))
+		envMemoryExpiration := ConvertStringToPositiveInteger(os.Getenv(ENV_MEMORY_EXPIRATION))
 		if envMemoryExpiration >= 0 {
 			define.IN_MEMORY_EXPIRATION = envMemoryExpiration
 		}
@@ -197,7 +218,7 @@ func ApplyFlags() {
 	}
 
 	// todo check `addr:port` is vaild
-	envHeadlessServer := os.Getenv("RSS_HEADLESS_SERVER")
+	envHeadlessServer := os.Getenv(ENV_KEY_HEADLESS_SERVER)
 	if envHeadlessServer != "" {
 		define.HEADLESS_SERVER = envHeadlessServer
 	}
@@ -206,7 +227,7 @@ func ApplyFlags() {
 	}
 
 	// todo check `addr:port` is vaild
-	envProxyServer := os.Getenv("RSS_PROXY")
+	envProxyServer := os.Getenv(ENV_KEY_PROXY)
 	if envProxyServer != "" {
 		define.PROXY_SERVER = envProxyServer
 	}
@@ -214,7 +235,7 @@ func ApplyFlags() {
 		define.PROXY_SERVER = args.PROXY_SERVER
 	}
 
-	envJsExecTimeout := ConvertStringToPositiveInteger(os.Getenv("RSS_JS_EXEC_TIMEOUT"))
+	envJsExecTimeout := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_JS_EXEC_TIMEOUT))
 	if envJsExecTimeout >= 0 {
 		define.JS_EXECUTE_TIMEOUT = envJsExecTimeout
 	}
@@ -222,7 +243,7 @@ func ApplyFlags() {
 		define.JS_EXECUTE_TIMEOUT = args.JS_EXECUTE_TIMEOUT
 	}
 
-	envHeadlessSlowMotion := ConvertStringToPositiveInteger(os.Getenv("RSS_HEADLESS_SLOW_MONTION"))
+	envHeadlessSlowMotion := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_HEADLESS_SLOW_MOTION))
 	if envHeadlessSlowMotion >= 0 {
 		define.HEADLESS_SLOW_MOTION = envHeadlessSlowMotion
 	}
@@ -230,7 +251,7 @@ func ApplyFlags() {
 		define.HEADLESS_SLOW_MOTION = args.HEADLESS_SLOW_MOTION
 	}
 
-	envHeadlessExecTimeout := ConvertStringToPositiveInteger(os.Getenv("RSS_HEADLESS_EXEC_TIMEOUT"))
+	envHeadlessExecTimeout := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_HEADLESS_EXEC_TIMEOUT))
 	if envHeadlessExecTimeout > 0 {
 		define.HEADLESS_EXCUTE_TIMEOUT = envHeadlessExecTimeout
 	}

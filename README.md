@@ -26,6 +26,50 @@ docker pull soulteary/rss-can:0.1.0
 docker run --rm -it -p 8080:8080 soulteary/rss-can:0.1.0
 ```
 
+### Cli Parameters & Environment
+
+The parameters supported by the program can be obtained through `-h` or `--help`:
+
+```bash
+Usage of RSS-Can:
+  -debug RSS_DEBUG
+    	whether to output debugging logging, env: RSS_DEBUG
+  -debug-level RSS_DEBUG_LEVEL
+    	set debug log printing level, env: RSS_DEBUG_LEVEL (default "info")
+  -headless-addr RSS_HEADLESS_SERVER
+    	set Headless server address, env: RSS_HEADLESS_SERVER (default "127.0.0.1:9222")
+  -headless-slow-motion RSS_HEADLESS_SLOW_MOTION
+    	set Headless slow motion, env: RSS_HEADLESS_SLOW_MOTION (default 2)
+  -memory RSS_MEMORY
+    	using Memory(build-in) as a cache service, env: RSS_MEMORY (default true)
+  -memory-expiration RSS_MEMORY_EXPIRATION
+    	set Memory cache expiration, env: RSS_MEMORY_EXPIRATION (default 600)
+  -port RSS_PORT
+    	web service listening port, env: RSS_PORT (default 8080)
+  -proxy RSS_PROXY
+    	Proxy, env: RSS_PROXY
+  -redis RSS_REDIS
+    	using Redis as a cache service, env: RSS_REDIS (default true)
+  -redis-addr RSS_SERVER
+    	set Redis server address, env: RSS_SERVER (default "127.0.0.1:6379")
+  -redis-db RSS_REDIS_DB
+    	set Redis db, env: RSS_REDIS_DB
+  -redis-pass RSS_REDIS_PASSWD
+    	set Redis password, env: RSS_REDIS_PASSWD
+  -rod string
+    	Set the default value of options used by rod.
+  -rule RSS_RULE
+    	set Rule directory, env: RSS_RULE (default "./rules")
+  -timeout-headless RSS_HEADLESS_EXEC_TIMEOUT
+    	set headless execution timeout, env: RSS_HEADLESS_EXEC_TIMEOUT (default 5)
+  -timeout-js RSS_JS_EXEC_TIMEOUT
+    	set js sandbox code execution timeout, env: RSS_JS_EXEC_TIMEOUT (default 200)
+  -timeout-request RSS_REQUEST_TIMEOUT
+    	set request timeout, env: RSS_REQUEST_TIMEOUT (default 5)
+  -timeout-server RSS_SERVER_TIMEOUT
+    	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
+```
+
 ## PLAN
 
 - [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release Docker images.

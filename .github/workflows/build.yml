@@ -1,0 +1,154 @@
+name: Build Artifacts
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+    tags:
+      - '*.*.*'
+env:
+  GO_VERSION: 1.19
+
+
+permissions:
+  contents: write
+
+
+jobs:
+
+  darwin:
+    runs-on: macos-latest
+
+    env:
+      GO111MODULE: on
+      CGO_ENABLED: 1
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Tests
+        run: |
+          go mod tidy
+          go test -v ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          version: latest
+          args: release --rm-dist --debug --config build/darwin-amd64.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CGO_ENABLED: 1
+
+      - name: Upload assets (macos-amd64)
+        uses: actions/upload-artifact@v3
+        with:
+          name: rssc
+          path: dist/rssc*-amd*/rssc.zip
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --debug --config build/darwin-arm64.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CGO_ENABLED: 1
+
+      - name: Upload assets (macos-arm64)
+        uses: actions/upload-artifact@v3
+        with:
+          name: rssc
+          path: dist/rssc*-arm*/rssc.zip
+
+
+  linux:
+    runs-on: ubuntu-latest
+
+    env:
+      GO111MODULE: on
+      CGO_ENABLED: 1
+      DOCKER_CLI_EXPERIMENTAL: "enabled"
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all tags
+        run: git fetch --force --tags
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Cache Go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Tests
+        run: |
+          go mod tidy
+          go test -v ./...
+
+      - name: Login to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Install cross-compiler for linux/arm64
+        run: sudo apt-get install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist --config build/linux.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload assets (linux)
+        uses: actions/upload-artifact@v3
+        with:
+          name: RSS-Can
+          path: dist/RSS-Can_0.1.0_linux_amd64.zip
+
+  

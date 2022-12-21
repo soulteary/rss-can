@@ -1,0 +1,83 @@
+project_name: RSS-Can
+
+builds:
+  - id: linux-amd64
+    env:
+      - CGO_ENABLED=1
+      - GO111MODULE=on
+    ldflags:
+      - -w -s
+      - -X "github.com/soulteary/RSS-Can/internal/version.Version={{ .Tag }}"
+      - -X "github.com/soulteary/RSS-Can/internal/version.Commit={{.Commit}}"
+      - -X "github.com/soulteary/RSS-Can/internal/version.BuildDate={{.Date}}"    
+    goos: [ linux ]
+    goarch: [ amd64 ]
+    binary: rssc
+
+  # - id: linux-arm64
+  #   env:
+  #     - CGO_ENABLED=1
+  #     - GO111MODULE=on
+  #     - CC=aarch64-linux-gnu-gcc
+  #     - CXX=aarch64-linux-gnu-g++
+  #   goos: [ linux ]
+  #   goarch: [ arm64 ]
+archives:
+  - format: zip
+    name_template: "rssc_{{ .Version }}_linux_amd64"
+checksum:
+  name_template: "rssc_{{ .Version }}_linux_amd64_checksums.txt"
+  algorithm: sha256
+
+dockers:
+
+  - image_templates:
+      - "soulteary/rss-can:linux-amd64-{{ .Tag }}"
+      - "soulteary/rss-can:linux-amd64"
+    dockerfile: docker/goreleaser/Dockerfile.amd64
+    use: buildx
+    goarch: amd64
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+      - "--label=org.opencontainers.image.url=https://github.com/soulteary/RSS-Can"
+      - "--label=org.opencontainers.image.source=https://github.com/soulteary/RSS-Can"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.created={{ .Date }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  # - image_templates:
+  #     - "soulteary/RSS-Can:linux-arm64-{{ .Tag }}"
+  #     - "soulteary/RSS-Can:linux-arm64"
+  #   dockerfile: docker/goreleaser/Dockerfile.arm64v8
+  #   use: buildx
+  #   goos: linux
+  #   goarch: arm64
+  #   goarm: ''
+  #   build_flag_templates:
+  #     - "--pull"
+  #     - "--platform=linux/arm64"
+  #     - "--label=org.opencontainers.image.title={{ .ProjectName }}"
+  #     - "--label=org.opencontainers.image.description={{ .ProjectName }}"
+  #     - "--label=org.opencontainers.image.url=https://github.com/soulteary/RSS-Can"
+  #     - "--label=org.opencontainers.image.source=https://github.com/soulteary/RSS-Can"
+  #     - "--label=org.opencontainers.image.version={{ .Version }}"
+  #     - "--label=org.opencontainers.image.created={{ .Date }}"
+  #     - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+  #     - "--label=org.opencontainers.image.licenses=MIT"
+
+docker_manifests:
+  - name_template: "soulteary/rss-can:{{ .Tag }}"
+    image_templates:
+      - "soulteary/rss-can:linux-amd64-{{ .Tag }}"
+      # - "soulteary/RSS-Can:linux-arm64-{{ .Tag }}"
+    skip_push: "false"
+
+  - name_template: "soulteary/rss-can:latest"
+    image_templates:
+      - "soulteary/rss-can:linux-amd64-{{ .Tag }}"
+      # - "soulteary/RSS-Can:linux-arm64-{{ .Tag }}"
+    skip_push: "false"

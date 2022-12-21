@@ -11,8 +11,8 @@ func TestRunCode(t *testing.T) {
 	// test forever loops
 	start := time.Now()
 	_, err := RunCode(`while(1){console.log(1)}`, "")
-	if err != nil {
-		t.Fatalf("Error parsing and executing code")
+	if err == nil {
+		t.Fatalf("Programs executed without aborting timeouts")
 	}
 	duration := time.Since(start)
 	if duration > (define.JS_EXECUTE_TIMEOUT * 100) {

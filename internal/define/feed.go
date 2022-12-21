@@ -26,6 +26,16 @@ type InfoItem struct {
 	Content     string `json:"content,omitempty"`
 }
 
+const (
+	ConfigHookReadLink = "readlink"
+)
+
+type ConfigHook struct {
+	Action string `json:"action"`
+	Object string `json:"object"`
+	URL    string `json:"URL"`
+}
+
 type JavaScriptConfig struct {
 	URL          string        `json:"URL"`
 	Mode         string        `json:"Mode"`
@@ -39,17 +49,19 @@ type JavaScriptConfig struct {
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`
 	Author        string `json:"Author"`
-	Category      string `json:"Category"`
-	DateTime      string `json:"DateTime"`
-	Description   string `json:"Description"`
 	Link          string `json:"Link"`
 
-	Content       string `json:"Content"`
-	ContentBefore struct {
-		Action string `json:"action"`
-		Object string `json:"object"`
-		URL    string `json:"URL"`
-	} `json:"ContentBefore"`
+	DateTime     string     `json:"DateTime"`
+	DateTimeHook ConfigHook `json:"DateTimeHook"`
+
+	Category     string     `json:"Category"`
+	CategoryHook ConfigHook `json:"CategoryHook"`
+
+	Description     string     `json:"Description"`
+	DescriptionHook ConfigHook `json:"DescriptionHook"`
+
+	Content     string     `json:"Content"`
+	ContentHook ConfigHook `json:"ContentHook"`
 
 	Pager      string `json:"Pager"`
 	PagerLimit int    `json:"PagerLimit"`

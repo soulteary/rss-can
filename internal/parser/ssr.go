@@ -9,6 +9,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
 )
@@ -161,62 +162,96 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
 			var item define.InfoItem
 			// title must exist in the config
-			if config.Title != "" {
-				title := jsBridge(config.Title, "text", s)
-				item.Title = title
+			if config.Title == "" {
+				return
+			}
 
-				if config.Author != "" {
-					author := jsBridge(config.Author, "text", s)
-					item.Author = author
-				}
+			// TODO bind all hook action
+			title := jsBridge(config.Title, "text", s)
+			item.Title = title
 
-				if config.DateTime != "" {
-					time := jsBridge(config.DateTime, "text", s)
+			if config.Author != "" {
+				author := jsBridge(config.Author, "text", s)
+				item.Author = author
+			}
+
+			if config.DateTimeHook.Action == define.ConfigHookReadLink {
+				rawLink := jsBridge(config.DateTimeHook.URL, "href", s)
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					time := network.GetRemoteDocumentAsMarkdown(link, config.DateTimeHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Date = time
 				}
+			}
+			if config.DateTime != "" {
+				time := jsBridge(config.DateTime, "text", s)
+				item.Date = time
+			}
 
-				if config.Category != "" {
-					category := jsBridge(config.Category, "text", s)
+			if config.CategoryHook.Action == define.ConfigHookReadLink {
+				rawLink := jsBridge(config.CategoryHook.URL, "href", s)
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					category := network.GetRemoteDocumentAsMarkdown(link, config.CategoryHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Category = category
 				}
+			}
+			if config.Category != "" {
+				category := jsBridge(config.Category, "text", s)
+				item.Category = category
+			}
 
-				if config.Description != "" {
-					description := jsBridge(config.Description, "text", s)
+			if config.DescriptionHook.Action == define.ConfigHookReadLink {
+				rawLink := jsBridge(config.DescriptionHook.URL, "href", s)
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					fmt.Println(link)
+					description := network.GetRemoteDocumentAsMarkdown(link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Description = description
 				}
-
-				if config.Link != "" {
-					rawLink := jsBridge(config.Link, "href", s)
-					link, err := fixLink(rawLink, config.URL)
-					if err == nil {
-						item.Link = link
-					}
-
-					// todo prepare regexp
-					if config.IdByRegexp != "" {
-						re := regexp.MustCompile("`" + config.IdByRegexp + "`")
-						match := re.FindAllStringSubmatch(rawLink, -1)
-						fmt.Println(match)
-						if len(match) == 1 {
-							item.ID = match[0][1]
-						}
-					}
-				}
-
-				// TODO bind hook action
-				if config.ContentBefore.Action != "" {
-					contentBefore := network.GetRemoteDocumentAsMarkdown(item.Link, config.ContentBefore.Object, config.Charset, config.Expire, config.DisableCache)
-					item.Content = contentBefore
-				}
-
-				if item.Content == "" {
-					if config.Content != "" {
-						item.Content = config.Content
-					}
-				}
-
-				items = append(items, item)
 			}
+			if config.Description != "" {
+				description := jsBridge(config.Description, "text", s)
+				item.Description = description
+			}
+
+			if config.Link != "" {
+				rawLink := jsBridge(config.Link, "href", s)
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					item.Link = link
+				}
+				// todo prepare regexp
+				if config.IdByRegexp != "" {
+					re := regexp.MustCompile("`" + config.IdByRegexp + "`")
+					match := re.FindAllStringSubmatch(rawLink, -1)
+					fmt.Println(match)
+					if len(match) == 1 {
+						item.ID = match[0][1]
+					}
+				}
+			}
+
+			if config.ContentHook.Action == define.ConfigHookReadLink {
+				rawLink := jsBridge(config.ContentHook.URL, "href", s)
+				link, err := fixLink(rawLink, config.URL)
+				if err == nil {
+					content := network.GetRemoteDocumentAsMarkdown(link, config.ContentHook.Object, config.Charset, config.Expire, config.DisableCache)
+					item.Content = content
+				}
+			}
+
+			if item.Content == "" {
+				if config.Content != "" {
+					content := jsBridge(config.Content, "text", s)
+					md, err := fn.Html2Md(content)
+					if err == nil {
+						item.Content = md
+					}
+				}
+			}
+
+			items = append(items, item)
 		})
 		return items
 	})

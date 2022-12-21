@@ -46,7 +46,7 @@ func GetRemoteDocument(url string, charset string, expire time.Duration, disable
 	if cacher.IsEnable() && !disableCache {
 		cache, err := cacher.Get(url)
 		if err == nil && cache != "" {
-			logger.Instance.Debugln("Get remote document from cache")
+			logger.Instance.Debugln("Get remote document from cache", url)
 			code = define.ERROR_CODE_NULL
 			status = define.ERROR_STATUS_NULL
 			return define.MixupRemoteBodySanitized(code, status, now, cache)

@@ -10,8 +10,7 @@ const config = {
   Description: ".multiline-text-overflow",
   Link: ".img-cover-wrap",
 
-  Content: "",
-  ContentBefore: {
+  ContentHook: {
     action: "readlink",
     object: "#article-body",
     URL: ".img-cover-wrap",

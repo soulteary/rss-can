@@ -1,13 +1,13 @@
 package define
 
 var (
-	GLOBAL_DEBUG_MODE       = true
-	GLOBAL_DEBUG_LEVEL      = "info" // debug logger level: `debug`, `info`, `warn`, `error`
-	GLOBAL_USER_AGENT       = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-	GLOBAL_REQ_TIMEOUT      = 5 // seconds, fetch remote data timeout
-	GLOBAL_SERVER_TIMEOUT   = 8 // seconds, web server request timeout
-	DEFAULT_RULES_DIRECTORY = "./rules"
-	DEFAULT_HTTP_PORT       = 8080
+	DEBUG_MODE      = true
+	DEBUG_LEVEL     = "info"
+	USER_AGENT      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+	REQUEST_TIMEOUT = 5 // seconds, fetch remote data timeout
+	SERVER_TIMEOUT  = 8 // seconds, web server request timeout
+	RULES_DIRECTORY = "./rules"
+	HTTP_PORT       = 8080
 )
 
 var (

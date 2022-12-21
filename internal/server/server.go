@@ -19,7 +19,7 @@ import (
 func StartWebServer() {
 	rule.InitRules()
 
-	if !define.GLOBAL_DEBUG_MODE {
+	if !define.DEBUG_MODE {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -28,7 +28,7 @@ func StartWebServer() {
 
 	route := gin.Default()
 
-	if !define.GLOBAL_DEBUG_MODE {
+	if !define.DEBUG_MODE {
 		route.Use(gzip.Gzip(gzip.DefaultCompression))
 	}
 
@@ -39,10 +39,10 @@ func StartWebServer() {
 	route.GET("/", welcomePage())
 
 	srv := &http.Server{
-		Addr:              ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT),
+		Addr:              ":" + strconv.Itoa(define.HTTP_PORT),
 		Handler:           route,
-		ReadHeaderTimeout: fn.I2T(define.GLOBAL_SERVER_TIMEOUT) * time.Second,
-		ReadTimeout:       fn.I2T(define.GLOBAL_SERVER_TIMEOUT) * time.Second,
+		ReadHeaderTimeout: fn.I2T(define.SERVER_TIMEOUT) * time.Second,
+		ReadTimeout:       fn.I2T(define.SERVER_TIMEOUT) * time.Second,
 	}
 
 	go func() {

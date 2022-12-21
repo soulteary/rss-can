@@ -17,7 +17,7 @@ func makeMap(list []string) map[string]string {
 }
 
 func InitRules() {
-	rules := LoadRules(define.DEFAULT_RULES_DIRECTORY)
+	rules := LoadRules(define.RULES_DIRECTORY)
 	newCache := makeMap(rules)
 
 	RulesCache = newCache

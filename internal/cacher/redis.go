@@ -31,7 +31,7 @@ func connect(init bool) *redis.Client {
 	addr := ""
 	password := ""
 	db := 0
-	if define.GLOBAL_DEBUG_MODE {
+	if define.DEBUG_MODE {
 		addr = define.DEV_REDIS_ADDRESS
 		password = define.DEV_REDIS_PASSWORD
 		db = define.DEV_REDIS_DB

@@ -16,7 +16,7 @@ import (
 )
 
 func Get(url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
-	client := &http.Client{Timeout: fn.I2T(define.GLOBAL_REQ_TIMEOUT) * time.Second}
+	client := &http.Client{Timeout: fn.I2T(define.REQUEST_TIMEOUT) * time.Second}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		code = define.ERROR_CODE_INIT_NETWORK_FAILED
@@ -53,7 +53,7 @@ func GetRemoteDocument(url string, charset string, expire time.Duration, disable
 		}
 	}
 
-	code, status, res := Get(url, define.GLOBAL_USER_AGENT)
+	code, status, res := Get(url, define.USER_AGENT)
 	if code != define.ERROR_CODE_NULL {
 		return define.MixupRemoteBodySanitized(code, status, now, "")
 	}

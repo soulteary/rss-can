@@ -1,18 +1,15 @@
-FROM alpine:3.11 as Builder
+FROM arm64v8/ubuntu:22.04 as Builder
 WORKDIR /app
 COPY rssc ./
-RUN ls -al
-RUN apk add upx && \
-    upx -9 -o rssc.minify rssc && \
-    mv rssc.minify rssc
+RUN apt-get update && apt-get install -y upx
+RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
 RUN ls -al
 
-FROM arm64v8/alpine:3.16
+FROM arm64v8/ubuntu:22.04
 COPY --from=Builder /app/rssc /bin/rssc
 ENV TZ=Asia/Shanghai
-RUN apk add tzdata && \
+RUN apt-get install -y tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
-    rm -rf /var/cache/apk/*
-EXPOSE 5005
-WORKDIR /app
+    apt-get autoremove -y
+EXPOSE 8080
 CMD ["rssc"]

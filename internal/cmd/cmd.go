@@ -36,29 +36,29 @@ type AppFlags struct {
 
 func ParseFlags() (appFlags AppFlags) {
 	flag.BoolVar(&appFlags.DEBUG_MODE, "debug", define.DEFAULT_DEBUG_MODE, "whether to output debugging logging")
-	flag.StringVar(&appFlags.DEBUG_LEVEL, "debuglevel", define.DEFAULT_DEBUG_LEVEL, "set debug level")
+	flag.StringVar(&appFlags.DEBUG_LEVEL, "debug-level", define.DEFAULT_DEBUG_LEVEL, "set debug log printing level")
 
-	flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "the host to bind to")
-	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, "the port to bind to")
+	flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "web service listening address")
+	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, "web service listening port")
 
-	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQ_TIMEOUT, "request timeout")
-	flag.IntVar(&appFlags.SERVER_TIMEOUT, "timeout-server", define.DEFAULT_SERVER_TIMEOUT, "server timeout")
-	flag.IntVar(&appFlags.JS_EXECUTE_TIMEOUT, "timeout-js", define.DEFAULT_JS_EXECUTE_TIMEOUT, "js execute timeout")
-	flag.IntVar(&appFlags.HEADLESS_EXCUTE_TIMEOUT, "timeout-headless", define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, "headless timeout")
+	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQ_TIMEOUT, "set request timeout")
+	flag.IntVar(&appFlags.SERVER_TIMEOUT, "timeout-server", define.DEFAULT_SERVER_TIMEOUT, "set web server response timeout")
+	flag.IntVar(&appFlags.JS_EXECUTE_TIMEOUT, "timeout-js", define.DEFAULT_JS_EXECUTE_TIMEOUT, "set js sandbox code execution timeout")
+	flag.IntVar(&appFlags.HEADLESS_EXCUTE_TIMEOUT, "timeout-headless", define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, "set headless execution timeout")
 
-	flag.BoolVar(&appFlags.REDIS, "redis", define.DEFAULT_REDIS, "Enable Redis")
-	flag.StringVar(&appFlags.REDIS_SERVER, "redis-addr", define.DEFAULT_REDIS_SERVER, "Redis server address")
-	flag.StringVar(&appFlags.REDIS_PASS, "redis-pass", define.DEFAULT_REDIS_PASS, "Redis password")
-	flag.IntVar(&appFlags.REDIS_DB, "redis-db", define.DEFAULT_REDIS_DB, "Redis DB")
+	flag.BoolVar(&appFlags.REDIS, "redis", define.DEFAULT_REDIS, "using Redis as a cache service")
+	flag.StringVar(&appFlags.REDIS_SERVER, "redis-addr", define.DEFAULT_REDIS_SERVER, "set Redis server address")
+	flag.StringVar(&appFlags.REDIS_PASS, "redis-pass", define.DEFAULT_REDIS_PASS, "set Redis password")
+	flag.IntVar(&appFlags.REDIS_DB, "redis-db", define.DEFAULT_REDIS_DB, "set Redis db")
 
-	flag.BoolVar(&appFlags.IN_MEMORY_CACHE, "in-memory", define.DEFAULT_IN_MEMORY_CACHE, "Enable in-memory cache")
-	flag.IntVar(&appFlags.IN_MEMORY_EXPIRATION, "in-memory-expiration", define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, "set in-memory cache expiration")
+	flag.BoolVar(&appFlags.IN_MEMORY_CACHE, "memory", define.DEFAULT_IN_MEMORY_CACHE, "using Memory(build-in) as a cache service")
+	flag.IntVar(&appFlags.IN_MEMORY_EXPIRATION, "memory-expiration", define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, "set Memory cache expiration")
 
-	flag.StringVar(&appFlags.HEADLESS_SERVER, "headless-addr", define.DEFAULT_HEADLESS_SERVER, "Headless server address")
-	flag.IntVar(&appFlags.HEADLESS_SLOW_MOTION, "headless-slow-motion", define.DEFAULT_HEADLESS_SLOW_MOTION, "Headless slow motion")
+	flag.StringVar(&appFlags.HEADLESS_SERVER, "headless-addr", define.DEFAULT_HEADLESS_SERVER, "set Headless server address")
+	flag.IntVar(&appFlags.HEADLESS_SLOW_MOTION, "headless-slow-motion", define.DEFAULT_HEADLESS_SLOW_MOTION, "set Headless slow motion")
 
-	flag.StringVar(&appFlags.RULES_DIRECTORY, "rules-dir", define.DEFAULT_RULES_DIRECTORY, "Rule directory")
-	flag.StringVar(&appFlags.PROXY_SERVER, "proxy-addr", define.DEFAULT_PROXY_ADDRESS, "Proxy Addr")
+	flag.StringVar(&appFlags.RULES_DIRECTORY, "rule", define.DEFAULT_RULES_DIRECTORY, "set Rule directory")
+	flag.StringVar(&appFlags.PROXY_SERVER, "proxy", define.DEFAULT_PROXY_ADDRESS, "Proxy")
 
 	flag.Parse()
 

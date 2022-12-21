@@ -84,7 +84,7 @@ func GetRemoteDocument(url string, charset string, expire time.Duration, disable
 			if expire > 0 {
 				cacher.Expire(url, expire)
 			} else {
-				cacher.Expire(url, define.IN_MEMORY_CACHE_EXPIRATION)
+				cacher.Expire(url, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second)
 			}
 		}
 	}

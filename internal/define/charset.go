@@ -1,5 +1,10 @@
 package define
 
+const (
+	// Use UTF-8 encoding as default and fallback for document detection
+	DEFAULT_DOCUMENT_CHARSET = CHARSET_UTF8
+)
+
 // RSS Can supported page charsets
 const (
 	CHARSET_GBK     = "gbk"

@@ -2,11 +2,6 @@ package define
 
 import "time"
 
-const (
-	// Use UTF-8 encoding as default and fallback for document detection
-	DEFAULT_DOCUMENT_CHARSET = CHARSET_UTF8
-)
-
 var (
 	GLOBAL_DEBUG_MODE = true
 	// debug logger level: `debug`, `info`, `warn`, `error`

@@ -5,6 +5,7 @@ import (
 
 	"github.com/muesli/cache2go"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
@@ -24,7 +25,7 @@ func init() {
 func UpdateDataToMemory(key, value string) {
 	now := time.Now()
 	val := InMemoryPageCache{now, []byte(value)}
-	instanceMemory.Add(key, define.IN_MEMORY_CACHE_EXPIRATION, &val)
+	instanceMemory.Add(key, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second, &val)
 }
 
 func GetDataFromMemory(key string) ([]byte, error) {

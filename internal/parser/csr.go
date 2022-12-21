@@ -11,6 +11,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher/flags"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
@@ -117,7 +118,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 				if config.Expire > 0 {
 					cacher.Expire(config.URL, config.Expire)
 				} else {
-					cacher.Expire(config.URL, define.IN_MEMORY_CACHE_EXPIRATION)
+					cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second)
 				}
 			}
 		}
@@ -137,7 +138,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 			if config.Expire > 0 {
 				cacher.Expire(config.URL, config.Expire)
 			} else {
-				cacher.Expire(config.URL, define.IN_MEMORY_CACHE_EXPIRATION)
+				cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second)
 			}
 		}
 	}

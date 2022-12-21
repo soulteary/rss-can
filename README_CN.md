@@ -2,6 +2,9 @@
 
 [![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) ![Go Report Card](https://goreportcard.com/badge/github.com/soulteary/RSS-Can)
 
+<p style="text-align: center;">
+  <a href="README.md" target="_blank">ENGLISH</a> | <a href="README_CN.md">中文文档</a>
+</p>
 
 📰 🥫 **做更好的 RSS 聚合方案**
 
@@ -81,21 +84,21 @@ Usage of RSS-Can:
 
 ## 项目计划
 
-- [x] 2022.12.22 Support parameters call, release v0.2.0.
-- [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release v0.1.0 and Docker images.
-- [x] 2022.12.20 Support Redis, in-memory caching to avoid sending meaningless requests, dynamic loading rules.
-- [x] 2022.12.19 Support document charset auto detection, MIX parser, both use CSR and SSR parser, faster batch CSR processing, Extract combined data from detail pages and assemble detailed RSS feed data.
-- [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
-- [x] 2022.12.14 Convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
-- [x] 2022.12.13 Dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
-- [x] 2022.12.12  Websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [x] 2022.12.22 程序支持参数化调用，发布版本 v0.2.0。
+- [x] 2022.12.21 支持跨多个页面聚合信息为 RSS 订阅源，完成第一个版本的 JS SDK，发布 v0.1.0 版本程序和应用 Docker 镜像。
+- [x] 2022.12.20 支持使用 Redis 和 应用内存 作为数据缓存，避免大量不必要的网络请求造成的麻烦，支持动态加载 RSS 规则文件。
+- [x] 2022.12.19 支持自动解析目标网站的网页编码格式，支持混合解析模式，提供比 CSR 解析模式更快的处理速度，支持从其他页面抽取数据装填 RSS 列表页面数据。
+- [x] 2022.12.15 支持使用 CSR 解析模式处理数据，[博客](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+- [x] 2022.12.14 支持将网站数据转换为可订阅的 RSS 订阅源, [博客](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
+- [x] 2022.12.13 支持“动态化”能力，[博客](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
+- [x] 2022.12.12 支持使用 SSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
 
-- [ ] Docs: Provide a simple tutorial on how to use Docker images with common technology stacks
-- [ ] Golang: Optimized for Golang 1.19
-- [ ] Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software
-- [ ] AI: NLP tasks
-- [ ] Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
-- [ ] Tools: Quick RSS rules generator, like: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
+- [ ] 文档: 提供简单的教程和文档，阐述如何使用常见技术栈来玩转 RSS Can。
+- [ ] Golang: 为 Golang 1.19 进一步优化代码。
+- [ ] Pipeline: 支持 RSS 信息流水线，能够定制信息处理任务，以及提供集成到各种开源软件的能力。
+- [ ] AI: NLP 任务的集成和使用。
+- [ ] 规则: 能够将社区两款软件的规则导入程序： [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)
+- [ ] 工具: 支持通过界面工具快速生成规则，或参考: [damoeb/rss-proxy](https://github.com/damoeb/rss-proxy)
 
 
 ## License & Credits

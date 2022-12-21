@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/soulteary/RSS-Can/internal/cmd"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
@@ -13,7 +11,7 @@ import (
 func main() {
 	logger.Initialize()
 
-	fmt.Println(cmd.ParseFlags())
+	cmd.ApplyFlags()
 
 	if define.DEBUG_MODE {
 		logger.SetLevel("debug")

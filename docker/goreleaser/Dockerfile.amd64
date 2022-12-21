@@ -1,0 +1,18 @@
+FROM alpine:3.16 as Builder
+WORKDIR /app
+COPY RSS-Can ./
+RUN ls -al
+RUN apk add upx && \
+    upx -9 -o RSS-Can.minify RSS-Can && \
+    mv RSS-Can.minify RSS-Can
+RUN ls -al
+
+FROM alpine:3.16
+COPY --from=Builder /app/RSS-Can /bin/RSS-Can
+ENV TZ=Asia/Shanghai
+RUN apk add tzdata && \
+    cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    rm -rf /var/cache/apk/*
+EXPOSE 5005
+WORKDIR /app
+CMD ["RSS-Can"]

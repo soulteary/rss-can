@@ -26,7 +26,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 	}()
 
 	duration := time.Since(start)
-	timeout := time.NewTimer(fn.I2T(define.DEFAULT_JS_EXECUTE_TIMEOUT) * time.Millisecond)
+	timeout := time.NewTimer(fn.I2T(define.JS_EXECUTE_TIMEOUT) * time.Millisecond)
 
 	select {
 	case val := <-vals:
@@ -43,7 +43,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		vm.TerminateExecution()
 		err := <-errs
 		logger.Instance.Infof("execution timeout: %v", duration)
-		time.Sleep(fn.I2T(define.JS_EXECUTE_THORTTLING) * time.Second)
+		time.Sleep(fn.I2T(define.DEFAULT_JS_EXECUTE_THORTTLING) * time.Second)
 		return nil, err
 	}
 }

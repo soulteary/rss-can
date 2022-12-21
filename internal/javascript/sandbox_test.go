@@ -24,7 +24,7 @@ func TestRunCode(t *testing.T) {
 	}
 	duration := time.Since(start)
 	fmt.Println(duration)
-	if duration > (fn.I2T(define.DEFAULT_JS_EXECUTE_TIMEOUT) * time.Millisecond * 100) {
+	if duration > (fn.I2T(define.JS_EXECUTE_TIMEOUT) * time.Millisecond * 100) {
 		t.Fatalf("Code execution takes longer than expected")
 	}
 }

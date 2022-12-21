@@ -9,3 +9,25 @@ const (
 	DEFAULT_RULES_DIRECTORY = "./rules"
 	DEFAULT_HTTP_PORT       = 8080
 )
+
+const (
+	DEFAULT_REDIS        = true
+	DEFAULT_REDIS_SERVER = "127.0.0.1:6379"
+	DEFAULT_REDIS_PASS   = ""
+	DEFAULT_REDIS_DB     = 0
+)
+
+const (
+	DEFAULT_IN_MEMORY_CACHE            = true
+	DEFAULT_IN_MEMORY_CACHE_EXPIRATION = 10 * 60 //seconds, 10min
+	DEFAULT_IN_MEMORY_CACHE_STORE_NAME = "memory_cache"
+)
+
+const (
+	DEFAULT_HEADLESS_SERVER         = "127.0.0.1:9222"
+	DEFAULT_PROXY_ADDRESS           = ""
+	DEFAULT_JS_EXECUTE_TIMEOUT      = 200 // milliseconds
+	DEFAULT_JS_EXECUTE_THORTTLING   = 2   // seconds
+	DEFAULT_HEADLESS_SLOW_MOTION    = 2   // seconds
+	DEFAULT_HEADLESS_EXCUTE_TIMEOUT = 5   // Second
+)

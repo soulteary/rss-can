@@ -17,15 +17,15 @@ type InMemoryPageCache struct {
 var instanceMemory *cache2go.CacheTable
 
 func init() {
-	if define.MEMORY_CACHE_ENABLED {
-		instanceMemory = cache2go.Cache(define.IN_MEMORY_CACHE_STORE_NAME)
+	if define.IN_MEMORY_CACHE {
+		instanceMemory = cache2go.Cache(define.DEFAULT_IN_MEMORY_CACHE_STORE_NAME)
 	}
 }
 
 func UpdateDataToMemory(key, value string) {
 	now := time.Now()
 	val := InMemoryPageCache{now, []byte(value)}
-	instanceMemory.Add(key, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second, &val)
+	instanceMemory.Add(key, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second, &val)
 }
 
 func GetDataFromMemory(key string) ([]byte, error) {

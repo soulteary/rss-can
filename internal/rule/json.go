@@ -35,8 +35,8 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 	case define.PARSE_MODE_CSR:
 		// TODO check headless addr is valid
 		// TODO set proxy by config
-		container := define.DEFAULT_HEADLESS_CHROME
-		proxy := define.DEFAULT_PROXY_ADDRESS
+		container := define.HEADLESS_SERVER
+		proxy := define.PROXY_SERVER
 		if config.Headless != "" && strings.Contains(config.Headless, ":") {
 			container = config.Headless
 		}
@@ -44,8 +44,8 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 	case define.PARSE_MODE_MIX:
 		// TODO check headless addr is valid
 		// TODO set proxy by config
-		container := define.DEFAULT_HEADLESS_CHROME
-		proxy := define.DEFAULT_PROXY_ADDRESS
+		container := define.HEADLESS_SERVER
+		proxy := define.PROXY_SERVER
 		if config.Headless != "" && strings.Contains(config.Headless, ":") {
 			container = config.Headless
 		}

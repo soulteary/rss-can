@@ -118,7 +118,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 				if config.Expire > 0 {
 					cacher.Expire(config.URL, config.Expire)
 				} else {
-					cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second)
+					cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
 				}
 			}
 		}
@@ -138,7 +138,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 			if config.Expire > 0 {
 				cacher.Expire(config.URL, config.Expire)
 			} else {
-				cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_CACHE_EXPIRATION)*time.Second)
+				cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
 			}
 		}
 	}

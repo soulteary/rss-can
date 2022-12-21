@@ -12,10 +12,10 @@ var NO_CACHE_ENABLED = (func() error {
 })()
 
 func Get(key string) (string, error) {
-	if define.REDIS_ENABLED {
+	if define.REDIS {
 		str, err := GetDataFromRedis(key)
 		if err != nil {
-			if define.MEMORY_CACHE_ENABLED {
+			if define.IN_MEMORY_CACHE {
 				data, err := GetDataFromMemory(key)
 				if err != nil {
 					return "", err
@@ -27,7 +27,7 @@ func Get(key string) (string, error) {
 		return str, nil
 	}
 
-	if define.MEMORY_CACHE_ENABLED {
+	if define.IN_MEMORY_CACHE {
 		data, err := GetDataFromMemory(key)
 		if err != nil {
 			return "", err
@@ -38,10 +38,10 @@ func Get(key string) (string, error) {
 }
 
 func Set(key string, value string) error {
-	if define.REDIS_ENABLED {
+	if define.REDIS {
 		err := UpdateDataToRedis(key, value)
 		if err != nil {
-			if define.MEMORY_CACHE_ENABLED {
+			if define.IN_MEMORY_CACHE {
 				UpdateDataToMemory(key, value)
 				return nil
 			}
@@ -49,7 +49,7 @@ func Set(key string, value string) error {
 		}
 	}
 
-	if define.MEMORY_CACHE_ENABLED {
+	if define.IN_MEMORY_CACHE {
 		UpdateDataToMemory(key, value)
 		return nil
 	}
@@ -57,10 +57,10 @@ func Set(key string, value string) error {
 }
 
 func Del(key string) error {
-	if define.REDIS_ENABLED {
+	if define.REDIS {
 		err := DelDataByKeyFromRedis(key)
 		if err != nil {
-			if define.MEMORY_CACHE_ENABLED {
+			if define.IN_MEMORY_CACHE {
 				DelDataByKeyFromMemory(key)
 				return nil
 			}
@@ -68,7 +68,7 @@ func Del(key string) error {
 		}
 	}
 
-	if define.MEMORY_CACHE_ENABLED {
+	if define.IN_MEMORY_CACHE {
 		DelDataByKeyFromMemory(key)
 		return nil
 	}
@@ -76,10 +76,10 @@ func Del(key string) error {
 }
 
 func Expire(key string, expire time.Duration) error {
-	if define.REDIS_ENABLED {
+	if define.REDIS {
 		err := SetDataExpireByKeyFromRedis(key, expire*time.Second)
 		if err != nil {
-			if define.MEMORY_CACHE_ENABLED {
+			if define.IN_MEMORY_CACHE {
 				err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
 				if err != nil {
 					return err
@@ -90,7 +90,7 @@ func Expire(key string, expire time.Duration) error {
 		}
 	}
 
-	if define.MEMORY_CACHE_ENABLED {
+	if define.IN_MEMORY_CACHE {
 		err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
 		if err != nil {
 			return err
@@ -101,5 +101,5 @@ func Expire(key string, expire time.Duration) error {
 }
 
 func IsEnable() bool {
-	return define.MEMORY_CACHE_ENABLED || define.REDIS_ENABLED
+	return define.IN_MEMORY_CACHE || define.REDIS
 }

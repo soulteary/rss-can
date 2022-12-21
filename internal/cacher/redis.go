@@ -15,7 +15,7 @@ var ctx = context.Background()
 const REDIS_KEY_NOT_EXIST = redis.Nil
 
 func init() {
-	if define.REDIS_ENABLED {
+	if define.REDIS {
 		connect(true)
 	}
 }
@@ -28,26 +28,14 @@ func connect(init bool) *redis.Client {
 		}
 	}
 
-	addr := ""
-	password := ""
-	db := 0
-	if define.DEBUG_MODE {
-		addr = define.DEV_REDIS_ADDRESS
-		password = define.DEV_REDIS_PASSWORD
-		db = define.DEV_REDIS_DB
-	} else {
-		addr = define.PROD_REDIS_ADDRESS
-		password = define.PROD_REDIS_PASSWORD
-		db = define.PROD_REDIS_DB
-	}
-
 	if !init {
 		instanceRedis.Close()
 	}
+
 	instanceRedis = redis.NewClient(&redis.Options{
-		Addr:     addr,
-		Password: password,
-		DB:       db,
+		Addr:     define.REDIS_SERVER,
+		Password: define.REDIS_PASS,
+		DB:       define.REDIS_DB,
 		PoolSize: 100,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
 			logger.Instance.Info("Restore the connection to Redis.")

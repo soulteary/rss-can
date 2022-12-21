@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 
 	v8 "rogchap.com/v8go"
 )
@@ -25,7 +26,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 	}()
 
 	duration := time.Since(start)
-	timeout := time.NewTimer(define.JS_EXECUTE_TIMEOUT)
+	timeout := time.NewTimer(fn.I2T(define.DEFAULT_JS_EXECUTE_TIMEOUT) * time.Millisecond)
 
 	select {
 	case val := <-vals:
@@ -42,7 +43,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		vm.TerminateExecution()
 		err := <-errs
 		fmt.Fprintf(os.Stderr, "execution timeout: %v\n", duration)
-		time.Sleep(define.JS_EXECUTE_THORTTLING)
+		time.Sleep(fn.I2T(define.JS_EXECUTE_THORTTLING) * time.Second)
 		return nil, err
 	}
 }

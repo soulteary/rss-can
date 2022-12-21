@@ -1,15 +1,11 @@
 package define
 
-import "time"
-
 var (
-	GLOBAL_DEBUG_MODE = true
-	// debug logger level: `debug`, `info`, `warn`, `error`
-	GLOBAL_DEBUG_LEVEL = "info"
-	GLOBAL_USER_AGENT  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-	GLOBAL_REQ_TIMEOUT = 5 * time.Second
-	// Use `ssr` as default and fallback for document parsing
-	DEFAULT_PARSE_MODE      = PARSE_MODE_SSR
+	GLOBAL_DEBUG_MODE       = true
+	GLOBAL_DEBUG_LEVEL      = "info" // debug logger level: `debug`, `info`, `warn`, `error`
+	GLOBAL_USER_AGENT       = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
+	GLOBAL_REQ_TIMEOUT      = 5 // seconds, fetch remote data timeout
+	GLOBAL_SERVER_TIMEOUT   = 8 // seconds, web server request timeout
 	DEFAULT_RULES_DIRECTORY = "./rules"
 	DEFAULT_HTTP_PORT       = 8080
 )
@@ -31,8 +27,10 @@ var (
 )
 
 var (
-	DEFAULT_HEADLESS_CHROME = "127.0.0.1:9222"
-	DEFAULT_PROXY_ADDRESS   = ""
-	JS_EXECUTE_TIMEOUT      = 200 * time.Millisecond
-	JS_EXECUTE_THORTTLING   = 2 * time.Second
+	DEFAULT_HEADLESS_CHROME    = "127.0.0.1:9222"
+	DEFAULT_PROXY_ADDRESS      = ""
+	DEFAULT_JS_EXECUTE_TIMEOUT = 200 // milliseconds
+	JS_EXECUTE_THORTTLING      = 2   // seconds
+	HEADLESS_SLOW_MOTION       = 2   // seconds
+	HEADLESS_EXCUTE_TIMEOUT    = 5   // Second
 )

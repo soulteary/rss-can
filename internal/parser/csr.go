@@ -29,7 +29,7 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 		if proxyAddr != "" {
 			l.Set(flags.ProxyServer, proxyAddr)
 		}
-		browser = rod.New().ControlURL(l.MustLaunch()).Trace(true).SlowMotion(2 * time.Second)
+		browser = rod.New().ControlURL(l.MustLaunch()).Trace(true).SlowMotion(fn.I2T(define.HEADLESS_SLOW_MOTION) * time.Second)
 		launcher.Open(browser.ServeMonitor(""))
 	} else {
 		browser = rod.New().ControlURL(launcher.MustResolveURL(container))
@@ -101,7 +101,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	// TODO timeout set by config
 	// TODO support pager config
 	page.
-		Timeout(5 * time.Second).
+		Timeout(fn.I2T(define.HEADLESS_EXCUTE_TIMEOUT) * time.Second).
 		MustNavigate(config.URL).
 		MustWaitLoad().
 		MustElement(config.ListContainer).

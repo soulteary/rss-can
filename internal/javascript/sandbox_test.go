@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 )
 
 func TestRunCode(t *testing.T) {
@@ -15,7 +16,7 @@ func TestRunCode(t *testing.T) {
 		t.Fatalf("Programs executed without aborting timeouts")
 	}
 	duration := time.Since(start)
-	if duration > (define.JS_EXECUTE_TIMEOUT * 100) {
+	if duration > (fn.I2T(define.DEFAULT_JS_EXECUTE_TIMEOUT) * time.Millisecond * 100) {
 		t.Fatalf("Code execution takes longer than expected")
 	}
 }

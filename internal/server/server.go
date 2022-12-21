@@ -11,6 +11,7 @@ import (
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
@@ -40,8 +41,8 @@ func StartWebServer() {
 	srv := &http.Server{
 		Addr:              ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT),
 		Handler:           route,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       5 * time.Second,
+		ReadHeaderTimeout: fn.I2T(define.GLOBAL_SERVER_TIMEOUT) * time.Second,
+		ReadTimeout:       fn.I2T(define.GLOBAL_SERVER_TIMEOUT) * time.Second,
 	}
 
 	go func() {

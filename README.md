@@ -22,11 +22,13 @@ Download the binary from the github [release page](https://github.com/soulteary/
 ### Docker
 
 ```
-docker pull soulteary/rss-can:0.1.0
-docker run --rm -it -p 8080:8080 soulteary/rss-can:0.1.0
+docker pull soulteary/rss-can:0.2.0
+docker run --rm -it -p 8080:8080 soulteary/rss-can:0.2.0
 ```
 
 ### Cli Parameters & Environment
+
+**All parameters are optional, please adjust according to your needs**
 
 The parameters supported by the program can be obtained through `-h` or `--help`:
 
@@ -72,7 +74,8 @@ Usage of RSS-Can:
 
 ## PLAN
 
-- [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release Docker images.
+- [x] 2022.12.22 Support parameters call, release v0.2.0.
+- [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release v0.1.0 and Docker images.
 - [x] 2022.12.20 Support Redis, in-memory caching to avoid sending meaningless requests, dynamic loading rules.
 - [x] 2022.12.19 Support document charset auto detection, MIX parser, both use CSR and SSR parser, faster batch CSR processing, Extract combined data from detail pages and assemble detailed RSS feed data.
 - [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)

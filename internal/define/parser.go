@@ -1,7 +1,7 @@
 package define
 
 // CSR features switch
-const (
+var (
 	CSR_DEBUG              = false
 	CSR_INCOGNITO          = false
 	CSR_IGNORE_CERT_ERRORS = true

@@ -40,6 +40,7 @@ func StartWebServer() {
 	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
 	route.GET("/config/:type/:value/", apiConfig())
 	route.GET("/_/health/", apiHealth())
+	route.StaticFS("/assets/", ServerAssets())
 	route.GET("/", welcomePage())
 
 	srv := &http.Server{

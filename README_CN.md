@@ -45,11 +45,13 @@ docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:0.3.0
 想要获取程序支持的参数，可以通过在执行程序后添加参数 `-h` 或者 `--help`：
  
 ```bash
-Usage of RSS-Can:
+Usage of rssc:
   -debug RSS_DEBUG
     	whether to output debugging logging, env: RSS_DEBUG
   -debug-level RSS_DEBUG_LEVEL
     	set debug log printing level, env: RSS_DEBUG_LEVEL (default "info")
+  -feed-path RSS_HTTP_FEED_PATH
+    	http feed path, env: RSS_HTTP_FEED_PATH (default "/feed")
   -headless-addr RSS_HEADLESS_SERVER
     	set Headless server address, env: RSS_HEADLESS_SERVER (default "127.0.0.1:9222")
   -headless-slow-motion RSS_HEADLESS_SLOW_MOTION

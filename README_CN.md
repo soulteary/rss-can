@@ -9,10 +9,12 @@
 📰 🥫 **做更好的 RSS 聚合方案**
 
 <p style="text-align: center;">
-  <img src="./assets/images/project.jpg" width="300">
+  <img src="./assets/images/hp.jpg">
 </p>
 
-*图片由 stable diffusion 生成*
+<p style="text-align: center;">
+  <img src="./assets/images/feeds.jpg">
+</p>
 
 ## 支持软硬件环境
 

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,8 +15,9 @@ type AppFlags struct {
 	DEBUG_MODE  bool
 	DEBUG_LEVEL string
 
-	Host      string
-	HTTP_PORT int
+	Host           string
+	HTTP_PORT      int
+	HTTP_FEED_PATH string
 
 	REQUEST_TIMEOUT         int
 	SERVER_TIMEOUT          int
@@ -63,6 +65,8 @@ func ParseFlags() (appFlags AppFlags) {
 	flag.StringVar(&appFlags.RULES_DIRECTORY, "rule", define.DEFAULT_RULES_DIRECTORY, fmt.Sprintf("set Rule directory, env: `%s`", ENV_KEY_RULE))
 	flag.StringVar(&appFlags.PROXY_SERVER, "proxy", define.DEFAULT_PROXY_ADDRESS, fmt.Sprintf("Proxy, env: `%s`", ENV_KEY_PROXY))
 
+	flag.StringVar(&appFlags.HTTP_FEED_PATH, "feed-path", define.DEFAULT_HTTP_FEED_PATH, fmt.Sprintf("http feed path, env: `%s`", ENV_KEY_HTTP_FEED_PATH))
+
 	flag.Parse()
 
 	return appFlags
@@ -93,6 +97,16 @@ func IsVaildPortRange(port int) bool {
 	return port > 0 && port < 65535
 }
 
+func SantizeFeedPath(feedpath string) string {
+	s := "/" + strings.TrimRight(strings.TrimLeft(feedpath, "/"), "/")
+	var re = regexp.MustCompile(`^\/[\w\d\-\_]+$`)
+	match := re.FindAllStringSubmatch(s, -1)
+	if len(match) == 0 {
+		return define.DEFAULT_HTTP_FEED_PATH
+	}
+	return strings.ToLower(s)
+}
+
 const (
 	ENV_KEY_DEBUG                 = "RSS_DEBUG"
 	ENV_KEY_DEBUG_LEVEL           = "RSS_DEBUG_LEVEL"
@@ -111,6 +125,7 @@ const (
 	ENV_KEY_JS_EXEC_TIMEOUT       = "RSS_JS_EXEC_TIMEOUT"
 	ENV_KEY_HEADLESS_SLOW_MOTION  = "RSS_HEADLESS_SLOW_MOTION"
 	ENV_KEY_HEADLESS_EXEC_TIMEOUT = "RSS_HEADLESS_EXEC_TIMEOUT"
+	ENV_KEY_HTTP_FEED_PATH        = "RSS_HTTP_FEED_PATH"
 )
 
 func ApplyFlags() {
@@ -163,6 +178,15 @@ func ApplyFlags() {
 	}
 	if IsVaildPortRange(args.HTTP_PORT) && args.HTTP_PORT != define.HTTP_PORT {
 		define.HTTP_PORT = args.HTTP_PORT
+	}
+
+	envHttpFeedPath := SantizeFeedPath(os.Getenv(ENV_KEY_HTTP_FEED_PATH))
+	if envHttpFeedPath != define.DEFAULT_HTTP_FEED_PATH {
+		define.HTTP_FEED_PATH = envHttpFeedPath
+	}
+	argHttpFeedPath := SantizeFeedPath(args.HTTP_FEED_PATH)
+	if argHttpFeedPath != define.DEFAULT_HTTP_FEED_PATH {
+		define.HTTP_FEED_PATH = argHttpFeedPath
 	}
 
 	envRedis := os.Getenv(ENV_KEY_REDIS)

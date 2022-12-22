@@ -8,6 +8,7 @@ const (
 	DEFAULT_SERVER_TIMEOUT  = 8 // seconds, web server request timeout
 	DEFAULT_RULES_DIRECTORY = "./rules"
 	DEFAULT_HTTP_PORT       = 8080
+	DEFAULT_HTTP_FEED_PATH  = "/feed"
 )
 
 const (

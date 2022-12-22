@@ -8,6 +8,7 @@ var (
 	SERVER_TIMEOUT  = 8 // seconds, web server request timeout
 	RULES_DIRECTORY = "./rules"
 	HTTP_PORT       = 8080
+	HTTP_FEED_PATH  = "/feed"
 
 	REDIS        = true
 	REDIS_SERVER = "127.0.0.1:6379"

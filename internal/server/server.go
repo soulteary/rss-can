@@ -16,6 +16,10 @@ import (
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
+func GetFeedPath() string {
+	return define.HTTP_FEED_PATH
+}
+
 func StartWebServer() {
 	rule.InitRules()
 
@@ -33,7 +37,7 @@ func StartWebServer() {
 	}
 
 	route.Use(Logger(logger.Instance), gin.Recovery())
-	route.GET("/feed/:id/:type/", apiRSS())
+	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
 	route.GET("/config/:type/:value/", apiConfig())
 	route.GET("/_/health/", apiHealth())
 	route.GET("/", welcomePage())

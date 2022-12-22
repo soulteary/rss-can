@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"embed"
 	"io/fs"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/version"
 )
 
 //go:embed assets
@@ -31,15 +33,19 @@ func GetPageByName(pageName string) (file []byte) {
 	return file
 }
 
+func UpdateHomePage(content []byte) []byte {
+	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
+	return body
+}
+
 func welcomePage() gin.HandlerFunc {
-	var homepage = GetPageByName("home.html")
-
+	var homepage = UpdateHomePage(GetPageByName("home.html"))
 	return func(c *gin.Context) {
-
 		if define.DEBUG_MODE {
 			file, err := os.ReadFile("internal/server/templates/home.html")
 			if err == nil {
-				c.Data(http.StatusOK, "text/html", file)
+				c.Data(http.StatusOK, "text/html", UpdateHomePage(file))
 			} else {
 				c.Data(http.StatusOK, "text/html", homepage)
 				logger.Instance.Warnf("rendering template home failed: %v", err)

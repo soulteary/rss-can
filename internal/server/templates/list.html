@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="cupcake">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{%PROJECT_NAME%} - {%PROJECT_VERSION%}</title>
+    <link href="/assets/css/daisyui.css?v=2.46.0" rel="stylesheet" type="text/css" />
+    <link href="/assets/css/tailwind.min.css?v=2.2" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="hero min-h-screen bg-base-200">
+      <div class="overflow-x-auto">
+        <table class="table table-compact w-full">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>Rule File</th>
+              <th>Feed (RSS)</th>
+              <th>Feed (Atom)</th>
+              <th>Feed (JSON)</th>
+            </tr>
+          </thead>
+          <tbody>{%PROJECT_FEED_LIST%}</tbody>
+          <tfoot>
+            <tr>
+              <th></th>
+              <th>Name</th>
+              <th>Rule File</th>
+              <th>Feed (RSS)</th>
+              <th>Feed (Atom)</th>
+              <th>Feed (JSON)</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <footer class="footer footer-center p-4 bg-base-300 text-base-content">
+      <div>
+        <p>Copyright © 2022 - All right reserved by <a class="link link-accent" href="https://soulteary.com/about" target="_blank">@soulteary</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

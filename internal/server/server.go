@@ -38,6 +38,7 @@ func StartWebServer() {
 
 	route.Use(Logger(logger.Instance), gin.Recovery())
 	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
+	route.GET(GetFeedPath(), listPage())
 	route.GET("/config/:type/:value/", apiConfig())
 	route.GET("/_/health/", apiHealth())
 	route.StaticFS("/assets/", ServerAssets())

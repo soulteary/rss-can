@@ -4,6 +4,7 @@
             // MUST create hover box first before applying options
             this.hoverBox = document.createElement("div");
             this.hoverBox.style.position = "absolute";
+            this.hoverBox.style.zIndex = "1000000"
             this.hoverBox.style.pointerEvents = "none";
 
             const defaultOptions = {
@@ -151,10 +152,6 @@
             }
         }
     }
-    // export module
-    if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-        module.exports = ElementPicker;
-    } else {
-        window.ElementPicker = ElementPicker;
-    }
+
+    window.ElementPicker = ElementPicker;
 })();

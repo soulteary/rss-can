@@ -152,14 +152,20 @@ func inspectorProxy() gin.HandlerFunc {
 			document.Find("script").Remove()
 			html, _ := document.Html()
 
-			script := `
+			hep, _ := os.ReadFile("internal/server/assets/js/html-element-picker/hep.js")
+
+			script := fmt.Sprintf(`
 <script>
+%s
+hep = new ElementPicker();
+
 document.addEventListener('click', function(e){
-e.preventDefault();
-e.stopPropagation();
+	console.log(hep.selectors)
+	e.preventDefault();
+	e.stopPropagation();
 });
 </script>
-`
+`, hep)
 			html = strings.Replace(html, "</html>", script+"</html>", -1)
 			return html
 		})

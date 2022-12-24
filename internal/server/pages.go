@@ -7,10 +7,14 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/version"
 )
@@ -98,5 +102,67 @@ func listPage() gin.HandlerFunc {
 		} else {
 			c.Data(http.StatusOK, "text/html", homepage)
 		}
+	}
+}
+
+func inspectorHome() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		file, _ := os.ReadFile("internal/server/templates/inspector.html")
+		c.Data(http.StatusOK, "text/html", file)
+	}
+}
+
+func inspectorPrepare() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		url := c.PostForm("url")
+		// todo check url vaild
+		if url == "" {
+			c.Redirect(http.StatusFound, "./inspector")
+			c.Abort()
+			return
+		}
+
+		engine := c.DefaultPostForm("engine", define.DEFAULT_PARSE_MODE)
+		if engine != define.PARSE_MODE_SSR && engine != define.PARSE_MODE_CSR && engine != define.PARSE_MODE_MIX {
+			c.Redirect(http.StatusFound, "./inspector")
+			c.Abort()
+			return
+		}
+
+		target := fmt.Sprintf("./inspector/%s/", fn.Base64Encode(url))
+		c.Redirect(http.StatusFound, target)
+	}
+}
+
+func inspectorProxy() gin.HandlerFunc {
+	type Params struct {
+		URL string `uri:"url" binding:"required"`
+	}
+
+	return func(c *gin.Context) {
+		var params Params
+		if err := c.ShouldBindUri(&params); err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"msg": err})
+			return
+		}
+
+		url := fn.Base64Decode(params.URL)
+		rawHtml := parser.ProxyPageByGoRod(url, define.HEADLESS_SERVER, define.PROXY_SERVER)
+		html := parser.ParseFullPageByGoQuery(rawHtml, func(document *goquery.Document) string {
+			document.Find("script").Remove()
+			html, _ := document.Html()
+
+			script := `
+<script>
+document.addEventListener('click', function(e){
+e.preventDefault();
+e.stopPropagation();
+});
+</script>
+`
+			html = strings.Replace(html, "</html>", script+"</html>", -1)
+			return html
+		})
+		c.Data(http.StatusOK, "text/html", []byte(html))
 	}
 }

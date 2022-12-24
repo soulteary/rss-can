@@ -254,3 +254,12 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 		return items
 	})
 }
+
+func ParseFullPageByGoQuery(html string, callback func(document *goquery.Document) string) (result string) {
+	document, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		return result
+	}
+	result = callback(document)
+	return result
+}

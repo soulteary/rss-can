@@ -40,6 +40,12 @@ func StartWebServer() {
 	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
 	route.GET(GetFeedPath(), listPage())
 	route.GET("/config/:type/:value/", apiConfig())
+
+	route.GET("/inspector/:url/", inspectorProxy())
+	route.GET("/inspector", inspectorHome())
+	route.POST("/inspector", inspectorPrepare())
+	route.GET("/_/1x1.gif", PixelImage())
+
 	route.GET("/_/health/", apiHealth())
 	route.StaticFS("/assets/", ServerAssets())
 	route.GET("/", welcomePage())

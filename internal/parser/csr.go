@@ -162,3 +162,18 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	now := time.Now()
 	return define.MixupBodyParsed(code, status, now, items)
 }
+
+func ProxyPageByGoRod(url string, container string, proxyAddr string) string {
+	page := GetRodPageObject(container, proxyAddr)
+
+	// TODO timeout set by config
+	page.
+		Timeout(fn.I2T(define.HEADLESS_EXCUTE_TIMEOUT) * time.Second).
+		MustNavigate(url).
+		MustWaitLoad().
+		MustElement("body").
+		CancelTimeout()
+
+	pageData := page.MustEval("()=>document.documentElement.innerHTML")
+	return fmt.Sprint(pageData)
+}

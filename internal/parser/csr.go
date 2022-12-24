@@ -9,6 +9,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/launcher/flags"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
@@ -48,6 +49,18 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 
 	// avoid data process hang due to pop-up windows
 	page.MustEvalOnNewDocument(`window.alert = () => {};window.prompt = () => {}`)
+
+	router := page.HijackRequests()
+	frugal := func(ctx *rod.Hijack) {
+		resType := ctx.Request.Type()
+		if resType == proto.NetworkResourceTypeImage || resType == proto.NetworkResourceTypeMedia || resType == proto.NetworkResourceTypeFont {
+			ctx.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+		} else {
+			ctx.ContinueRequest(&proto.FetchContinueRequest{})
+		}
+	}
+	router.MustAdd("*", frugal)
+	go router.Run()
 
 	return page
 }

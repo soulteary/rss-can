@@ -83,7 +83,17 @@ func updateNumberOption(envKey string, args int, defaults int, allowZero bool) i
 			return args
 		}
 	}
+	return defaults
+}
 
+func updateStringOption(envKey string, args string, defaults string) string {
+	env := os.Getenv(envKey)
+	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
+		return env
+	}
+	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
+		return args
+	}
 	return defaults
 }
 
@@ -103,14 +113,7 @@ func ApplyFlags() {
 
 	define.REQUEST_TIMEOUT = updateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = updateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
-
-	envRuleDir := os.Getenv(ENV_KEY_RULE)
-	if fn.IsNotEmptyAndNotDefaultString(envRuleDir, define.DEFAULT_RULES_DIRECTORY) {
-		define.RULES_DIRECTORY = envRuleDir
-	}
-	if fn.IsNotEmptyAndNotDefaultString(args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY) {
-		define.RULES_DIRECTORY = args.RULES_DIRECTORY
-	}
+	define.RULES_DIRECTORY = updateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
 
 	envPort := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_PORT))
 	if fn.IsVaildPortRange(envPort) {
@@ -133,51 +136,20 @@ func ApplyFlags() {
 
 	if define.REDIS {
 		// todo check `addr:port` is vaild
-		envRedisServer := os.Getenv(ENV_KEY_REDIS_SERVER)
-		if fn.IsNotEmptyAndNotDefaultString(envRedisServer, define.DEFAULT_REDIS_SERVER) {
-			define.REDIS_SERVER = envRedisServer
-		}
-		if fn.IsNotEmptyAndNotDefaultString(args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER) {
-			define.REDIS_SERVER = args.REDIS_SERVER
-		}
-
-		envRedisPass := os.Getenv(ENV_KEY_REDIS_PASSWD)
-		if envRedisPass != "" {
-			if fn.IsNotEmptyAndNotDefaultString(envRedisPass, define.DEFAULT_REDIS_PASS) {
-				define.REDIS_PASS = envRedisPass
-			}
-			if fn.IsNotEmptyAndNotDefaultString(args.REDIS_PASS, define.DEFAULT_REDIS_PASS) {
-				define.REDIS_PASS = args.REDIS_PASS
-			}
-
-			define.REDIS_DB = updateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
-		}
+		define.REDIS_SERVER = updateStringOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
+		define.REDIS_PASS = updateStringOption(ENV_KEY_REDIS_PASSWD, args.REDIS_PASS, define.DEFAULT_REDIS_PASS)
+		define.REDIS_DB = updateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
 	}
 
 	define.IN_MEMORY_CACHE = updateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
-
 	if define.IN_MEMORY_CACHE {
 		define.IN_MEMORY_EXPIRATION = updateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}
 
 	// todo check `addr:port` is vaild
-	envHeadlessServer := os.Getenv(ENV_KEY_HEADLESS_SERVER)
-	if fn.IsNotEmptyAndNotDefaultString(envHeadlessServer, define.DEFAULT_HEADLESS_SERVER) {
-		define.HEADLESS_SERVER = envHeadlessServer
-	}
-	if fn.IsNotEmptyAndNotDefaultString(args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER) {
-		define.HEADLESS_SERVER = args.HEADLESS_SERVER
-	}
-
+	define.HEADLESS_SERVER = updateStringOption(ENV_KEY_HEADLESS_SERVER, args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER)
 	// todo check `addr:port` is vaild
-	envProxyServer := os.Getenv(ENV_KEY_PROXY)
-	if fn.IsNotEmptyAndNotDefaultString(envProxyServer, define.DEFAULT_PROXY_ADDRESS) {
-		define.PROXY_SERVER = envProxyServer
-	}
-	if fn.IsNotEmptyAndNotDefaultString(args.PROXY_SERVER, define.DEFAULT_PROXY_ADDRESS) {
-		define.PROXY_SERVER = args.PROXY_SERVER
-	}
-
+	define.PROXY_SERVER = updateStringOption(ENV_KEY_PROXY, args.PROXY_SERVER, define.DEFAULT_PROXY_ADDRESS)
 	define.JS_EXECUTE_TIMEOUT = updateNumberOption(ENV_KEY_JS_EXEC_TIMEOUT, args.JS_EXECUTE_TIMEOUT, define.DEFAULT_JS_EXECUTE_TIMEOUT, true)
 	define.HEADLESS_SLOW_MOTION = updateNumberOption(ENV_KEY_HEADLESS_SLOW_MOTION, args.HEADLESS_SLOW_MOTION, define.DEFAULT_HEADLESS_SLOW_MOTION, true)
 	define.HEADLESS_EXCUTE_TIMEOUT = updateNumberOption(ENV_KEY_HEADLESS_EXEC_TIMEOUT, args.HEADLESS_EXCUTE_TIMEOUT, define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, false)

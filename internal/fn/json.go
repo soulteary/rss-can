@@ -2,10 +2,10 @@ package fn
 
 import "encoding/json"
 
-func JSONStringify(r interface{}) (string, error) {
+func JSONStringify(r interface{}) string {
 	out, err := json.Marshal(r)
 	if err != nil {
-		return "", err
+		return ""
 	}
-	return string(out), nil
+	return string(out)
 }

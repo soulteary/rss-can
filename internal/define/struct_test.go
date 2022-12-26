@@ -32,8 +32,8 @@ func TestMixupBodyParsed(t *testing.T) {
 		t.Fatal("MixupBodyParsed failed")
 	}
 
-	f1, _ := fn.JSONStringify(object.Body)
-	f2, _ := fn.JSONStringify(item)
+	f1 := fn.JSONStringify(object.Body)
+	f2 := fn.JSONStringify(item)
 	if f1 != f2 {
 		t.Fatal("MixupBodyParsed failed")
 	}

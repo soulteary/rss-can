@@ -36,6 +36,11 @@ type ConfigHook struct {
 	URL    string `json:"URL"`
 }
 
+type PROP_ID struct {
+	Object string `json:"object"`
+	Prop   string `json:"prop"`
+}
+
 type JavaScriptConfig struct {
 	URL          string        `json:"URL"`
 	Mode         string        `json:"Mode"`
@@ -45,6 +50,7 @@ type JavaScriptConfig struct {
 	Headless     string        `json:"Headless"`
 	DisableCache bool          `json:"DisableCache"`
 	IdByRegexp   string        `json:"IdByRegexp"`
+	IdByProp     PROP_ID       `json:"IdByProp"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

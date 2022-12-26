@@ -40,9 +40,17 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 
 func jsBridge(field string, method string, s *goquery.Selection) string {
 	// TODO use allowlist
+	find := strings.ToLower(method)
+
+	if field == "" {
+		prop, exists := s.Attr(find)
+		if exists {
+			return strings.TrimSpace(prop)
+		}
+	}
+
 	if strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, "p") || strings.Contains(field, "a") || strings.Contains(field, "li") {
 		// extract information by attributes
-		find := strings.ToLower(method)
 		if find == "text" {
 			return strings.TrimSpace(s.Find(field).Text())
 		} else if find == "html" {
@@ -52,7 +60,7 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 			}
 			return html
 		} else if find == "href" || strings.HasPrefix(find, "data-") {
-			prop, exists := s.Find(field).Attr(method)
+			prop, exists := s.Find(find).Attr(method)
 			if !exists {
 				return ""
 			}
@@ -228,6 +236,11 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 						item.ID = match[0][1]
 					}
 				}
+			}
+
+			if config.IdByProp.Object != "" || config.IdByProp.Prop != "" {
+				prop := jsBridge(config.IdByProp.Object, config.IdByProp.Prop, s)
+				item.ID = prop
 			}
 
 			if config.ContentHook.Action == define.ConfigHookReadLink {

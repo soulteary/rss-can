@@ -38,29 +38,42 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 	return result
 }
 
+func IsCssSelector(field string) bool {
+	return strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, " ") || strings.Contains(field, ">")
+}
+
+func IsDomName(field string) bool {
+	domList := []string{"p", "span", "em", "strong", "a", "ul", "li", "ol", "dl", "h1", "h2", "h3", "h4", "h5", "h6"}
+	for _, dom := range domList {
+		if strings.Contains(field, dom) {
+			return true
+		}
+	}
+	return false
+}
+
 func jsBridge(field string, method string, s *goquery.Selection) string {
 	// TODO use allowlist
-	find := strings.ToLower(method)
-
 	if field == "" {
-		prop, exists := s.Attr(find)
+		value, exists := s.Attr(strings.TrimSpace(strings.ToLower(method)))
 		if exists {
-			return strings.TrimSpace(prop)
+			return strings.TrimSpace(value)
 		}
 	}
 
-	if strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, "p") || strings.Contains(field, "a") || strings.Contains(field, "li") {
-		// extract information by attributes
-		if find == "text" {
+	if IsCssSelector(field) || IsDomName(field) {
+		action := strings.TrimSpace(strings.ToLower(method))
+		switch action {
+		case "text":
 			return strings.TrimSpace(s.Find(field).Text())
-		} else if find == "html" {
+		case "html":
 			html, err := s.Find(field).Html()
 			if err != nil {
 				return ""
 			}
 			return html
-		} else if find == "href" || strings.HasPrefix(find, "data-") {
-			prop, exists := s.Find(find).Attr(method)
+		case "href":
+			prop, exists := s.Find(field).Attr(action)
 			if !exists {
 				return ""
 			}

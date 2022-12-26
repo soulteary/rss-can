@@ -3,6 +3,8 @@ const config = {
   // optional
   // Mode: "ssr",
   // Expire: 10*60,
+  IdByRegexp: "\\/(\\d+)$",
+
   Title: ".article-item-title",
   Author: ".kr-flow-bar-author",
   Category: ".kr-flow-bar-motif a",

@@ -3,6 +3,8 @@ const config = {
   // optional
   // Mode: "ssr",
   // Expire: 10*60,
+  IdByRegexp: "\\/(\\d+)$",
+
   Title: "a > .multiline-text-overflow",
   Author: "极客公园",
   Category: ".category-tag",

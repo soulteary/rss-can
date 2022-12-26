@@ -107,6 +107,10 @@ func SantizeFeedPath(feedpath string) string {
 	return strings.ToLower(s)
 }
 
+func IsNotEmptyAndNotDefaults(value string, defaults string) bool {
+	return value != "" && value != defaults
+}
+
 const (
 	ENV_KEY_DEBUG                 = "RSS_DEBUG"
 	ENV_KEY_DEBUG_LEVEL           = "RSS_DEBUG_LEVEL"
@@ -160,15 +164,15 @@ func ApplyFlags() {
 	if envServerTimeout > 0 {
 		define.SERVER_TIMEOUT = envServerTimeout
 	}
-	if args.SERVER_TIMEOUT > 0 {
+	if args.SERVER_TIMEOUT > 0 && args.SERVER_TIMEOUT != define.SERVER_TIMEOUT {
 		define.SERVER_TIMEOUT = args.SERVER_TIMEOUT
 	}
 
 	envRuleDir := os.Getenv(ENV_KEY_RULE)
-	if envRuleDir != "" {
+	if IsNotEmptyAndNotDefaults(envRuleDir, define.DEFAULT_RULES_DIRECTORY) {
 		define.RULES_DIRECTORY = envRuleDir
 	}
-	if args.RULES_DIRECTORY != define.RULES_DIRECTORY {
+	if IsNotEmptyAndNotDefaults(args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY) {
 		define.RULES_DIRECTORY = args.RULES_DIRECTORY
 	}
 
@@ -181,11 +185,11 @@ func ApplyFlags() {
 	}
 
 	envHttpFeedPath := SantizeFeedPath(os.Getenv(ENV_KEY_HTTP_FEED_PATH))
-	if envHttpFeedPath != define.DEFAULT_HTTP_FEED_PATH {
+	if IsNotEmptyAndNotDefaults(envHttpFeedPath, define.DEFAULT_HTTP_FEED_PATH) {
 		define.HTTP_FEED_PATH = envHttpFeedPath
 	}
 	argHttpFeedPath := SantizeFeedPath(args.HTTP_FEED_PATH)
-	if argHttpFeedPath != define.DEFAULT_HTTP_FEED_PATH {
+	if IsNotEmptyAndNotDefaults(argHttpFeedPath, define.DEFAULT_HTTP_FEED_PATH) {
 		define.HTTP_FEED_PATH = argHttpFeedPath
 	}
 
@@ -200,27 +204,29 @@ func ApplyFlags() {
 	if define.REDIS {
 		// todo check `addr:port` is vaild
 		envRedisServer := os.Getenv(ENV_KEY_REDIS_SERVER)
-		if envRedisServer != "" {
+		if IsNotEmptyAndNotDefaults(envRedisServer, define.DEFAULT_REDIS_SERVER) {
 			define.REDIS_SERVER = envRedisServer
 		}
-		if args.REDIS_SERVER != define.REDIS_SERVER {
+		if IsNotEmptyAndNotDefaults(args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER) {
 			define.REDIS_SERVER = args.REDIS_SERVER
 		}
 
 		envRedisPass := os.Getenv(ENV_KEY_REDIS_PASSWD)
 		if envRedisPass != "" {
-			define.REDIS_PASS = envRedisPass
-		}
-		if args.REDIS_PASS != define.REDIS_PASS {
-			define.REDIS_PASS = args.REDIS_PASS
-		}
+			if IsNotEmptyAndNotDefaults(envRedisPass, define.DEFAULT_REDIS_PASS) {
+				define.REDIS_PASS = envRedisPass
+			}
+			if IsNotEmptyAndNotDefaults(args.REDIS_PASS, define.DEFAULT_REDIS_PASS) {
+				define.REDIS_PASS = args.REDIS_PASS
+			}
 
-		envRedisDB := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_REDIS_DB))
-		if envRedisDB >= 0 {
-			define.REDIS_DB = envRedisDB
-		}
-		if args.REDIS_DB != define.REDIS_DB {
-			define.REDIS_DB = args.REDIS_DB
+			envRedisDB := ConvertStringToPositiveInteger(os.Getenv(ENV_KEY_REDIS_DB))
+			if envRedisDB >= 0 {
+				define.REDIS_DB = envRedisDB
+			}
+			if args.REDIS_DB >= 0 && args.REDIS_DB != define.DEFAULT_REDIS_DB {
+				define.REDIS_DB = args.REDIS_DB
+			}
 		}
 	}
 
@@ -236,26 +242,26 @@ func ApplyFlags() {
 		if envMemoryExpiration >= 0 {
 			define.IN_MEMORY_EXPIRATION = envMemoryExpiration
 		}
-		if args.IN_MEMORY_EXPIRATION != define.IN_MEMORY_EXPIRATION {
+		if args.IN_MEMORY_EXPIRATION >= 0 && args.IN_MEMORY_EXPIRATION != define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION {
 			define.IN_MEMORY_EXPIRATION = args.IN_MEMORY_EXPIRATION
 		}
 	}
 
 	// todo check `addr:port` is vaild
 	envHeadlessServer := os.Getenv(ENV_KEY_HEADLESS_SERVER)
-	if envHeadlessServer != "" {
+	if IsNotEmptyAndNotDefaults(envHeadlessServer, define.DEFAULT_HEADLESS_SERVER) {
 		define.HEADLESS_SERVER = envHeadlessServer
 	}
-	if args.HEADLESS_SERVER != define.HEADLESS_SERVER {
+	if IsNotEmptyAndNotDefaults(args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER) {
 		define.HEADLESS_SERVER = args.HEADLESS_SERVER
 	}
 
 	// todo check `addr:port` is vaild
 	envProxyServer := os.Getenv(ENV_KEY_PROXY)
-	if envProxyServer != "" {
+	if IsNotEmptyAndNotDefaults(envProxyServer, define.DEFAULT_PROXY_ADDRESS) {
 		define.PROXY_SERVER = envProxyServer
 	}
-	if args.PROXY_SERVER != define.PROXY_SERVER {
+	if IsNotEmptyAndNotDefaults(args.PROXY_SERVER, define.DEFAULT_PROXY_ADDRESS) {
 		define.PROXY_SERVER = args.PROXY_SERVER
 	}
 
@@ -263,7 +269,7 @@ func ApplyFlags() {
 	if envJsExecTimeout >= 0 {
 		define.JS_EXECUTE_TIMEOUT = envJsExecTimeout
 	}
-	if args.JS_EXECUTE_TIMEOUT > 0 {
+	if args.JS_EXECUTE_TIMEOUT > 0 && args.JS_EXECUTE_TIMEOUT != define.DEFAULT_JS_EXECUTE_TIMEOUT {
 		define.JS_EXECUTE_TIMEOUT = args.JS_EXECUTE_TIMEOUT
 	}
 
@@ -271,7 +277,7 @@ func ApplyFlags() {
 	if envHeadlessSlowMotion >= 0 {
 		define.HEADLESS_SLOW_MOTION = envHeadlessSlowMotion
 	}
-	if args.HEADLESS_SLOW_MOTION > 0 {
+	if args.HEADLESS_SLOW_MOTION >= 0 && args.HEADLESS_SLOW_MOTION != define.DEFAULT_HEADLESS_SLOW_MOTION {
 		define.HEADLESS_SLOW_MOTION = args.HEADLESS_SLOW_MOTION
 	}
 
@@ -279,8 +285,7 @@ func ApplyFlags() {
 	if envHeadlessExecTimeout > 0 {
 		define.HEADLESS_EXCUTE_TIMEOUT = envHeadlessExecTimeout
 	}
-	if args.HEADLESS_EXCUTE_TIMEOUT > 0 {
+	if args.HEADLESS_EXCUTE_TIMEOUT > 0 && args.HEADLESS_EXCUTE_TIMEOUT != define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT {
 		define.HEADLESS_EXCUTE_TIMEOUT = args.HEADLESS_EXCUTE_TIMEOUT
 	}
-
 }

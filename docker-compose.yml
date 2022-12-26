@@ -1,0 +1,21 @@
+version: "3"
+
+services:
+  rssc:
+    image: soulteary/rss-can:0.3.1
+    environment:
+      - RSS_HEADLESS_SERVER=http://browserless:3000
+      - RSS_SERVER=redis:6379
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./rules:/rules
+
+  # You can replaced with any headless docker image, such as rod
+  browserless:
+    image: browserless/chrome:1-puppeteer-19.2.2
+
+  # If Redis Cache is enabled, then any version of Redis is necessary,
+  # or a cloud server can be used instead
+  redis:
+    image: redis:alpine

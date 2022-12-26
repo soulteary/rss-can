@@ -11,7 +11,7 @@ func ParseFlags() (appFlags AppFlags) {
 	flag.BoolVar(&appFlags.DEBUG_MODE, "debug", define.DEFAULT_DEBUG_MODE, fmt.Sprintf("whether to output debugging logging, env: `%s`", ENV_KEY_DEBUG))
 	flag.StringVar(&appFlags.DEBUG_LEVEL, "debug-level", define.DEFAULT_DEBUG_LEVEL, fmt.Sprintf("set debug log printing level, env: `%s`", ENV_KEY_DEBUG_LEVEL))
 
-	// flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "web service listening address")
+	flag.StringVar(&appFlags.HTTP_HOST, "host", define.DEFAULT_HTTP_HOST, fmt.Sprintf("web service listening address, env: `%s`", ENV_KEY_HOST))
 	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, fmt.Sprintf("web service listening port, env: `%s`", ENV_KEY_PORT))
 
 	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQUEST_TIMEOUT, fmt.Sprintf("set request timeout, env: `%s`", ENV_KEY_REQUEST_TIMEOUT))
@@ -48,6 +48,7 @@ func ApplyFlags() {
 	define.REQUEST_TIMEOUT = UpdateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = UpdateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = UpdateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
+	define.HTTP_HOST = UpdateStringOption(ENV_KEY_HOST, args.HTTP_HOST, define.DEFAULT_HTTP_HOST)
 	define.HTTP_PORT = UpdatePortOption(ENV_KEY_PORT, args.HTTP_PORT, define.DEFAULT_HTTP_PORT)
 	define.HTTP_FEED_PATH = UpdateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
 	define.REDIS = UpdateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)

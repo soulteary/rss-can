@@ -7,6 +7,7 @@ var (
 	REQUEST_TIMEOUT = 5 // seconds, fetch remote data timeout
 	SERVER_TIMEOUT  = 8 // seconds, web server request timeout
 	RULES_DIRECTORY = "./rules"
+	HTTP_HOST       = "0.0.0.0"
 	HTTP_PORT       = 8080
 	HTTP_FEED_PATH  = "/feed"
 

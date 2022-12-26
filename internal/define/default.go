@@ -7,6 +7,7 @@ const (
 	DEFAULT_REQUEST_TIMEOUT = 5 // seconds, fetch remote data timeout
 	DEFAULT_SERVER_TIMEOUT  = 8 // seconds, web server request timeout
 	DEFAULT_RULES_DIRECTORY = "./rules"
+	DEFAULT_HTTP_HOST       = "0.0.0.0"
 	DEFAULT_HTTP_PORT       = 8080
 	DEFAULT_HTTP_FEED_PATH  = "/feed"
 )

@@ -25,6 +25,9 @@ func TestApplyFlags(t *testing.T) {
 	if define.RULES_DIRECTORY != define.DEFAULT_RULES_DIRECTORY {
 		t.Fatal("test flag failed")
 	}
+	if define.HTTP_HOST != define.DEFAULT_HTTP_HOST {
+		t.Fatal("test flag failed")
+	}
 	if define.HTTP_PORT != define.DEFAULT_HTTP_PORT {
 		t.Fatal("test flag failed")
 	}

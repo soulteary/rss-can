@@ -6,6 +6,7 @@ const (
 	ENV_KEY_REQUEST_TIMEOUT       = "RSS_REQUEST_TIMEOUT"
 	ENV_KEY_SERVER_TIMEOUT        = "RSS_SERVER_TIMEOUT"
 	ENV_KEY_RULE                  = "RSS_RULE"
+	ENV_KEY_HOST                  = "RSS_HOST"
 	ENV_KEY_PORT                  = "RSS_PORT"
 	ENV_KEY_REDIS                 = "RSS_REDIS"
 	ENV_KEY_REDIS_SERVER          = "RSS_SERVER"
@@ -25,7 +26,7 @@ type AppFlags struct {
 	DEBUG_MODE  bool
 	DEBUG_LEVEL string
 
-	Host           string
+	HTTP_HOST      string
 	HTTP_PORT      int
 	HTTP_FEED_PATH string
 

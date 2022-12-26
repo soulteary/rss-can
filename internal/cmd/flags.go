@@ -48,6 +48,7 @@ func ApplyFlags() {
 	define.REQUEST_TIMEOUT = UpdateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = UpdateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = UpdateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
+	// todo check `host` is vaild
 	define.HTTP_HOST = UpdateStringOption(ENV_KEY_HOST, args.HTTP_HOST, define.DEFAULT_HTTP_HOST)
 	define.HTTP_PORT = UpdatePortOption(ENV_KEY_PORT, args.HTTP_PORT, define.DEFAULT_HTTP_PORT)
 	define.HTTP_FEED_PATH = UpdateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)

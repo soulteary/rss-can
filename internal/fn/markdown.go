@@ -6,9 +6,6 @@ import (
 
 func Html2Md(html string) string {
 	converter := markdown.NewConverter("", true, nil)
-	markdown, err := converter.ConvertString(html)
-	if err != nil {
-		return ""
-	}
+	markdown, _ := converter.ConvertString(html)
 	return markdown
 }

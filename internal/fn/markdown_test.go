@@ -11,4 +11,14 @@ func TestHtml2Md(t *testing.T) {
 	if title != "# Title" {
 		t.Fatal("markdown convert test failed")
 	}
+
+	empty := fn.Html2Md("")
+	if empty != "" {
+		t.Fatal("markdown convert test failed")
+	}
+
+	unstructured := fn.Html2Md("<htm1l><body><aef<eqf>>>qq></body></ht>")
+	if unstructured == "" {
+		t.Fatal("markdown convert test failed")
+	}
 }

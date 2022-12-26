@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  browserless:
+    image: browserless/chrome:1-puppeteer-19.2.2
+    ports:
+      - "9222:3000"
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"

@@ -273,3 +273,51 @@ func TestUpdateFeedPathOption(t *testing.T) {
 	}
 	os.Setenv("TEST_KEY", "")
 }
+
+func TestUpdatePortOption(t *testing.T) {
+	// env: empty, args: 0, default: 8080
+	ret := cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
+	if ret != define.DEFAULT_HTTP_PORT {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	// env: empty, args: -1, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", -1, define.DEFAULT_HTTP_PORT)
+	if ret != define.DEFAULT_HTTP_PORT {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	// env: empty, args: 8090, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", 8090, define.DEFAULT_HTTP_PORT)
+	if ret != 8090 {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "9090")
+	// env: "9090", args: 0, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
+	if ret != 9090 {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	// env: "9090", args: -1, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", -1, define.DEFAULT_HTTP_PORT)
+	if ret != 9090 {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	// env: "9090", args: 8090, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", 8090, define.DEFAULT_HTTP_PORT)
+	if ret != 8090 {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	os.Setenv("TEST_KEY", "0")
+	// env: "0", args: 0, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
+	if ret != define.DEFAULT_HTTP_PORT {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	os.Setenv("TEST_KEY", "-1")
+	// env: "-1", args: 0, default: 8080
+	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
+	if ret != define.DEFAULT_HTTP_PORT {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}

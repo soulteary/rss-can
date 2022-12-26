@@ -90,13 +90,14 @@ func UpdateFeedPathOption(key string, args string, defaults string) string {
 	return feed
 }
 
-func updatePortOption(key string, args int, defaults int) int {
+func UpdatePortOption(key string, args int, defaults int) int {
 	env := fn.StringToPositiveInteger(os.Getenv(key))
+	port := defaults
 	if fn.IsVaildPortRange(env) {
-		return env
+		port = env
 	}
 	if fn.IsVaildPortRange(args) && args != defaults {
-		return args
+		port = args
 	}
-	return defaults
+	return port
 }

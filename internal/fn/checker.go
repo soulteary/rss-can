@@ -15,3 +15,12 @@ func IsDomTagName(field string) bool {
 func IsCssSelector(field string) bool {
 	return strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, " ") || strings.Contains(field, ">")
 }
+
+func IsStrInArray(arr []string, s string) bool {
+	for _, a := range arr {
+		if a == s {
+			return true
+		}
+	}
+	return false
+}

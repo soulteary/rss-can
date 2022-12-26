@@ -77,16 +77,17 @@ func UpdateLogOption(key string, args string, defaults string) string {
 	return level
 }
 
-func updateFeedPathOption(key string, args string, defaults string) string {
+func UpdateFeedPathOption(key string, args string, defaults string) string {
 	env := SantizeFeedPath(os.Getenv(key))
+	feed := defaults
 	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
-		return env
+		feed = env
 	}
 	argHttpFeedPath := SantizeFeedPath(args)
 	if fn.IsNotEmptyAndNotDefaultString(argHttpFeedPath, defaults) {
-		return argHttpFeedPath
+		feed = argHttpFeedPath
 	}
-	return defaults
+	return feed
 }
 
 func updatePortOption(key string, args int, defaults int) int {

@@ -252,3 +252,24 @@ func TestUpdateLogOption(t *testing.T) {
 		t.Fatal("UpdateLogOption failed")
 	}
 }
+
+func TestUpdateFeedPathOption(t *testing.T) {
+	// env: empty, args: "", default: "/feed"
+	ret := cmd.UpdateFeedPathOption("TEST_KEY", "", define.DEFAULT_HTTP_FEED_PATH)
+	if ret != "/feed" {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	// env: empty, args: "/new-feed-path", default: "/feed"
+	ret = cmd.UpdateFeedPathOption("TEST_KEY", "/new-feed-path", define.DEFAULT_HTTP_FEED_PATH)
+	if ret != "/new-feed-path" {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "/new-feed-path")
+	// env: empty, args: "/new-feed-path", default: "/feed"
+	ret = cmd.UpdateFeedPathOption("TEST_KEY", "", define.DEFAULT_HTTP_FEED_PATH)
+	if ret != "/new-feed-path" {
+		t.Fatal("UpdateFeedPathOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}

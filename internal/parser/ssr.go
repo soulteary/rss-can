@@ -268,10 +268,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 			if item.Content == "" {
 				if config.Content != "" {
 					content := jsBridge(config.Content, "text", s)
-					md, err := fn.Html2Md(content)
-					if err == nil {
-						item.Content = md
-					}
+					item.Content = fn.Html2Md(content)
 				}
 			}
 

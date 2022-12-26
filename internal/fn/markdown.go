@@ -4,13 +4,11 @@ import (
 	markdown "github.com/JohannesKaufmann/html-to-markdown"
 )
 
-func Html2Md(html string) (string, error) {
+func Html2Md(html string) string {
 	converter := markdown.NewConverter("", true, nil)
-
 	markdown, err := converter.ConvertString(html)
 	if err != nil {
-		return "", err
+		return ""
 	}
-
-	return markdown, err
+	return markdown
 }

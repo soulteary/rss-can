@@ -111,10 +111,5 @@ func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, ex
 		return ""
 	}
 
-	md, err := fn.Html2Md(html)
-	if err != nil {
-		return ""
-	}
-
-	return md
+	return fn.Html2Md(html)
 }

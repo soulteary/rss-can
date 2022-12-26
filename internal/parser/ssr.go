@@ -38,20 +38,6 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 	return result
 }
 
-func IsCssSelector(field string) bool {
-	return strings.Contains(field, ".") || strings.Contains(field, "#") || strings.Contains(field, " ") || strings.Contains(field, ">")
-}
-
-func IsDomName(field string) bool {
-	domList := []string{"p", "span", "em", "strong", "a", "ul", "li", "ol", "dl", "h1", "h2", "h3", "h4", "h5", "h6"}
-	for _, dom := range domList {
-		if strings.Contains(field, dom) {
-			return true
-		}
-	}
-	return false
-}
-
 func jsBridge(field string, method string, s *goquery.Selection) string {
 	// TODO use allowlist
 	if field == "" {
@@ -61,7 +47,7 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 		}
 	}
 
-	if IsCssSelector(field) || IsDomName(field) {
+	if fn.IsCssSelector(field) || fn.IsDomTagName(field) {
 		action := strings.TrimSpace(strings.ToLower(method))
 		switch action {
 		case "text":

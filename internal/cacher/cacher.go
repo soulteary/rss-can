@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/muesli/cache2go"
 	"github.com/soulteary/RSS-Can/internal/define"
 )
 
@@ -11,12 +12,18 @@ var NO_CACHE_ENABLED = (func() error {
 	return errors.New("no cache enabled")
 })()
 
+var instanceMemory *cache2go.CacheTable
+
+func init() {
+	instanceMemory = InitializeMemory(define.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE_STORE_NAME)
+}
+
 func Get(key string) (string, error) {
 	if define.REDIS {
 		str, err := GetDataFromRedis(key)
 		if err != nil {
 			if define.IN_MEMORY_CACHE {
-				data, err := GetDataFromMemory(key)
+				data, err := GetDataFromMemory(instanceMemory, key)
 				if err != nil {
 					return "", err
 				}
@@ -28,7 +35,7 @@ func Get(key string) (string, error) {
 	}
 
 	if define.IN_MEMORY_CACHE {
-		data, err := GetDataFromMemory(key)
+		data, err := GetDataFromMemory(instanceMemory, key)
 		if err != nil {
 			return "", err
 		}
@@ -42,7 +49,7 @@ func Set(key string, value string) error {
 		err := UpdateDataToRedis(key, value)
 		if err != nil {
 			if define.IN_MEMORY_CACHE {
-				UpdateDataToMemory(key, value)
+				UpdateDataToMemory(instanceMemory, key, value)
 				return nil
 			}
 			return err
@@ -50,7 +57,7 @@ func Set(key string, value string) error {
 	}
 
 	if define.IN_MEMORY_CACHE {
-		UpdateDataToMemory(key, value)
+		UpdateDataToMemory(instanceMemory, key, value)
 		return nil
 	}
 	return NO_CACHE_ENABLED
@@ -61,7 +68,7 @@ func Del(key string) error {
 		err := DelDataByKeyFromRedis(key)
 		if err != nil {
 			if define.IN_MEMORY_CACHE {
-				DelDataByKeyFromMemory(key)
+				DelDataByKeyFromMemory(instanceMemory, key)
 				return nil
 			}
 			return err
@@ -69,7 +76,7 @@ func Del(key string) error {
 	}
 
 	if define.IN_MEMORY_CACHE {
-		DelDataByKeyFromMemory(key)
+		DelDataByKeyFromMemory(instanceMemory, key)
 		return nil
 	}
 	return NO_CACHE_ENABLED
@@ -80,7 +87,7 @@ func Expire(key string, expire time.Duration) error {
 		err := SetDataExpireByKeyFromRedis(key, expire*time.Second)
 		if err != nil {
 			if define.IN_MEMORY_CACHE {
-				err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
+				err := SetDataExpireByKeyFromMemory(instanceMemory, key, expire*time.Second)
 				if err != nil {
 					return err
 				}
@@ -91,7 +98,7 @@ func Expire(key string, expire time.Duration) error {
 	}
 
 	if define.IN_MEMORY_CACHE {
-		err := SetDataExpireByKeyFromMemory(key, expire*time.Second)
+		err := SetDataExpireByKeyFromMemory(instanceMemory, key, expire*time.Second)
 		if err != nil {
 			return err
 		}

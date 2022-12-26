@@ -56,6 +56,8 @@ Usage of rssc:
     	set Headless server address, env: RSS_HEADLESS_SERVER (default "127.0.0.1:9222")
   -headless-slow-motion RSS_HEADLESS_SLOW_MOTION
     	set Headless slow motion, env: RSS_HEADLESS_SLOW_MOTION (default 2)
+  -host RSS_HOST
+    	web service listening address, env: RSS_HOST (default "0.0.0.0")
   -memory RSS_MEMORY
     	using Memory(build-in) as a cache service, env: RSS_MEMORY (default true)
   -memory-expiration RSS_MEMORY_EXPIRATION

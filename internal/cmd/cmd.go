@@ -97,20 +97,24 @@ func updateStringOption(envKey string, args string, defaults string) string {
 	return defaults
 }
 
+func updateLogOption(envKey string, args string, defaults string) string {
+	env := os.Getenv(envKey)
+	if fn.IsVaildLogLevel(env) {
+		return strings.ToLower(env)
+	}
+
+	args = strings.ToLower(args)
+	if fn.IsVaildLogLevel(args) && args != defaults {
+		return strings.ToLower(args)
+	}
+	return defaults
+}
+
 func ApplyFlags() {
 	args := ParseFlags()
 
 	define.DEBUG_MODE = updateBoolOption(ENV_KEY_DEBUG, args.DEBUG_MODE, define.DEFAULT_DEBUG_MODE)
-
-	envDebugLevel := os.Getenv(ENV_KEY_DEBUG_LEVEL)
-	if fn.IsVaildLogLevel(envDebugLevel) {
-		define.DEBUG_LEVEL = envDebugLevel
-	}
-	args.DEBUG_LEVEL = strings.ToLower(args.DEBUG_LEVEL)
-	if fn.IsVaildLogLevel(args.DEBUG_LEVEL) && args.DEBUG_LEVEL != define.DEFAULT_DEBUG_LEVEL {
-		define.DEBUG_LEVEL = args.DEBUG_LEVEL
-	}
-
+	define.DEBUG_LEVEL = updateLogOption(ENV_KEY_DEBUG_LEVEL, args.DEBUG_LEVEL, define.DEFAULT_DEBUG_LEVEL)
 	define.REQUEST_TIMEOUT = updateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = updateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = updateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)

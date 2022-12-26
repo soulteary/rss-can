@@ -44,7 +44,7 @@ func ApplyFlags() {
 	args := ParseFlags()
 
 	define.DEBUG_MODE = UpdateBoolOption(ENV_KEY_DEBUG, args.DEBUG_MODE, define.DEFAULT_DEBUG_MODE)
-	define.DEBUG_LEVEL = updateLogOption(ENV_KEY_DEBUG_LEVEL, args.DEBUG_LEVEL, define.DEFAULT_DEBUG_LEVEL)
+	define.DEBUG_LEVEL = UpdateLogOption(ENV_KEY_DEBUG_LEVEL, args.DEBUG_LEVEL, define.DEFAULT_DEBUG_LEVEL)
 	define.REQUEST_TIMEOUT = UpdateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = UpdateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = UpdateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)

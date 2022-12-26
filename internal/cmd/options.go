@@ -63,17 +63,18 @@ func UpdateStringOption(key string, args string, defaults string) string {
 	return str
 }
 
-func updateLogOption(key string, args string, defaults string) string {
+func UpdateLogOption(key string, args string, defaults string) string {
 	env := os.Getenv(key)
+	level := defaults
 	if fn.IsVaildLogLevel(env) {
-		return strings.ToLower(env)
+		level = strings.ToLower(env)
 	}
 
 	args = strings.ToLower(args)
 	if fn.IsVaildLogLevel(args) && args != defaults {
-		return strings.ToLower(args)
+		level = strings.ToLower(args)
 	}
-	return defaults
+	return level
 }
 
 func updateFeedPathOption(key string, args string, defaults string) string {

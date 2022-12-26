@@ -216,3 +216,39 @@ func TestUpdateStringOption(t *testing.T) {
 	}
 	os.Setenv("TEST_KEY", "")
 }
+
+func TestUpdateLogOption(t *testing.T) {
+	// env: empty, args: "", default: "info"
+	ret := cmd.UpdateLogOption("TEST_KEY", "", "info")
+	if ret != "info" {
+		t.Fatal("UpdateLogOption failed")
+	}
+	// env: empty, args: "error", default: "info"
+	ret = cmd.UpdateLogOption("TEST_KEY", "error", "info")
+	if ret != "error" {
+		t.Fatal("UpdateLogOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "warn")
+	// env: "warn", args: "", default: "info"
+	ret = cmd.UpdateLogOption("TEST_KEY", "", "info")
+	if ret != "warn" {
+		t.Fatal("UpdateLogOption failed")
+	}
+	// env: "warn", args: "error", default: "info"
+	ret = cmd.UpdateLogOption("TEST_KEY", "error", "info")
+	if ret != "error" {
+		t.Fatal("UpdateLogOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
+
+	ret = cmd.UpdateLogOption("TEST_KEY", "errorA", "info")
+	if ret != "info" {
+		t.Fatal("UpdateLogOption failed")
+	}
+
+	ret = cmd.UpdateLogOption("TEST_KEY", "ErrOR", "info")
+	if ret != "error" {
+		t.Fatal("UpdateLogOption failed")
+	}
+}

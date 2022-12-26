@@ -54,16 +54,21 @@ func SantizeFeedPath(feedpath string) string {
 	return strings.ToLower(s)
 }
 
+func updateBoolOption(envKey string, args bool, defaults bool) bool {
+	env := os.Getenv(envKey)
+	if env != "" {
+		return fn.IsBoolString(env)
+	}
+	if args != defaults {
+		return args
+	}
+	return false
+}
+
 func ApplyFlags() {
 	args := ParseFlags()
 
-	envDebugMode := os.Getenv(ENV_KEY_DEBUG)
-	if envDebugMode != "" {
-		define.DEBUG_MODE = fn.IsBoolString(envDebugMode)
-	}
-	if args.DEBUG_MODE != define.DEFAULT_DEBUG_MODE {
-		define.DEBUG_MODE = args.DEBUG_MODE
-	}
+	define.DEBUG_MODE = updateBoolOption(ENV_KEY_DEBUG, args.DEBUG_MODE, define.DEFAULT_DEBUG_MODE)
 
 	envDebugLevel := os.Getenv(ENV_KEY_DEBUG_LEVEL)
 	if fn.IsVaildLogLevel(envDebugLevel) {
@@ -115,13 +120,7 @@ func ApplyFlags() {
 		define.HTTP_FEED_PATH = argHttpFeedPath
 	}
 
-	envRedis := os.Getenv(ENV_KEY_REDIS)
-	if envRedis != "" {
-		define.REDIS = fn.IsBoolString(envRedis)
-	}
-	if args.REDIS != define.REDIS {
-		define.REDIS = args.REDIS
-	}
+	define.REDIS = updateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
 
 	if define.REDIS {
 		// todo check `addr:port` is vaild
@@ -152,13 +151,8 @@ func ApplyFlags() {
 		}
 	}
 
-	envMemory := os.Getenv(ENV_MEMORY)
-	if envMemory != "" {
-		define.IN_MEMORY_CACHE = fn.IsBoolString(envMemory)
-	}
-	if args.IN_MEMORY_CACHE != define.IN_MEMORY_CACHE {
-		define.IN_MEMORY_CACHE = args.IN_MEMORY_CACHE
-	}
+	define.IN_MEMORY_CACHE = updateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
+
 	if define.IN_MEMORY_CACHE {
 		envMemoryExpiration := fn.StringToPositiveInteger(os.Getenv(ENV_MEMORY_EXPIRATION))
 		if envMemoryExpiration >= 0 {

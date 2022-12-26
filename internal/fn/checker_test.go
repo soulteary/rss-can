@@ -53,3 +53,84 @@ func TestIsStrInArray(t *testing.T) {
 		t.Fatal("Checking string array contains data failed")
 	}
 }
+
+func TestIsVaildPortRange(t *testing.T) {
+	ret := fn.IsVaildPortRange(0)
+	if ret {
+		t.Fatal("IsVaildPortRange failed")
+	}
+
+	ret = fn.IsVaildPortRange(-1)
+	if ret {
+		t.Fatal("IsVaildPortRange failed")
+	}
+
+	ret = fn.IsVaildPortRange(1000000)
+	if ret {
+		t.Fatal("IsVaildPortRange failed")
+	}
+
+	ret = fn.IsVaildPortRange(3000)
+	if !ret {
+		t.Fatal("IsVaildPortRange failed")
+	}
+}
+
+func TestIsNotEmptyAndNotDefaultString(t *testing.T) {
+	ret := fn.IsNotEmptyAndNotDefaultString("", "d")
+	if ret {
+		t.Fatal("IsNotEmptyAndNotDefaultString failed")
+	}
+
+	ret = fn.IsNotEmptyAndNotDefaultString("d", "d")
+	if ret {
+		t.Fatal("IsNotEmptyAndNotDefaultString failed")
+	}
+}
+
+func TestIsVaildLogLevel(t *testing.T) {
+	ret := fn.IsVaildLogLevel("info")
+	if !ret {
+		t.Fatal("IsVaildLogLevel failed")
+	}
+	ret = fn.IsVaildLogLevel("error")
+	if !ret {
+		t.Fatal("IsVaildLogLevel failed")
+	}
+	ret = fn.IsVaildLogLevel("warn")
+	if !ret {
+		t.Fatal("IsVaildLogLevel failed")
+	}
+	ret = fn.IsVaildLogLevel("debug")
+	if !ret {
+		t.Fatal("IsVaildLogLevel failed")
+	}
+	ret = fn.IsVaildLogLevel("not-vaild")
+	if ret {
+		t.Fatal("IsVaildLogLevel failed")
+	}
+}
+
+func TestIsBoolString(t *testing.T) {
+	ret := fn.IsBoolString("true")
+	if !ret {
+		t.Fatal("IsBoolString failed")
+	}
+	ret = fn.IsBoolString("on")
+	if !ret {
+		t.Fatal("IsBoolString failed")
+	}
+	ret = fn.IsBoolString("1")
+	if !ret {
+		t.Fatal("IsBoolString failed")
+	}
+	ret = fn.IsBoolString("ON")
+	if !ret {
+		t.Fatal("IsBoolString failed")
+	}
+
+	ret = fn.IsBoolString("not-vaild")
+	if ret {
+		t.Fatal("IsBoolString failed")
+	}
+}

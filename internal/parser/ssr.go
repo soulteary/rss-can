@@ -39,7 +39,6 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 }
 
 func jsBridge(field string, method string, s *goquery.Selection) string {
-	// TODO use allowlist
 	if field == "" {
 		value, exists := s.Attr(strings.TrimSpace(strings.ToLower(method)))
 		if exists {

@@ -10,8 +10,8 @@ import (
 )
 
 func SantizeFeedPath(feedpath string) string {
-	s := "/" + strings.TrimRight(strings.TrimLeft(feedpath, "/"), "/")
-	var re = regexp.MustCompile(`^\/[\w\d\-\_]+$`)
+	s := "/" + strings.TrimSpace(strings.TrimRight(strings.TrimLeft(feedpath, "/"), "/"))
+	var re = regexp.MustCompile(`^\/[\w\d\-\s\_]+$`)
 	match := re.FindAllStringSubmatch(s, -1)
 	if len(match) == 0 {
 		return define.DEFAULT_HTTP_FEED_PATH

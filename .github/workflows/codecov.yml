@@ -5,7 +5,7 @@ on:
   push:
 
 jobs:
-  run:
+  CodeCov:
     runs-on: ubuntu-latest
     env:
       GO111MODULE: on
@@ -36,7 +36,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Run coverage
-        run: go test -race -coverprofile=coverage.out -covermode=atomic
+        run: go test ./... -race -coverprofile=coverage.out -covermode=atomic
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

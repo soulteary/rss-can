@@ -3,12 +3,8 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"os"
-	"regexp"
-	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
-	"github.com/soulteary/RSS-Can/internal/fn"
 )
 
 func ParseFlags() (appFlags AppFlags) {
@@ -44,84 +40,6 @@ func ParseFlags() (appFlags AppFlags) {
 	return appFlags
 }
 
-func SantizeFeedPath(feedpath string) string {
-	s := "/" + strings.TrimRight(strings.TrimLeft(feedpath, "/"), "/")
-	var re = regexp.MustCompile(`^\/[\w\d\-\_]+$`)
-	match := re.FindAllStringSubmatch(s, -1)
-	if len(match) == 0 {
-		return define.DEFAULT_HTTP_FEED_PATH
-	}
-	return strings.ToLower(s)
-}
-
-func updateBoolOption(envKey string, args bool, defaults bool) bool {
-	env := os.Getenv(envKey)
-	if env != "" {
-		return fn.IsBoolString(env)
-	}
-	if args != defaults {
-		return args
-	}
-	return false
-}
-
-func updateNumberOption(envKey string, args int, defaults int, allowZero bool) int {
-	env := fn.StringToPositiveInteger(os.Getenv(envKey))
-
-	if allowZero {
-		if env >= 0 {
-			return env
-		}
-		if args >= 0 && args != defaults {
-			return args
-		}
-	} else {
-		if env > 0 {
-			return env
-		}
-		if args > 0 && args != defaults {
-			return args
-		}
-	}
-	return defaults
-}
-
-func updateStringOption(envKey string, args string, defaults string) string {
-	env := os.Getenv(envKey)
-	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
-		return env
-	}
-	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
-		return args
-	}
-	return defaults
-}
-
-func updateLogOption(envKey string, args string, defaults string) string {
-	env := os.Getenv(envKey)
-	if fn.IsVaildLogLevel(env) {
-		return strings.ToLower(env)
-	}
-
-	args = strings.ToLower(args)
-	if fn.IsVaildLogLevel(args) && args != defaults {
-		return strings.ToLower(args)
-	}
-	return defaults
-}
-
-func updateFeedPathOption(envKey string, args string, defaults string) string {
-	env := SantizeFeedPath(os.Getenv(envKey))
-	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
-		return env
-	}
-	argHttpFeedPath := SantizeFeedPath(args)
-	if fn.IsNotEmptyAndNotDefaultString(argHttpFeedPath, defaults) {
-		return argHttpFeedPath
-	}
-	return defaults
-}
-
 func ApplyFlags() {
 	args := ParseFlags()
 
@@ -130,30 +48,19 @@ func ApplyFlags() {
 	define.REQUEST_TIMEOUT = updateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = updateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = updateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
-
-	envPort := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_PORT))
-	if fn.IsVaildPortRange(envPort) {
-		define.HTTP_PORT = envPort
-	}
-	if fn.IsVaildPortRange(args.HTTP_PORT) && args.HTTP_PORT != define.HTTP_PORT {
-		define.HTTP_PORT = args.HTTP_PORT
-	}
-
+	define.HTTP_PORT = updatePortOption(ENV_KEY_PORT, args.HTTP_PORT, define.DEFAULT_HTTP_PORT)
 	define.HTTP_FEED_PATH = updateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
 	define.REDIS = updateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
-
 	if define.REDIS {
 		// todo check `addr:port` is vaild
 		define.REDIS_SERVER = updateStringOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
 		define.REDIS_PASS = updateStringOption(ENV_KEY_REDIS_PASSWD, args.REDIS_PASS, define.DEFAULT_REDIS_PASS)
 		define.REDIS_DB = updateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
 	}
-
 	define.IN_MEMORY_CACHE = updateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
 	if define.IN_MEMORY_CACHE {
 		define.IN_MEMORY_EXPIRATION = updateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}
-
 	// todo check `addr:port` is vaild
 	define.HEADLESS_SERVER = updateStringOption(ENV_KEY_HEADLESS_SERVER, args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER)
 	// todo check `addr:port` is vaild

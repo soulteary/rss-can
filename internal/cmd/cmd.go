@@ -18,7 +18,7 @@ func ParseFlags() (appFlags AppFlags) {
 	// flag.StringVar(&appFlags.Host, "host", "0.0.0.0", "web service listening address")
 	flag.IntVar(&appFlags.HTTP_PORT, "port", define.DEFAULT_HTTP_PORT, fmt.Sprintf("web service listening port, env: `%s`", ENV_KEY_PORT))
 
-	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQ_TIMEOUT, fmt.Sprintf("set request timeout, env: `%s`", ENV_KEY_REQUEST_TIMEOUT))
+	flag.IntVar(&appFlags.REQUEST_TIMEOUT, "timeout-request", define.DEFAULT_REQUEST_TIMEOUT, fmt.Sprintf("set request timeout, env: `%s`", ENV_KEY_REQUEST_TIMEOUT))
 	flag.IntVar(&appFlags.SERVER_TIMEOUT, "timeout-server", define.DEFAULT_SERVER_TIMEOUT, fmt.Sprintf("set web server response timeout, env: `%s`", ENV_KEY_SERVER_TIMEOUT))
 	flag.IntVar(&appFlags.JS_EXECUTE_TIMEOUT, "timeout-js", define.DEFAULT_JS_EXECUTE_TIMEOUT, fmt.Sprintf("set js sandbox code execution timeout, env: `%s`", ENV_KEY_JS_EXEC_TIMEOUT))
 	flag.IntVar(&appFlags.HEADLESS_EXCUTE_TIMEOUT, "timeout-headless", define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, fmt.Sprintf("set headless execution timeout, env: `%s`", ENV_KEY_HEADLESS_EXEC_TIMEOUT))
@@ -65,6 +65,28 @@ func updateBoolOption(envKey string, args bool, defaults bool) bool {
 	return false
 }
 
+func updateNumberOption(envKey string, args int, defaults int, allowZero bool) int {
+	env := fn.StringToPositiveInteger(os.Getenv(envKey))
+
+	if allowZero {
+		if env >= 0 {
+			return env
+		}
+		if args >= 0 && args != defaults {
+			return args
+		}
+	} else {
+		if env > 0 {
+			return env
+		}
+		if args > 0 && args != defaults {
+			return args
+		}
+	}
+
+	return defaults
+}
+
 func ApplyFlags() {
 	args := ParseFlags()
 
@@ -79,21 +101,8 @@ func ApplyFlags() {
 		define.DEBUG_LEVEL = args.DEBUG_LEVEL
 	}
 
-	envRequestTimeout := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_REQUEST_TIMEOUT))
-	if envRequestTimeout > 0 {
-		define.REQUEST_TIMEOUT = envRequestTimeout
-	}
-	if args.REQUEST_TIMEOUT > 0 && args.REQUEST_TIMEOUT != define.REQUEST_TIMEOUT {
-		define.REQUEST_TIMEOUT = args.REQUEST_TIMEOUT
-	}
-
-	envServerTimeout := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_SERVER_TIMEOUT))
-	if envServerTimeout > 0 {
-		define.SERVER_TIMEOUT = envServerTimeout
-	}
-	if args.SERVER_TIMEOUT > 0 && args.SERVER_TIMEOUT != define.SERVER_TIMEOUT {
-		define.SERVER_TIMEOUT = args.SERVER_TIMEOUT
-	}
+	define.REQUEST_TIMEOUT = updateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
+	define.SERVER_TIMEOUT = updateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 
 	envRuleDir := os.Getenv(ENV_KEY_RULE)
 	if fn.IsNotEmptyAndNotDefaultString(envRuleDir, define.DEFAULT_RULES_DIRECTORY) {
@@ -141,26 +150,14 @@ func ApplyFlags() {
 				define.REDIS_PASS = args.REDIS_PASS
 			}
 
-			envRedisDB := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_REDIS_DB))
-			if envRedisDB >= 0 {
-				define.REDIS_DB = envRedisDB
-			}
-			if args.REDIS_DB >= 0 && args.REDIS_DB != define.DEFAULT_REDIS_DB {
-				define.REDIS_DB = args.REDIS_DB
-			}
+			define.REDIS_DB = updateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
 		}
 	}
 
 	define.IN_MEMORY_CACHE = updateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
 
 	if define.IN_MEMORY_CACHE {
-		envMemoryExpiration := fn.StringToPositiveInteger(os.Getenv(ENV_MEMORY_EXPIRATION))
-		if envMemoryExpiration >= 0 {
-			define.IN_MEMORY_EXPIRATION = envMemoryExpiration
-		}
-		if args.IN_MEMORY_EXPIRATION >= 0 && args.IN_MEMORY_EXPIRATION != define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION {
-			define.IN_MEMORY_EXPIRATION = args.IN_MEMORY_EXPIRATION
-		}
+		define.IN_MEMORY_EXPIRATION = updateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}
 
 	// todo check `addr:port` is vaild
@@ -181,27 +178,7 @@ func ApplyFlags() {
 		define.PROXY_SERVER = args.PROXY_SERVER
 	}
 
-	envJsExecTimeout := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_JS_EXEC_TIMEOUT))
-	if envJsExecTimeout >= 0 {
-		define.JS_EXECUTE_TIMEOUT = envJsExecTimeout
-	}
-	if args.JS_EXECUTE_TIMEOUT > 0 && args.JS_EXECUTE_TIMEOUT != define.DEFAULT_JS_EXECUTE_TIMEOUT {
-		define.JS_EXECUTE_TIMEOUT = args.JS_EXECUTE_TIMEOUT
-	}
-
-	envHeadlessSlowMotion := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_HEADLESS_SLOW_MOTION))
-	if envHeadlessSlowMotion >= 0 {
-		define.HEADLESS_SLOW_MOTION = envHeadlessSlowMotion
-	}
-	if args.HEADLESS_SLOW_MOTION >= 0 && args.HEADLESS_SLOW_MOTION != define.DEFAULT_HEADLESS_SLOW_MOTION {
-		define.HEADLESS_SLOW_MOTION = args.HEADLESS_SLOW_MOTION
-	}
-
-	envHeadlessExecTimeout := fn.StringToPositiveInteger(os.Getenv(ENV_KEY_HEADLESS_EXEC_TIMEOUT))
-	if envHeadlessExecTimeout > 0 {
-		define.HEADLESS_EXCUTE_TIMEOUT = envHeadlessExecTimeout
-	}
-	if args.HEADLESS_EXCUTE_TIMEOUT > 0 && args.HEADLESS_EXCUTE_TIMEOUT != define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT {
-		define.HEADLESS_EXCUTE_TIMEOUT = args.HEADLESS_EXCUTE_TIMEOUT
-	}
+	define.JS_EXECUTE_TIMEOUT = updateNumberOption(ENV_KEY_JS_EXEC_TIMEOUT, args.JS_EXECUTE_TIMEOUT, define.DEFAULT_JS_EXECUTE_TIMEOUT, true)
+	define.HEADLESS_SLOW_MOTION = updateNumberOption(ENV_KEY_HEADLESS_SLOW_MOTION, args.HEADLESS_SLOW_MOTION, define.DEFAULT_HEADLESS_SLOW_MOTION, true)
+	define.HEADLESS_EXCUTE_TIMEOUT = updateNumberOption(ENV_KEY_HEADLESS_EXEC_TIMEOUT, args.HEADLESS_EXCUTE_TIMEOUT, define.DEFAULT_HEADLESS_EXCUTE_TIMEOUT, false)
 }

@@ -30,25 +30,25 @@ func UpdateBoolOption(key string, args bool, defaults bool) bool {
 	return defaults
 }
 
-func updateNumberOption(key string, args int, defaults int, allowZero bool) int {
+func UpdateNumberOption(key string, args int, defaults int, allowZero bool) int {
 	env := fn.StringToPositiveInteger(os.Getenv(key))
-
+	num := defaults
 	if allowZero {
 		if env >= 0 {
-			return env
+			num = env
 		}
 		if args >= 0 && args != defaults {
-			return args
+			num = args
 		}
 	} else {
 		if env > 0 {
-			return env
+			num = env
 		}
 		if args > 0 && args != defaults {
-			return args
+			num = args
 		}
 	}
-	return defaults
+	return num
 }
 
 func updateStringOption(key string, args string, defaults string) string {

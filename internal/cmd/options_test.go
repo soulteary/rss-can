@@ -118,3 +118,54 @@ func TestUpdateBoolOption(t *testing.T) {
 
 	os.Setenv("TEST_KEY", "")
 }
+
+func TestUpdateNumberOption(t *testing.T) {
+	// env: empty, args:1, default:0, allowZero:true
+	ret := cmd.UpdateNumberOption("TEST_KEY", 1, 0, true)
+	if ret != 1 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: empty, args:0, default:0, allowZero:true
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 0, true)
+	if ret != 0 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: empty, args:0, default:1, allowZero:true
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 1, true)
+	if ret != 0 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: empty, args:0, default:1, allowZero:false
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 1, false)
+	if ret != 1 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "2")
+	// env: "2", args:1, default:0, allowZero:true
+	ret = cmd.UpdateNumberOption("TEST_KEY", 1, 0, true)
+	fmt.Println(ret)
+	if ret != 1 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: "2", args:0, default:0, allowZero:true
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 0, true)
+	if ret != 2 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: "2", args:0, default:1, allowZero:true
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 1, true)
+	if ret != 0 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: "2", args:0, default:1, allowZero:false
+	ret = cmd.UpdateNumberOption("TEST_KEY", 0, 1, false)
+	if ret != 2 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+	// env: "2", args:3, default:1, allowZero:false
+	ret = cmd.UpdateNumberOption("TEST_KEY", 3, 1, false)
+	if ret != 3 {
+		t.Fatal("UpdateNumberOption failed")
+	}
+}

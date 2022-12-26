@@ -43,21 +43,21 @@ func ParseFlags() (appFlags AppFlags) {
 func ApplyFlags() {
 	args := ParseFlags()
 
-	define.DEBUG_MODE = updateBoolOption(ENV_KEY_DEBUG, args.DEBUG_MODE, define.DEFAULT_DEBUG_MODE)
+	define.DEBUG_MODE = UpdateBoolOption(ENV_KEY_DEBUG, args.DEBUG_MODE, define.DEFAULT_DEBUG_MODE)
 	define.DEBUG_LEVEL = updateLogOption(ENV_KEY_DEBUG_LEVEL, args.DEBUG_LEVEL, define.DEFAULT_DEBUG_LEVEL)
 	define.REQUEST_TIMEOUT = updateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = updateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = updateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
 	define.HTTP_PORT = updatePortOption(ENV_KEY_PORT, args.HTTP_PORT, define.DEFAULT_HTTP_PORT)
 	define.HTTP_FEED_PATH = updateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
-	define.REDIS = updateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
+	define.REDIS = UpdateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
 	if define.REDIS {
 		// todo check `addr:port` is vaild
 		define.REDIS_SERVER = updateStringOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
 		define.REDIS_PASS = updateStringOption(ENV_KEY_REDIS_PASSWD, args.REDIS_PASS, define.DEFAULT_REDIS_PASS)
 		define.REDIS_DB = updateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
 	}
-	define.IN_MEMORY_CACHE = updateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
+	define.IN_MEMORY_CACHE = UpdateBoolOption(ENV_MEMORY, args.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE)
 	if define.IN_MEMORY_CACHE {
 		define.IN_MEMORY_EXPIRATION = updateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}

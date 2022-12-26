@@ -19,19 +19,19 @@ func SantizeFeedPath(feedpath string) string {
 	return strings.ToLower(s)
 }
 
-func updateBoolOption(envKey string, args bool, defaults bool) bool {
-	env := os.Getenv(envKey)
+func UpdateBoolOption(key string, args bool, defaults bool) bool {
+	env := os.Getenv(key)
 	if env != "" {
 		return fn.IsBoolString(env)
 	}
 	if args != defaults {
 		return args
 	}
-	return false
+	return defaults
 }
 
-func updateNumberOption(envKey string, args int, defaults int, allowZero bool) int {
-	env := fn.StringToPositiveInteger(os.Getenv(envKey))
+func updateNumberOption(key string, args int, defaults int, allowZero bool) int {
+	env := fn.StringToPositiveInteger(os.Getenv(key))
 
 	if allowZero {
 		if env >= 0 {
@@ -51,8 +51,8 @@ func updateNumberOption(envKey string, args int, defaults int, allowZero bool) i
 	return defaults
 }
 
-func updateStringOption(envKey string, args string, defaults string) string {
-	env := os.Getenv(envKey)
+func updateStringOption(key string, args string, defaults string) string {
+	env := os.Getenv(key)
 	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
 		return env
 	}
@@ -62,8 +62,8 @@ func updateStringOption(envKey string, args string, defaults string) string {
 	return defaults
 }
 
-func updateLogOption(envKey string, args string, defaults string) string {
-	env := os.Getenv(envKey)
+func updateLogOption(key string, args string, defaults string) string {
+	env := os.Getenv(key)
 	if fn.IsVaildLogLevel(env) {
 		return strings.ToLower(env)
 	}
@@ -75,8 +75,8 @@ func updateLogOption(envKey string, args string, defaults string) string {
 	return defaults
 }
 
-func updateFeedPathOption(envKey string, args string, defaults string) string {
-	env := SantizeFeedPath(os.Getenv(envKey))
+func updateFeedPathOption(key string, args string, defaults string) string {
+	env := SantizeFeedPath(os.Getenv(key))
 	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
 		return env
 	}
@@ -87,8 +87,8 @@ func updateFeedPathOption(envKey string, args string, defaults string) string {
 	return defaults
 }
 
-func updatePortOption(envKey string, args int, defaults int) int {
-	env := fn.StringToPositiveInteger(os.Getenv(envKey))
+func updatePortOption(key string, args int, defaults int) int {
+	env := fn.StringToPositiveInteger(os.Getenv(key))
 	if fn.IsVaildPortRange(env) {
 		return env
 	}

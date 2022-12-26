@@ -168,4 +168,51 @@ func TestUpdateNumberOption(t *testing.T) {
 	if ret != 3 {
 		t.Fatal("UpdateNumberOption failed")
 	}
+	os.Setenv("TEST_KEY", "")
+}
+
+func TestUpdateStringOption(t *testing.T) {
+	// env: empty, args:"a", default:"d"
+	ret := cmd.UpdateStringOption("TEST_KEY", "a", "d")
+	if ret != "a" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: empty, args:"", default:"d"
+	ret = cmd.UpdateStringOption("TEST_KEY", "", "d")
+	if ret != "d" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: empty, args:"a", default:""
+	ret = cmd.UpdateStringOption("TEST_KEY", "a", "")
+	if ret != "a" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: empty, args:"", default:""
+	ret = cmd.UpdateStringOption("TEST_KEY", "", "")
+	if ret != "" {
+		t.Fatal("UpdateStringOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "e")
+	// env: "e", args:"a", default:"d"
+	ret = cmd.UpdateStringOption("TEST_KEY", "a", "d")
+	if ret != "a" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: "e", args:"", default:"d"
+	ret = cmd.UpdateStringOption("TEST_KEY", "", "d")
+	if ret != "e" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: "e", args:"a", default:""
+	ret = cmd.UpdateStringOption("TEST_KEY", "a", "")
+	if ret != "a" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	// env: "e", args:"", default:""
+	ret = cmd.UpdateStringOption("TEST_KEY", "", "")
+	if ret != "e" {
+		t.Fatal("UpdateStringOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
 }

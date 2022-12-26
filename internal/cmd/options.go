@@ -51,15 +51,16 @@ func UpdateNumberOption(key string, args int, defaults int, allowZero bool) int 
 	return num
 }
 
-func updateStringOption(key string, args string, defaults string) string {
+func UpdateStringOption(key string, args string, defaults string) string {
 	env := os.Getenv(key)
+	str := defaults
 	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
-		return env
+		str = env
 	}
 	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
-		return args
+		str = args
 	}
-	return defaults
+	return str
 }
 
 func updateLogOption(key string, args string, defaults string) string {

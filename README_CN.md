@@ -1,6 +1,6 @@
 # RSS Can / RSS 罐头
 
-[![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) ![Go Report Card](https://goreportcard.com/badge/github.com/soulteary/RSS-Can)
+[![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) ![Go Report Card](https://goreportcard.com/badge/github.com/soulteary/RSS-Can) [![codecov](https://codecov.io/gh/soulteary/RSS-Can/branch/main/graph/badge.svg?token=RLAU712P39)](https://codecov.io/gh/soulteary/RSS-Can)
 
 <p style="text-align: center;">
   <a href="README.md" target="_blank">ENGLISH</a> | <a href="README_CN.md">中文文档</a>

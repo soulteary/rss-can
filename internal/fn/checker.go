@@ -28,3 +28,24 @@ func IsStrInArray(arr []string, s string) bool {
 	}
 	return false
 }
+
+func IsVaildPortRange(port int) bool {
+	return port > 0 && port < 65535
+}
+
+func IsNotEmptyAndNotDefaultString(value string, defaults string) bool {
+	return value != "" && value != defaults
+}
+
+func IsVaildLogLevel(level string) bool {
+	s := strings.ToLower(level)
+	return s == "info" || s == "error" || s == "warn" || s == "debug"
+}
+
+func IsBoolString(input string) bool {
+	s := strings.ToLower(input)
+	if s == "true" || s == "1" || s == "on" {
+		return true
+	}
+	return false
+}

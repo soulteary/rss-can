@@ -110,6 +110,18 @@ func updateLogOption(envKey string, args string, defaults string) string {
 	return defaults
 }
 
+func updateFeedPathOption(envKey string, args string, defaults string) string {
+	env := SantizeFeedPath(os.Getenv(envKey))
+	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
+		return env
+	}
+	argHttpFeedPath := SantizeFeedPath(args)
+	if fn.IsNotEmptyAndNotDefaultString(argHttpFeedPath, defaults) {
+		return argHttpFeedPath
+	}
+	return defaults
+}
+
 func ApplyFlags() {
 	args := ParseFlags()
 
@@ -127,15 +139,7 @@ func ApplyFlags() {
 		define.HTTP_PORT = args.HTTP_PORT
 	}
 
-	envHttpFeedPath := SantizeFeedPath(os.Getenv(ENV_KEY_HTTP_FEED_PATH))
-	if fn.IsNotEmptyAndNotDefaultString(envHttpFeedPath, define.DEFAULT_HTTP_FEED_PATH) {
-		define.HTTP_FEED_PATH = envHttpFeedPath
-	}
-	argHttpFeedPath := SantizeFeedPath(args.HTTP_FEED_PATH)
-	if fn.IsNotEmptyAndNotDefaultString(argHttpFeedPath, define.DEFAULT_HTTP_FEED_PATH) {
-		define.HTTP_FEED_PATH = argHttpFeedPath
-	}
-
+	define.HTTP_FEED_PATH = updateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
 	define.REDIS = updateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
 
 	if define.REDIS {

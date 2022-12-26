@@ -2,9 +2,12 @@ package fn
 
 import "strings"
 
+var DomList = func() []string {
+	return []string{"p", "span", "em", "strong", "a", "ul", "li", "ol", "dl", "h1", "h2", "h3", "h4", "h5", "h6"}
+}()
+
 func IsDomTagName(field string) bool {
-	domList := []string{"p", "span", "em", "strong", "a", "ul", "li", "ol", "dl", "h1", "h2", "h3", "h4", "h5", "h6"}
-	for _, dom := range domList {
+	for _, dom := range DomList {
 		if strings.Contains(field, dom) {
 			return true
 		}

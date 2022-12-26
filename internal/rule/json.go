@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
@@ -14,18 +15,16 @@ func ParseConfigFromJSON(str string, ruleFile string) (define.JavaScriptConfig, 
 	if err != nil {
 		return config, err
 	}
+
 	if ruleFile != "" {
 		config.File = ruleFile
 	}
-	return ApplyDefaults(config), nil
-}
 
-func ApplyDefaults(config define.JavaScriptConfig) define.JavaScriptConfig {
-	modeInRuls := strings.ToLower(config.Mode)
-	if !(modeInRuls == define.PARSE_MODE_SSR || modeInRuls == define.PARSE_MODE_CSR || modeInRuls == define.PARSE_MODE_MIX) {
+	modeInRule := strings.ToLower(config.Mode)
+	if !fn.IsStrInArray([]string{define.PARSE_MODE_SSR, define.PARSE_MODE_CSR, define.PARSE_MODE_MIX}, modeInRule) {
 		config.Mode = define.DEFAULT_PARSE_MODE
 	}
-	return config
+	return config, nil
 }
 
 func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.BodyParsed) {

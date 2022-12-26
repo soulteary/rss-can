@@ -48,6 +48,8 @@ dockers:
       - "--label=org.opencontainers.image.created={{ .Date }}"
       - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
       - "--label=org.opencontainers.image.licenses=MIT"
+    extra_files:
+      - rules
 
   # - image_templates:
   #     - "soulteary/RSS-Can:linux-arm64-{{ .Tag }}"

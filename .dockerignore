@@ -1,0 +1,8 @@
+.github
+build
+docker
+.dockerignore
+.gitignore
+CREDITS.md
+docker-compose.yml
+SECURITY.md

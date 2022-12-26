@@ -3,10 +3,11 @@ WORKDIR /app
 COPY rssc ./
 RUN apt-get update && apt-get install -y upx
 RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
-RUN ls -al
+COPY ./rules ./rules
 
 FROM amd64/ubuntu:22.04
-COPY --from=Builder /app/rssc /bin/rssc
+COPY --from=Builder /app/rssc  /bin/rssc
+COPY --from=Builder /app/rules /rules
 ENV TZ=Asia/Shanghai
 RUN apt-get update && apt-get install -y tzdata && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \

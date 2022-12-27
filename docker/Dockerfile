@@ -10,6 +10,7 @@ RUN go build -o rssc
 RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
 
 FROM debian:bullseye
+RUN apt-get update && apt-get install -y ca-certificates
 COPY --from=Builder /app/rssc /bin/rssc
 COPY --from=Builder /app/rules /rules
 ENV TZ=Asia/Shanghai

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -54,6 +55,10 @@ func apiRSS() gin.HandlerFunc {
 		}
 
 		data := rule.GetWebsiteDataWithConfig(config)
+		if data.Code != define.ERROR_CODE_NULL {
+			c.JSON(http.StatusNoContent, gin.H{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
+			return
+		}
 
 		mimetype, response := generateFeedResponse(config, data, strings.ToLower(rss.Type))
 		c.Data(http.StatusOK, mimetype, []byte(response))

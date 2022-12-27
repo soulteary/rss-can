@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/soulteary/RSS-Can/internal/define"
-	"github.com/soulteary/RSS-Can/internal/javascript"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
@@ -76,7 +75,7 @@ func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err erro
 		return config, err
 	}
 
-	jsConfig, err := javascript.RunCode(base, app)
+	jsConfig, err := jssdk.RunCode(base, app)
 	if err != nil {
 		logger.Instance.Errorf("Executing rule file failed: %v", err)
 		return config, err

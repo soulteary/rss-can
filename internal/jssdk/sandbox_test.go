@@ -1,4 +1,4 @@
-package javascript_test
+package jssdk_test
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
-	"github.com/soulteary/RSS-Can/internal/javascript"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
@@ -19,7 +19,7 @@ func init() {
 func TestRunCode(t *testing.T) {
 	// test forever loops
 	start := time.Now()
-	_, err := javascript.RunCode(`while(1){console.log(1)}`, "")
+	_, err := jssdk.RunCode(`while(1){console.log(1)}`, "")
 	if err == nil {
 		t.Fatalf("Programs executed without aborting timeouts")
 	}
@@ -30,7 +30,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test normal code
-	ret, err := javascript.RunCode(`var a = 1;`, "")
+	ret, err := jssdk.RunCode(`var a = 1;`, "")
 	if err != nil {
 		t.Fatalf("Programs executed failed: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test inject code
-	ret, err = javascript.RunCode(`var a = 1;`, "a")
+	ret, err = jssdk.RunCode(`var a = 1;`, "a")
 	if err != nil {
 		t.Fatalf("Programs executed failed: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test inject code with error
-	ret, err = javascript.RunCode(`var a = 1;`, "b")
+	ret, err = jssdk.RunCode(`var a = 1;`, "b")
 	if err == nil {
 		t.Fatalf("Programs executed failed")
 	}

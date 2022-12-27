@@ -1,4 +1,4 @@
-package javascript
+package jssdk
 
 import (
 	"fmt"
@@ -7,11 +7,10 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
-
 	v8 "rogchap.com/v8go"
 )
 
-func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, error) {
+func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, time.Duration, error) {
 	vals := make(chan *v8.Value, 1)
 	errs := make(chan error, 1)
 
@@ -34,9 +33,9 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 			<-timeout.C
 		}
 		logger.Instance.Infof("Parsing config successed, cost time: %v", duration)
-		return val, nil
+		return val, duration, nil
 	case err := <-errs:
-		return nil, err
+		return nil, duration, err
 	case <-timeout.C:
 		timeout.Stop()
 		vm := ctx.Isolate()
@@ -44,13 +43,13 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		err := <-errs
 		logger.Instance.Infof("execution timeout: %v", duration)
 		time.Sleep(fn.I2T(define.DEFAULT_JS_EXECUTE_THORTTLING) * time.Second)
-		return nil, err
+		return nil, duration, err
 	}
 }
 
 func RunCode(base string, export string) (string, error) {
 	ctx := v8.NewContext()
-	_, err := RunCodeInSandbox(ctx, base, "base.js")
+	_, _, err := RunCodeInSandbox(ctx, base, "base.js")
 	if err != nil {
 		return "", err
 	}

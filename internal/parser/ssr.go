@@ -2,7 +2,6 @@ package parser
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
-	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
 )
 
@@ -78,31 +76,12 @@ func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyPa
 	return ParseDataAndConfigBySSR(config, doc, "")
 }
 
-func fixLink(link string, baseUrl string) (string, error) {
-	if !(strings.HasPrefix("http://", link) || strings.HasPrefix("https://", link)) {
-		base, err := url.Parse(baseUrl)
-		if err != nil {
-			logger.Instance.Infof("Parsing link failed %s", link)
-			return "", err
-		}
-
-		ref, err := url.Parse(link)
-		if err != nil {
-			logger.Instance.Infof("Parsing ref link failed %s", link)
-			return "", err
-		}
-		u := base.ResolveReference(ref)
-		return u.String(), nil
-	}
-	return link, nil
-}
-
 func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links []string) {
 	if config.Pager != "" {
 		document.Find(config.Pager).Each(func(i int, s *goquery.Selection) {
 			rawLink, exist := s.Attr("href")
 			if exist {
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					links = append(links, link)
 				}
@@ -178,7 +157,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 			if config.DateTimeHook.Action == define.ConfigHookReadLink {
 				rawLink := jsBridge(config.DateTimeHook.URL, "href", s)
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					time := network.GetRemoteDocumentAsMarkdown(link, config.DateTimeHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Date = time
@@ -191,7 +170,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 			if config.CategoryHook.Action == define.ConfigHookReadLink {
 				rawLink := jsBridge(config.CategoryHook.URL, "href", s)
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					category := network.GetRemoteDocumentAsMarkdown(link, config.CategoryHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Category = category
@@ -204,7 +183,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 			if config.DescriptionHook.Action == define.ConfigHookReadLink {
 				rawLink := jsBridge(config.DescriptionHook.URL, "href", s)
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					description := network.GetRemoteDocumentAsMarkdown(link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Description = description
@@ -217,7 +196,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 			if config.Link != "" {
 				rawLink := jsBridge(config.Link, "href", s)
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					item.Link = link
 				}
@@ -238,7 +217,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 			if config.ContentHook.Action == define.ConfigHookReadLink {
 				rawLink := jsBridge(config.ContentHook.URL, "href", s)
-				link, err := fixLink(rawLink, config.URL)
+				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
 					content := network.GetRemoteDocumentAsMarkdown(link, config.ContentHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Content = content

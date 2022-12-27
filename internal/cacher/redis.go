@@ -33,7 +33,8 @@ func Connect(instance *redis.Client) *redis.Client {
 	if err == nil {
 		return instance
 	}
-	instance.Close()
+
+	Disconnect(instance)
 
 	return InitializeRedis(define.REDIS)
 }

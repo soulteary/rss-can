@@ -1,6 +1,7 @@
 package cmd_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/soulteary/RSS-Can/internal/cmd"
@@ -37,8 +38,15 @@ func TestApplyFlags(t *testing.T) {
 	if define.REDIS != define.DEFAULT_REDIS {
 		t.Fatal("test flag failed")
 	}
-	if define.REDIS_SERVER != define.DEFAULT_REDIS_SERVER {
-		t.Fatal("test flag failed")
+	envRedisServer := os.Getenv(cmd.ENV_KEY_REDIS_SERVER)
+	if envRedisServer == "" {
+		if define.REDIS_SERVER != define.DEFAULT_REDIS_SERVER {
+			t.Fatal("test flag failed")
+		}
+	} else {
+		if define.REDIS_SERVER != envRedisServer {
+			t.Fatal("test flag failed")
+		}
 	}
 	if define.REDIS_PASS != define.DEFAULT_REDIS_PASS {
 		t.Fatal("test flag failed")

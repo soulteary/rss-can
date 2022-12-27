@@ -40,8 +40,8 @@ func TestMemory(t *testing.T) {
 	}
 
 	cacher.UpdateDataToMemory(instance, TestKey, TestValue)
-	cacher.SetDataExpireByKeyFromMemory(instance, TestKey, time.Millisecond*100)
-	time.Sleep(time.Millisecond * 200)
+	cacher.SetDataExpireByKeyFromMemory(instance, TestKey, time.Millisecond*50)
+	time.Sleep(time.Millisecond * 80)
 	ret, err = cacher.GetDataFromMemory(instance, TestKey)
 	if err != nil {
 		t.Fatal("GetDataFromMemory failed", err)

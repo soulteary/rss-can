@@ -53,7 +53,7 @@ func TestRedis(t *testing.T) {
 	if err != nil {
 		t.Fatal("SetDataExpireByKeyFromRedis failed")
 	}
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second*1 + time.Millisecond*10)
 	ret, err = cacher.GetDataFromRedis(instance, TestKey)
 	if err != nil {
 		t.Fatal("GetDataFromRedis failed", err)
@@ -62,6 +62,15 @@ func TestRedis(t *testing.T) {
 		t.Fatal("GetDataFromRedis failed")
 	}
 
+	err = cacher.Disconnect(instance)
+	if err != nil {
+		t.Fatal("Disconnect failed", err)
+	}
+
+	err = cacher.Disconnect(instance)
+	if err == nil {
+		t.Fatal("Disconnect failed")
+	}
 }
 
 func TestInitializeRedis(t *testing.T) {

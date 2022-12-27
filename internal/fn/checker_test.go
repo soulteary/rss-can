@@ -231,3 +231,27 @@ func TestIsVaildAddrWithWsProtocol(t *testing.T) {
 		}
 	}
 }
+
+func TestIsVaildHeadlessAddr(t *testing.T) {
+	ret := fn.IsVaildHeadlessAddr("0.0.0.0")
+	if !ret {
+		t.Fatal("IsVaildHeadlessAddr failed")
+	}
+	ret = fn.IsVaildHeadlessAddr("0.0.0.0:1024")
+	if !ret {
+		t.Fatal("IsVaildHeadlessAddr failed")
+	}
+	ret = fn.IsVaildHeadlessAddr("http://abc.efg")
+	if !ret {
+		t.Fatal("IsVaildHeadlessAddr failed")
+	}
+	ret = fn.IsVaildHeadlessAddr("ws://abc.efg")
+	if !ret {
+		t.Fatal("IsVaildHeadlessAddr failed")
+	}
+
+	ret = fn.IsVaildHeadlessAddr("ws://abc.e!fg")
+	if ret {
+		t.Fatal("IsVaildHeadlessAddr failed")
+	}
+}

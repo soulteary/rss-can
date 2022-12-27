@@ -32,22 +32,20 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 	case define.PARSE_MODE_SSR:
 		return parser.GetDataAndConfigBySSR(config)
 	case define.PARSE_MODE_CSR:
-		// TODO check headless addr is valid
-		// TODO set proxy by config
 		container := define.HEADLESS_SERVER
-		proxy := define.PROXY_SERVER
-		if config.Headless != "" && strings.Contains(config.Headless, ":") {
+		if fn.IsVaildHeadlessAddr(config.Headless) {
 			container = config.Headless
 		}
+		// TODO set proxy by config
+		proxy := define.PROXY_SERVER
 		return parser.GetDataAndConfigByCSR(config, container, proxy)
 	case define.PARSE_MODE_MIX:
-		// TODO check headless addr is valid
-		// TODO set proxy by config
 		container := define.HEADLESS_SERVER
-		proxy := define.PROXY_SERVER
-		if config.Headless != "" && strings.Contains(config.Headless, ":") {
+		if fn.IsVaildHeadlessAddr(config.Headless) {
 			container = config.Headless
 		}
+		// TODO set proxy by config
+		proxy := define.PROXY_SERVER
 		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 

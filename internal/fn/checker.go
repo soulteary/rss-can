@@ -120,3 +120,10 @@ func IsVaildAddrWithWsProtocol(addr string) bool {
 	}
 	return false
 }
+
+func IsVaildHeadlessAddr(addr string) bool {
+	if IsVaildAddr(addr) || IsVaildAddrWithHttpProtocol(addr) || IsVaildAddrWithWsProtocol(addr) {
+		return true
+	}
+	return false
+}

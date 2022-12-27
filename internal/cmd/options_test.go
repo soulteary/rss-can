@@ -512,3 +512,75 @@ func TestUpdateHeadlessOptions(t *testing.T) {
 	}
 	os.Setenv("TEST_KEY", "")
 }
+
+func TestUpdateProxyOptions(t *testing.T) {
+	defaults := define.DEFAULT_HTTP_HOST + ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT)
+
+	host := "http://" + defaults
+	// env: empty, args: "", default: "http://0.0.0.0:8080"
+	ret := cmd.UpdateProxyOptions("TEST_KEY", "", host)
+	if ret != host {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: empty, args: "http://127.0.0.1:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://127.0.0.1:9090", host)
+	if ret != "http://127.0.0.1:9090" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: empty, args: "http://1127.0.0.1:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://1127.0.0.1", host)
+	if ret != host {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+
+	// env: empty, args: "http://redis:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://redis:9090", host)
+	if ret != "http://redis:9090" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: empty, args: "http://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://redis.domain.ltd:9090", host)
+	if ret != "http://redis.domain.ltd:9090" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: empty, args: "https://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "https://redis.domain.ltd:9090", host)
+	if ret != "https://redis.domain.ltd:9090" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+
+	os.Setenv("TEST_KEY", "http://127.0.0.2:9999")
+	// env: "http://127.0.0.2", args: "", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "", host)
+	if ret != "http://127.0.0.2:9999" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: "http://127.0.0.2", args: "http://127.0.0.1:1122", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://127.0.0.1:1122", host)
+	if ret != "http://127.0.0.1:1122" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: "http://127.0.0.2", args: "http://1127.0.0.1:1123", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://1127.0.0.1:1123", host)
+	if ret != "http://127.0.0.2:9999" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+
+	os.Setenv("TEST_KEY", "http://1277.0.0.2:2345")
+	// env: "http://1277.0.0.2:2345", args: "", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "", host)
+	if ret != host {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: "http://1277.0.0.2:2345", args: "http://127.0.0.1", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://127.0.0.1", host)
+	if ret != "http://127.0.0.1" {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	// env: "http://1277.0.0.2:2345", args: "http://1127.0.0.1", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateProxyOptions("TEST_KEY", "http://1127.0.0.1", host)
+	if ret != host {
+		t.Fatal("UpdateProxyOptions failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gorilla/feeds"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
@@ -24,8 +25,15 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 			Author:      &feeds.Author{Name: data.Author},
 			Description: data.Description,
 			Link:        &feeds.Link{Href: data.Link},
-			// 时间处理这块比较麻烦，后续文章再展开
-			Created: now,
+		}
+
+		if data.Date != "" {
+			timeUnix, err := jssdk.ConvertStrToUnix(data.Date)
+			if err == nil {
+				feedItem.Created = timeUnix
+			} else {
+				feedItem.Created = now
+			}
 		}
 
 		if data.ID != "" {

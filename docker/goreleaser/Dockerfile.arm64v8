@@ -6,11 +6,10 @@ RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
 COPY ./rules ./rules
 
 FROM arm64v8/ubuntu:22.04
-RUN apt-get update && apt-get install -y ca-certificates
 COPY --from=Builder /app/rssc  /bin/rssc
 COPY --from=Builder /app/rules /rules
 ENV TZ=Asia/Shanghai
-RUN apt-get update && apt-get install -y tzdata && \
+RUN apt-get update && apt-get install -y tzdata ca-certificates && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     apt-get autoremove -y
 EXPOSE 8080

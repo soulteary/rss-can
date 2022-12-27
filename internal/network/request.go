@@ -82,6 +82,7 @@ func GetRemoteDocument(url string, charset string, expire time.Duration, disable
 			logger.Instance.Warn("Unable to use cache")
 		} else {
 			if expire > 0 {
+				// todo parse unit
 				cacher.Expire(url, expire)
 			} else {
 				cacher.Expire(url, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)

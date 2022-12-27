@@ -14,9 +14,6 @@ type InMemoryPageCache struct {
 	page     []byte
 }
 
-func init() {
-}
-
 func InitializeMemory(enabled bool, store string) *cache2go.CacheTable {
 	if enabled {
 		return cache2go.Cache(store)

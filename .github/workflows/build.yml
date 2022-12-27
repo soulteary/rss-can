@@ -19,10 +19,20 @@ jobs:
   darwin:
     runs-on: macos-latest
 
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       GO111MODULE: on
       CGO_ENABLED: 1
       DOCKER_CLI_EXPERIMENTAL: "enabled"
+      RSS_SERVER: redis:6379
 
     steps:
 
@@ -89,10 +99,20 @@ jobs:
   linux:
     runs-on: ubuntu-latest
 
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       GO111MODULE: on
       CGO_ENABLED: 1
       DOCKER_CLI_EXPERIMENTAL: "enabled"
+      RSS_SERVER: redis:6379
 
     steps:
 

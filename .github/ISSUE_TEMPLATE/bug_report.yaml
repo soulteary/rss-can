@@ -1,0 +1,47 @@
+name: Bug report
+description: Create a report to help us improve
+labels:
+  - bug / 八阿哥 🐛
+  - judge / 悬而未决 🥷
+assignees:
+  - soulteary
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your interest in RSS Can, please fill out the form below with your ideas.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What kind of trouble are you having?
+      description: In addition to describing the problem you encountered, please also describe your expected functional outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducible
+    attributes:
+      label: How to reproduce this problem?
+      description: Briefly describe how you encountered this problem, you can add pictures, logs, etc. here to help me understand the problem you encountered.
+    validations:
+      required: true
+  - type: textarea
+    id: app-version
+    attributes:
+      label: App version
+      description: What version of the program or image are you using?
+    validations:
+      required: true
+  - type: checkboxes
+    id: search
+    attributes:
+      label: confirm
+      options:
+        - label: Before submitting this form, I have searched for related issues and found no related issues or solutions.
+          required: true
+  - type: textarea
+    id: ctx
+    attributes:
+      label: supplementary description
+      description: You can fill in the supplementary content here
+    validations:
+      required: false

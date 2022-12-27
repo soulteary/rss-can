@@ -43,6 +43,12 @@ func GetRemoteDocument(url string, charset string, expire time.Duration, disable
 	var status string
 	var now = time.Now()
 
+	defer func() { // log when error
+		if code != define.ERROR_CODE_NULL {
+			logger.Instance.Warnf("get url:%v, code:%v status:%s", url, code, status)
+		}
+	}()
+
 	if cacher.IsEnable() && !disableCache {
 		cache, err := cacher.Get(url)
 		if err == nil && cache != "" {

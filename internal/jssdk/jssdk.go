@@ -12,3 +12,9 @@ var SDK string
 
 //go:embed js/ssr.js
 var SSR_SHIM string
+
+//go:embed js/moment.min.js
+var MomentJS string
+
+//go:embed js/date.js
+var DateJS string

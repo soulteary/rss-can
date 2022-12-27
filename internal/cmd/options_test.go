@@ -278,46 +278,100 @@ func TestUpdatePortOption(t *testing.T) {
 	// env: empty, args: 0, default: 8080
 	ret := cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
 	if ret != define.DEFAULT_HTTP_PORT {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	// env: empty, args: -1, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", -1, define.DEFAULT_HTTP_PORT)
 	if ret != define.DEFAULT_HTTP_PORT {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	// env: empty, args: 8090, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", 8090, define.DEFAULT_HTTP_PORT)
 	if ret != 8090 {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 
 	os.Setenv("TEST_KEY", "9090")
 	// env: "9090", args: 0, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
 	if ret != 9090 {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	// env: "9090", args: -1, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", -1, define.DEFAULT_HTTP_PORT)
 	if ret != 9090 {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	// env: "9090", args: 8090, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", 8090, define.DEFAULT_HTTP_PORT)
 	if ret != 8090 {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	os.Setenv("TEST_KEY", "0")
 	// env: "0", args: 0, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
 	if ret != define.DEFAULT_HTTP_PORT {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
 	}
 	os.Setenv("TEST_KEY", "-1")
 	// env: "-1", args: 0, default: 8080
 	ret = cmd.UpdatePortOption("TEST_KEY", 0, define.DEFAULT_HTTP_PORT)
 	if ret != define.DEFAULT_HTTP_PORT {
-		t.Fatal("UpdateFeedPathOption failed")
+		t.Fatal("UpdatePortOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}
+
+func TestUpdateHostOption(t *testing.T) {
+	// env: empty, args: "", default: "0.0.0.0"
+	ret := cmd.UpdateHostOption("TEST_KEY", "", define.DEFAULT_HTTP_HOST)
+	if ret != define.DEFAULT_HTTP_HOST {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: empty, args: "127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "127.0.0.1", define.DEFAULT_HTTP_HOST)
+	fmt.Println(ret, "!")
+	if ret != "127.0.0.1" {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: empty, args: "1127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "1127.0.0.1", define.DEFAULT_HTTP_HOST)
+	if ret != define.DEFAULT_HTTP_HOST {
+		t.Fatal("UpdateHostOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "127.0.0.2")
+	// env: "127.0.0.2", args: "", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "", define.DEFAULT_HTTP_HOST)
+	if ret != "127.0.0.2" {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: "127.0.0.2", args: "127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "127.0.0.1", define.DEFAULT_HTTP_HOST)
+	if ret != "127.0.0.1" {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: "127.0.0.2", args: "1127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "1127.0.0.1", define.DEFAULT_HTTP_HOST)
+	if ret != "127.0.0.2" {
+		t.Fatal("UpdateHostOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "1277.0.0.2")
+	// env: "1277.0.0.2", args: "", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "", define.DEFAULT_HTTP_HOST)
+	if ret != define.DEFAULT_HTTP_HOST {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: "1277.0.0.2", args: "127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "127.0.0.1", define.DEFAULT_HTTP_HOST)
+	if ret != "127.0.0.1" {
+		t.Fatal("UpdateHostOption failed")
+	}
+	// env: "1277.0.0.2", args: "1127.0.0.1", default: "0.0.0.0"
+	ret = cmd.UpdateHostOption("TEST_KEY", "1127.0.0.1", define.DEFAULT_HTTP_HOST)
+	if ret != define.DEFAULT_HTTP_HOST {
+		t.Fatal("UpdateHostOption failed")
 	}
 	os.Setenv("TEST_KEY", "")
 }

@@ -48,13 +48,12 @@ func ApplyFlags() {
 	define.REQUEST_TIMEOUT = UpdateNumberOption(ENV_KEY_REQUEST_TIMEOUT, args.REQUEST_TIMEOUT, define.DEFAULT_REQUEST_TIMEOUT, false)
 	define.SERVER_TIMEOUT = UpdateNumberOption(ENV_KEY_SERVER_TIMEOUT, args.SERVER_TIMEOUT, define.DEFAULT_SERVER_TIMEOUT, false)
 	define.RULES_DIRECTORY = UpdateStringOption(ENV_KEY_RULE, args.RULES_DIRECTORY, define.DEFAULT_RULES_DIRECTORY)
-	// todo check `host` is vaild
-	define.HTTP_HOST = UpdateStringOption(ENV_KEY_HOST, args.HTTP_HOST, define.DEFAULT_HTTP_HOST)
+	define.HTTP_HOST = UpdateHostOption(ENV_KEY_HOST, args.HTTP_HOST, define.DEFAULT_HTTP_HOST)
 	define.HTTP_PORT = UpdatePortOption(ENV_KEY_PORT, args.HTTP_PORT, define.DEFAULT_HTTP_PORT)
 	define.HTTP_FEED_PATH = UpdateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
 	define.REDIS = UpdateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
 	if define.REDIS {
-		// todo check `addr:port` is vaild
+		// TODO check `addr:port` is vaild
 		define.REDIS_SERVER = UpdateStringOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
 		define.REDIS_PASS = UpdateStringOption(ENV_KEY_REDIS_PASSWD, args.REDIS_PASS, define.DEFAULT_REDIS_PASS)
 		define.REDIS_DB = UpdateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
@@ -63,9 +62,9 @@ func ApplyFlags() {
 	if define.IN_MEMORY_CACHE {
 		define.IN_MEMORY_EXPIRATION = UpdateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}
-	// todo check `addr:port` is vaild
+	// TODO check `addr:port` is vaild
 	define.HEADLESS_SERVER = UpdateStringOption(ENV_KEY_HEADLESS_SERVER, args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER)
-	// todo check `addr:port` is vaild
+	// TODO check `addr:port` is vaild
 	define.PROXY_SERVER = UpdateStringOption(ENV_KEY_PROXY, args.PROXY_SERVER, define.DEFAULT_PROXY_ADDRESS)
 	define.JS_EXECUTE_TIMEOUT = UpdateNumberOption(ENV_KEY_JS_EXEC_TIMEOUT, args.JS_EXECUTE_TIMEOUT, define.DEFAULT_JS_EXECUTE_TIMEOUT, true)
 	define.HEADLESS_SLOW_MOTION = UpdateNumberOption(ENV_KEY_HEADLESS_SLOW_MOTION, args.HEADLESS_SLOW_MOTION, define.DEFAULT_HEADLESS_SLOW_MOTION, true)

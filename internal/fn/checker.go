@@ -77,7 +77,7 @@ func IsVaildAddr(addr string) bool {
 		}
 	}
 
-	var ipRegexp = regexp.MustCompile(`^(\d+\.){3}\d+$`)
+	var ipRegexp = regexp.MustCompile(`^((\d+){1,3}\.){3}\d+$`)
 	if ipRegexp.MatchString(host) {
 		return net.ParseIP(host) != nil
 	}
@@ -85,6 +85,14 @@ func IsVaildAddr(addr string) bool {
 	var domainRegexp = regexp.MustCompile(`^([\w\d\-\_\.]+)?[\w\d\-\_]$`)
 	if domainRegexp.MatchString(host) {
 		return !regexp.MustCompile(`^([\d\.]+)?[\d]$`).MatchString(host)
+	}
+	return false
+}
+
+func IsVaildIPAddr(addr string) bool {
+	var ipRegexp = regexp.MustCompile(`^((\d+){1,3}\.){3}\d+$`)
+	if ipRegexp.MatchString(addr) {
+		return net.ParseIP(addr) != nil
 	}
 	return false
 }

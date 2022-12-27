@@ -136,7 +136,6 @@ func TestIsBoolString(t *testing.T) {
 }
 
 func TestIsVaildAddr(t *testing.T) {
-
 	ips := []string{"10.10.10.10"}
 	for _, ip := range ips {
 		if !fn.IsVaildAddr(ip) {
@@ -177,5 +176,26 @@ func TestIsVaildAddr(t *testing.T) {
 		if fn.IsVaildAddr(addr) {
 			t.Fatal("IsVaildAddr faild", addr)
 		}
+	}
+}
+
+func TestIsVaildIPAddr(t *testing.T) {
+	ips := []string{"10.10.10.10"}
+	for _, ip := range ips {
+		if !fn.IsVaildIPAddr(ip) {
+			t.Fatal("IsVaildAddr failed", ip)
+		}
+	}
+
+	ips = []string{"10.10.10.300", "1234.1234.1234.1234"}
+	for _, ip := range ips {
+		if fn.IsVaildIPAddr(ip) {
+			t.Fatal("IsVaildAddr failed", ip)
+		}
+	}
+
+	ret := fn.IsVaildIPAddr("a.b.c.d")
+	if ret {
+		t.Fatal("IsVaildAddr failed")
 	}
 }

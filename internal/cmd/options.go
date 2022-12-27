@@ -101,3 +101,19 @@ func UpdatePortOption(key string, args int, defaults int) int {
 	}
 	return port
 }
+
+func UpdateHostOption(key string, args string, defaults string) string {
+	env := os.Getenv(key)
+	str := defaults
+	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
+		if fn.IsVaildIPAddr(env) {
+			str = env
+		}
+	}
+	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
+		if fn.IsVaildIPAddr(args) {
+			str = args
+		}
+	}
+	return str
+}

@@ -3,6 +3,7 @@ package cmd_test
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/soulteary/RSS-Can/internal/cmd"
@@ -330,7 +331,6 @@ func TestUpdateHostOption(t *testing.T) {
 	}
 	// env: empty, args: "127.0.0.1", default: "0.0.0.0"
 	ret = cmd.UpdateHostOption("TEST_KEY", "127.0.0.1", define.DEFAULT_HTTP_HOST)
-	fmt.Println(ret, "!")
 	if ret != "127.0.0.1" {
 		t.Fatal("UpdateHostOption failed")
 	}
@@ -372,6 +372,61 @@ func TestUpdateHostOption(t *testing.T) {
 	ret = cmd.UpdateHostOption("TEST_KEY", "1127.0.0.1", define.DEFAULT_HTTP_HOST)
 	if ret != define.DEFAULT_HTTP_HOST {
 		t.Fatal("UpdateHostOption failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}
+
+func TestUpdateAddrOption(t *testing.T) {
+	defaults := define.DEFAULT_HTTP_HOST + ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT)
+
+	// env: empty, args: "", default: "0.0.0.0:8080"
+	ret := cmd.UpdateAddrOption("TEST_KEY", "", defaults)
+	if ret != defaults {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: empty, args: "127.0.0.1:9090", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "127.0.0.1:9090", defaults)
+	if ret != "127.0.0.1:9090" {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: empty, args: "1127.0.0.1:9090", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "1127.0.0.1", defaults)
+	if ret != defaults {
+		t.Fatal("UpdateAddrOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "127.0.0.2:9999")
+	// env: "127.0.0.2", args: "", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "", defaults)
+	if ret != "127.0.0.2:9999" {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: "127.0.0.2", args: "127.0.0.1:1122", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "127.0.0.1:1122", defaults)
+	if ret != "127.0.0.1:1122" {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: "127.0.0.2", args: "1127.0.0.1:1123", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "1127.0.0.1:1123", defaults)
+	if ret != "127.0.0.2:9999" {
+		t.Fatal("UpdateAddrOption failed")
+	}
+
+	os.Setenv("TEST_KEY", "1277.0.0.2:2345")
+	// env: "1277.0.0.2:2345", args: "", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "", defaults)
+	if ret != defaults {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: "1277.0.0.2:2345", args: "127.0.0.1", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "127.0.0.1", defaults)
+	if ret != "127.0.0.1" {
+		t.Fatal("UpdateAddrOption failed")
+	}
+	// env: "1277.0.0.2:2345", args: "1127.0.0.1", default: "0.0.0.0:8080"
+	ret = cmd.UpdateAddrOption("TEST_KEY", "1127.0.0.1", defaults)
+	if ret != defaults {
+		t.Fatal("UpdateAddrOption failed")
 	}
 	os.Setenv("TEST_KEY", "")
 }

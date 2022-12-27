@@ -53,8 +53,7 @@ func ApplyFlags() {
 	define.HTTP_FEED_PATH = UpdateFeedPathOption(ENV_KEY_HTTP_FEED_PATH, args.HTTP_FEED_PATH, define.DEFAULT_HTTP_FEED_PATH)
 	define.REDIS = UpdateBoolOption(ENV_KEY_REDIS, args.REDIS, define.DEFAULT_REDIS)
 	if define.REDIS {
-		// TODO check `addr:port` is vaild
-		define.REDIS_SERVER = UpdateStringOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
+		define.REDIS_SERVER = UpdateAddrOption(ENV_KEY_REDIS_SERVER, args.REDIS_SERVER, define.DEFAULT_REDIS_SERVER)
 		define.REDIS_PASS = UpdateStringOption(ENV_KEY_REDIS_PASSWD, args.REDIS_PASS, define.DEFAULT_REDIS_PASS)
 		define.REDIS_DB = UpdateNumberOption(ENV_KEY_REDIS_DB, args.REDIS_DB, define.DEFAULT_REDIS_DB, true)
 	}

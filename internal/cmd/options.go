@@ -117,3 +117,19 @@ func UpdateHostOption(key string, args string, defaults string) string {
 	}
 	return str
 }
+
+func UpdateAddrOption(key string, args string, defaults string) string {
+	env := os.Getenv(key)
+	str := defaults
+	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
+		if fn.IsVaildAddr(env) {
+			str = env
+		}
+	}
+	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
+		if fn.IsVaildAddr(args) {
+			str = args
+		}
+	}
+	return str
+}

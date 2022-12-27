@@ -42,7 +42,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		vm.TerminateExecution()
 		err := <-errs
 		logger.Instance.Infof("execution timeout: %v", duration)
-		time.Sleep(fn.I2T(define.DEFAULT_JS_EXECUTE_THORTTLING) * time.Second)
+		time.Sleep(fn.ExpireBySecond(define.DEFAULT_JS_EXECUTE_THORTTLING))
 		return nil, duration, err
 	}
 }

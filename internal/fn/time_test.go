@@ -15,3 +15,11 @@ func TestI2T(t *testing.T) {
 		t.Fatal("I2T test failed")
 	}
 }
+
+func TestExpireBySecond(t *testing.T) {
+	src := fn.ExpireBySecond(1)
+	dest := fn.I2T(1) * time.Second
+	if src != dest {
+		t.Fatal("ExpireBySecond failed")
+	}
+}

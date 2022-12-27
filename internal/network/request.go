@@ -20,7 +20,7 @@ func MixCodeStatus(code define.ErrorCode, desc string, detail any) (define.Error
 }
 
 func HttpGet(url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
-	client := &http.Client{Timeout: fn.I2T(define.REQUEST_TIMEOUT) * time.Second}
+	client := &http.Client{Timeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT)}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		code, status = MixCodeStatus(define.ERROR_CODE_INIT_NETWORK_FAILED, define.ERROR_STATUS_INIT_NETWORK_FAILED, err)
@@ -87,9 +87,9 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 			logger.Instance.Warn("Unable to use cache")
 		} else {
 			if expire > 0 {
-				cacher.Expire(url, fn.I2T(expire)*time.Second)
+				cacher.Expire(url, fn.ExpireBySecond(expire))
 			} else {
-				cacher.Expire(url, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
+				cacher.Expire(url, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION))
 			}
 		}
 	}

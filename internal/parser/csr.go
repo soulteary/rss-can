@@ -30,7 +30,7 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 		if proxyAddr != "" {
 			l.Set(flags.ProxyServer, proxyAddr)
 		}
-		browser = rod.New().ControlURL(l.MustLaunch()).Trace(true).SlowMotion(fn.I2T(define.HEADLESS_SLOW_MOTION) * time.Second)
+		browser = rod.New().ControlURL(l.MustLaunch()).Trace(true).SlowMotion(fn.ExpireBySecond(define.HEADLESS_SLOW_MOTION))
 		launcher.Open(browser.ServeMonitor(""))
 	} else {
 		browser = rod.New().ControlURL(launcher.MustResolveURL(container))
@@ -114,7 +114,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	// TODO timeout set by config
 	// TODO support pager config
 	page.
-		Timeout(fn.I2T(define.HEADLESS_EXCUTE_TIMEOUT) * time.Second).
+		Timeout(fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT)).
 		MustNavigate(config.URL).
 		MustWaitLoad().
 		MustElement(config.ListContainer).
@@ -129,9 +129,9 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 				logger.Instance.Warn("Unable to use cache")
 			} else {
 				if config.Expire > 0 {
-					cacher.Expire(config.URL, fn.I2T(config.Expire)*time.Second)
+					cacher.Expire(config.URL, fn.ExpireBySecond(config.Expire))
 				} else {
-					cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
+					cacher.Expire(config.URL, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION))
 				}
 			}
 		}
@@ -149,9 +149,9 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 			logger.Instance.Warn("Unable to use cache")
 		} else {
 			if config.Expire > 0 {
-				cacher.Expire(config.URL, fn.I2T(config.Expire)*time.Second)
+				cacher.Expire(config.URL, fn.ExpireBySecond(config.Expire))
 			} else {
-				cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
+				cacher.Expire(config.URL, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION))
 			}
 		}
 	}
@@ -168,7 +168,7 @@ func ProxyPageByGoRod(url string, container string, proxyAddr string) string {
 
 	// TODO timeout set by config
 	page.
-		Timeout(fn.I2T(define.HEADLESS_EXCUTE_TIMEOUT) * time.Second).
+		Timeout(fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT)).
 		MustNavigate(url).
 		MustWaitLoad().
 		MustElement("body").

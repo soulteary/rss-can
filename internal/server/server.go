@@ -53,8 +53,8 @@ func StartWebServer() {
 	srv := &http.Server{
 		Addr:              define.HTTP_HOST + ":" + strconv.Itoa(define.HTTP_PORT),
 		Handler:           route,
-		ReadHeaderTimeout: fn.I2T(define.SERVER_TIMEOUT) * time.Second,
-		ReadTimeout:       fn.I2T(define.SERVER_TIMEOUT) * time.Second,
+		ReadHeaderTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT),
+		ReadTimeout:       fn.ExpireBySecond(define.SERVER_TIMEOUT),
 	}
 
 	go func() {

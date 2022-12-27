@@ -28,7 +28,7 @@ func IsMemoryEmpty(instance *cache2go.CacheTable) bool {
 func UpdateDataToMemory(instance *cache2go.CacheTable, key, value string) {
 	now := time.Now()
 	val := InMemoryPageCache{now, []byte(value)}
-	instance.Add(key, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second, &val)
+	instance.Add(key, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), &val)
 }
 
 func GetDataFromMemory(instance *cache2go.CacheTable, key string) ([]byte, error) {

@@ -34,8 +34,8 @@
 使用下面的命令，下载最新版本的软件之后，使用 `docker run` 运行即可（记得将项目中的 Feed Rules 挂载到容器中）：
 
 ```
-docker pull soulteary/rss-can:0.3.1
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:0.3.1
+docker pull soulteary/rss-can:0.3.3
+docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:0.3.3
 ```
 
 ### 支持的命令行参数及环境变量

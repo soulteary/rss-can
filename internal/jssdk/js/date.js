@@ -1,5 +1,5 @@
 /**
- * convert a datetime string to a unix timestamp
+ * convert a `xxx ago` string to a unix timestamp
  * @param {string} input
  * @returns {string | number} "" or "unix number"
  */
@@ -39,4 +39,36 @@ function ConvertAgoToUnix(input) {
     return s;
   }
   return s;
+}
+
+/**
+ * convert a datetime string or `xxx ago` string to a unix timestamp
+ * @param {string} input
+ * @returns {string | number} "" or "unix number"
+ */
+function ConvertStrToUnix(input) {
+  var s = (input || "").trim().toLowerCase();
+  if (!s) return "";
+  if (s.indexOf("ago") > -1 || s.indexOf("前") > -1) {
+    return ConvertAgoToUnix(s);
+  }
+  // `2023年1月1日`
+  if (s.indexOf("年") > -1 && s.indexOf("月") > -1 && s.indexOf("日") > -1) {
+    s = s.replace("年", "/").replace("月", "/").replace("日", "/");
+  }
+  // `2023年1月`
+  if (s.indexOf("年") > -1 && s.indexOf("月") > -1) {
+    s = s.replace("年", "/").replace("月", "/");
+  }
+  // `1月1日`
+  if (s.indexOf("月") > -1 && s.indexOf("日") > -1) {
+    year = `${new Date().getFullYear}`;
+    s = year + "/" + s.replace("月", "/").replace("日", "/");
+  }
+  // `2023年`
+  if (s.indexOf("年") > -1) {
+    s = s.replace("年", "");
+  }
+
+  return moment(s).unix();
 }

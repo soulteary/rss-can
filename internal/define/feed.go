@@ -1,7 +1,5 @@
 package define
 
-import "time"
-
 const (
 	FEED_TYPE_RSS  = "rss"
 	FEED_TYPE_ATOM = "atom"
@@ -42,15 +40,15 @@ type PROP_ID struct {
 }
 
 type JavaScriptConfig struct {
-	URL          string        `json:"URL"`
-	Mode         string        `json:"Mode"`
-	File         string        //private field
-	Charset      string        `json:"Charset"`
-	Expire       time.Duration `json:"Expire"`
-	Headless     string        `json:"Headless"`
-	DisableCache bool          `json:"DisableCache"`
-	IdByRegexp   string        `json:"IdByRegexp"`
-	IdByProp     PROP_ID       `json:"IdByProp"`
+	URL          string  `json:"URL"`
+	Mode         string  `json:"Mode"`
+	File         string  //private field
+	Charset      string  `json:"Charset"`
+	Expire       int     `json:"Expire"`
+	Headless     string  `json:"Headless"`
+	DisableCache bool    `json:"DisableCache"`
+	IdByRegexp   string  `json:"IdByRegexp"`
+	IdByProp     PROP_ID `json:"IdByProp"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

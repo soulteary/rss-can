@@ -129,8 +129,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 				logger.Instance.Warn("Unable to use cache")
 			} else {
 				if config.Expire > 0 {
-					// todo parse unit
-					cacher.Expire(config.URL, config.Expire)
+					cacher.Expire(config.URL, fn.I2T(config.Expire)*time.Second)
 				} else {
 					cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
 				}
@@ -150,8 +149,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 			logger.Instance.Warn("Unable to use cache")
 		} else {
 			if config.Expire > 0 {
-				// todo parse unit
-				cacher.Expire(config.URL, config.Expire)
+				cacher.Expire(config.URL, fn.I2T(config.Expire)*time.Second)
 			} else {
 				cacher.Expire(config.URL, fn.I2T(define.IN_MEMORY_EXPIRATION)*time.Second)
 			}

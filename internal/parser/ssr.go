@@ -92,10 +92,6 @@ func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links
 	return links
 }
 
-func IsTaskLinkInPager(pageLinks []string, link string) bool {
-	return fn.IsStrInArray(pageLinks, link)
-}
-
 func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
 	var doc define.RemoteBodySanitized
 	if userHtml != "" {
@@ -117,7 +113,8 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 		})
 
 		if len(pageLinks) > config.PagerLimit {
-			if IsTaskLinkInPager(pageLinks, config.URL) {
+			// check page link is in the task list
+			if fn.IsStrInArray(pageLinks, config.URL) {
 				pageLinks = pageLinks[:config.PagerLimit]
 			} else {
 				if config.PagerLimit > 2 {

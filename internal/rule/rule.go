@@ -3,29 +3,12 @@ package rule
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
-
-func getDirRuleFiles(baseDir string) (ruleFiles []string) {
-	rules, err := os.ReadDir(baseDir)
-	if err != nil {
-		logger.Instance.Errorf("Scan rule rules not complete: %v", err)
-		return nil
-	}
-
-	for _, file := range rules {
-		ruleFiles = append(ruleFiles, filepath.Join(baseDir, file.Name()))
-	}
-
-	if len(ruleFiles) == 0 {
-		logger.Instance.Warnln("Scanning the rules directory completed, but no configuration files were found.")
-	}
-	return ruleFiles
-}
 
 func isDir(input string) int {
 	target, err := os.Stat(input)
@@ -39,12 +22,12 @@ func isDir(input string) int {
 }
 
 func LoadRules(ruleDir string) []string {
-	ruleFiles := getDirRuleFiles(ruleDir)
+	ruleFiles := fn.ScanDirFiles(ruleDir)
 
 	var rules []string
 	for _, item := range ruleFiles {
 		if isDir(item) == 1 {
-			subFiles := getDirRuleFiles(item)
+			subFiles := fn.ScanDirFiles(item)
 			for _, sItem := range subFiles {
 				if isDir(sItem) == 0 {
 					rules = append(rules, sItem)
@@ -53,7 +36,12 @@ func LoadRules(ruleDir string) []string {
 		}
 	}
 
-	logger.Instance.Infof("Load rules, count: %d", len(rules))
+	if len(rules) == 0 {
+		logger.Instance.Warnln("Scanning the rules directory completed, but no configuration files were found.")
+	} else {
+		logger.Instance.Infof("Load rules, count: %d", len(rules))
+	}
+
 	return rules
 }
 

@@ -91,7 +91,7 @@ func TestCacher(t *testing.T) {
 	if err != nil {
 		t.Fatal("cacher.Expire failed")
 	}
-	time.Sleep(time.Second*1 + time.Millisecond*10)
+	time.Sleep(time.Second * 2)
 	ret, err = cacher.Get(TestKey)
 	if err != nil {
 		t.Fatal("cacher.Get failed")
@@ -206,7 +206,7 @@ func TestCacher(t *testing.T) {
 	if err != nil {
 		t.Fatal("cacher.Expire failed")
 	}
-	time.Sleep(time.Second*1 + time.Millisecond*10)
+	time.Sleep(time.Second * 2)
 	ret, err = cacher.Get(TestKey)
 	if err != nil {
 		t.Fatal("cacher.Get failed")

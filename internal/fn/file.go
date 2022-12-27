@@ -17,3 +17,19 @@ func ScanDirFiles(baseDir string) (files []string) {
 
 	return files
 }
+
+func IsDir(src string) bool {
+	p, err := os.Stat(src)
+	if err != nil {
+		return false
+	}
+	return p.IsDir()
+}
+
+func IsFile(src string) bool {
+	p, err := os.Stat(src)
+	if err != nil {
+		return false
+	}
+	return p.Mode().IsRegular()
+}

@@ -10,26 +10,15 @@ import (
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
-func isDir(input string) int {
-	target, err := os.Stat(input)
-	if err != nil {
-		return -1
-	}
-	if target.IsDir() {
-		return 1
-	}
-	return 0
-}
-
 func LoadRules(ruleDir string) []string {
 	ruleFiles := fn.ScanDirFiles(ruleDir)
 
 	var rules []string
 	for _, item := range ruleFiles {
-		if isDir(item) == 1 {
+		if fn.IsDir(item) {
 			subFiles := fn.ScanDirFiles(item)
 			for _, sItem := range subFiles {
-				if isDir(sItem) == 0 {
+				if fn.IsFile(sItem) {
 					rules = append(rules, sItem)
 				}
 			}

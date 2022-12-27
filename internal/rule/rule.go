@@ -34,25 +34,24 @@ func LoadRules(ruleDir string) []string {
 	return rules
 }
 
-func generateSDKsByRuleFile(file string) (sdk string, app string, err error) {
+func generateSDKsByRuleFile(file string) (app string, err error) {
 	jsRule, err := os.ReadFile(file)
 	if err != nil {
-		return sdk, app, err
+		return app, err
 	}
 
-	sdk = fmt.Sprintf("%s\n%s\n", jssdk.SSR_SHIM, jssdk.SDK)
 	app = fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
-	return sdk, app, nil
+	return app, nil
 }
 
 func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {
-	base, app, err := generateSDKsByRuleFile(rule)
+	app, err := generateSDKsByRuleFile(rule)
 	if err != nil {
 		logger.Instance.Errorf("Read rule file failed: %v", err)
 		return config, err
 	}
 
-	jsConfig, err := jssdk.RunCode(base, app)
+	jsConfig, err := jssdk.RunCode(jssdk.TPL_SSR_JS, app)
 	if err != nil {
 		logger.Instance.Errorf("Executing rule file failed: %v", err)
 		return config, err

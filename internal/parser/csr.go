@@ -82,8 +82,7 @@ func GetCSRInjectCode(file string) string {
 		return ""
 	}
 
-	jsApp := fmt.Sprintf("%s\n%s\n", jssdk.CSR_SHIM, jssdk.SDK)
-	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jsApp, string(jsRule))
+	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jssdk.TPL_CSR_JS, string(jsRule))
 }
 
 func parseHTMLtoItems(data string) []define.InfoItem {

@@ -8,13 +8,9 @@ import (
 	v8 "rogchap.com/v8go"
 )
 
-var DateFn = func() string {
-	return fmt.Sprintf("%s\n%s", MomentJS, DateJS)
-}()
-
 func ConvertAgoToUnix(date string) (time.Time, error) {
 	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, DateFn, "moment.js")
+	_, _, err := RunCodeInSandbox(ctx, TPL_DATE_JS, "moment.js")
 
 	if err != nil {
 		return time.Now(), err
@@ -31,7 +27,7 @@ func ConvertAgoToUnix(date string) (time.Time, error) {
 
 func ConvertStrToUnix(str string) (time.Time, error) {
 	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, DateFn, "moment.js")
+	_, _, err := RunCodeInSandbox(ctx, TPL_DATE_JS, "moment.js")
 
 	if err != nil {
 		return time.Now(), err

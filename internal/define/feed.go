@@ -46,6 +46,7 @@ type JavaScriptConfig struct {
 	Charset      string  `json:"Charset"`
 	Expire       int     `json:"Expire"`
 	Headless     string  `json:"Headless"`
+	Proxy        string  `json:"Proxy"`
 	DisableCache bool    `json:"DisableCache"`
 	IdByRegexp   string  `json:"IdByRegexp"`
 	IdByProp     PROP_ID `json:"IdByProp"`

@@ -36,16 +36,20 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 		if fn.IsVaildHeadlessAddr(config.Headless) {
 			container = config.Headless
 		}
-		// TODO set proxy by config
 		proxy := define.PROXY_SERVER
+		if fn.IsVaildProxyAddr(config.Proxy) {
+			proxy = config.Proxy
+		}
 		return parser.GetDataAndConfigByCSR(config, container, proxy)
 	case define.PARSE_MODE_MIX:
 		container := define.HEADLESS_SERVER
 		if fn.IsVaildHeadlessAddr(config.Headless) {
 			container = config.Headless
 		}
-		// TODO set proxy by config
 		proxy := define.PROXY_SERVER
+		if fn.IsVaildProxyAddr(config.Proxy) {
+			proxy = config.Proxy
+		}
 		return parser.GetDataAndConfigByMix(config, container, proxy)
 	}
 

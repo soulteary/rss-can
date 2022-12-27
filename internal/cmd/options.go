@@ -154,12 +154,12 @@ func UpdateProxyOptions(key string, args string, defaults string) string {
 	env := os.Getenv(key)
 	str := defaults
 	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
-		if fn.IsVaildAddr(env) || fn.IsVaildAddrWithHttpProtocol(env) {
+		if fn.IsVaildProxyAddr(env) {
 			str = env
 		}
 	}
 	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
-		if fn.IsVaildAddr(args) || fn.IsVaildAddrWithHttpProtocol(args) {
+		if fn.IsVaildProxyAddr(args) {
 			str = args
 		}
 	}

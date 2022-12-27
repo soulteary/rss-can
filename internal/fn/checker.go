@@ -127,3 +127,10 @@ func IsVaildHeadlessAddr(addr string) bool {
 	}
 	return false
 }
+
+func IsVaildProxyAddr(addr string) bool {
+	if IsVaildAddr(addr) || IsVaildAddrWithHttpProtocol(addr) {
+		return true
+	}
+	return false
+}

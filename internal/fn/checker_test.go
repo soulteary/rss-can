@@ -255,3 +255,28 @@ func TestIsVaildHeadlessAddr(t *testing.T) {
 		t.Fatal("IsVaildHeadlessAddr failed")
 	}
 }
+
+func TestIsVaildProxyAddr(t *testing.T) {
+
+	ret := fn.IsVaildProxyAddr("0.0.0.0")
+	if !ret {
+		t.Fatal("IsVaildProxyAddr failed")
+	}
+	ret = fn.IsVaildProxyAddr("0.0.0.0:1024")
+	if !ret {
+		t.Fatal("IsVaildProxyAddr failed")
+	}
+	ret = fn.IsVaildProxyAddr("http://abc.efg")
+	if !ret {
+		t.Fatal("IsVaildProxyAddr failed")
+	}
+
+	ret = fn.IsVaildProxyAddr("ws://abc.efg")
+	if ret {
+		t.Fatal("IsVaildProxyAddr failed")
+	}
+	ret = fn.IsVaildProxyAddr("ws://abc.e!fg")
+	if ret {
+		t.Fatal("IsVaildProxyAddr failed")
+	}
+}

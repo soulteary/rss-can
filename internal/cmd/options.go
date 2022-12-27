@@ -133,3 +133,19 @@ func UpdateAddrOption(key string, args string, defaults string) string {
 	}
 	return str
 }
+
+func UpdateHeadlessOptions(key string, args string, defaults string) string {
+	env := os.Getenv(key)
+	str := defaults
+	if fn.IsNotEmptyAndNotDefaultString(env, defaults) {
+		if fn.IsVaildAddr(env) || fn.IsVaildAddrWithHttpProtocol(env) || fn.IsVaildAddrWithWsProtocol(env) {
+			str = env
+		}
+	}
+	if fn.IsNotEmptyAndNotDefaultString(args, defaults) {
+		if fn.IsVaildAddr(args) || fn.IsVaildAddrWithHttpProtocol(args) || fn.IsVaildAddrWithWsProtocol(args) {
+			str = args
+		}
+	}
+	return str
+}

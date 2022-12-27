@@ -430,3 +430,85 @@ func TestUpdateAddrOption(t *testing.T) {
 	}
 	os.Setenv("TEST_KEY", "")
 }
+
+func TestUpdateHeadlessOptions(t *testing.T) {
+	defaults := define.DEFAULT_HTTP_HOST + ":" + strconv.Itoa(define.DEFAULT_HTTP_PORT)
+
+	host := "http://" + defaults
+	// env: empty, args: "", default: "http://0.0.0.0:8080"
+	ret := cmd.UpdateHeadlessOptions("TEST_KEY", "", host)
+	if ret != host {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "http://127.0.0.1:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://127.0.0.1:9090", host)
+	if ret != "http://127.0.0.1:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "http://1127.0.0.1:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://1127.0.0.1", host)
+	if ret != host {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+
+	// env: empty, args: "http://redis:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://redis:9090", host)
+	if ret != "http://redis:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "http://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://redis.domain.ltd:9090", host)
+	if ret != "http://redis.domain.ltd:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "https://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "https://redis.domain.ltd:9090", host)
+	if ret != "https://redis.domain.ltd:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "ws://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "ws://redis.domain.ltd:9090", host)
+	if ret != "ws://redis.domain.ltd:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: empty, args: "wss://redis.domain.ltd:9090", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "wss://redis.domain.ltd:9090", host)
+	if ret != "wss://redis.domain.ltd:9090" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+
+	os.Setenv("TEST_KEY", "http://127.0.0.2:9999")
+	// env: "http://127.0.0.2", args: "", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "", host)
+	if ret != "http://127.0.0.2:9999" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: "http://127.0.0.2", args: "http://127.0.0.1:1122", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://127.0.0.1:1122", host)
+	if ret != "http://127.0.0.1:1122" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: "http://127.0.0.2", args: "http://1127.0.0.1:1123", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://1127.0.0.1:1123", host)
+	if ret != "http://127.0.0.2:9999" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+
+	os.Setenv("TEST_KEY", "http://1277.0.0.2:2345")
+	// env: "http://1277.0.0.2:2345", args: "", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "", host)
+	if ret != host {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: "http://1277.0.0.2:2345", args: "http://127.0.0.1", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://127.0.0.1", host)
+	if ret != "http://127.0.0.1" {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	// env: "http://1277.0.0.2:2345", args: "http://1127.0.0.1", default: "http://0.0.0.0:8080"
+	ret = cmd.UpdateHeadlessOptions("TEST_KEY", "http://1127.0.0.1", host)
+	if ret != host {
+		t.Fatal("UpdateHeadlessOptions failed")
+	}
+	os.Setenv("TEST_KEY", "")
+}

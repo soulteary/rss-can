@@ -183,19 +183,51 @@ func TestIsVaildIPAddr(t *testing.T) {
 	ips := []string{"10.10.10.10"}
 	for _, ip := range ips {
 		if !fn.IsVaildIPAddr(ip) {
-			t.Fatal("IsVaildAddr failed", ip)
+			t.Fatal("TestIsVaildIPAddr failed", ip)
 		}
 	}
 
 	ips = []string{"10.10.10.300", "1234.1234.1234.1234"}
 	for _, ip := range ips {
 		if fn.IsVaildIPAddr(ip) {
-			t.Fatal("IsVaildAddr failed", ip)
+			t.Fatal("TestIsVaildIPAddr failed", ip)
 		}
 	}
 
 	ret := fn.IsVaildIPAddr("a.b.c.d")
 	if ret {
-		t.Fatal("IsVaildAddr failed")
+		t.Fatal("TestIsVaildIPAddr failed")
+	}
+}
+
+func TestIsVaildAddrWithHttpProtocol(t *testing.T) {
+	urls := []string{"http://localhost", "https://localhost", "https://10.11.12.13", "http://127.0.0.1:1234", "http://a.b.c.s", "https://a.c.v:233"}
+	for _, url := range urls {
+		if !fn.IsVaildAddrWithHttpProtocol(url) {
+			t.Fatal("Test IsVaildAddrWithHttpProtocol failed", url)
+		}
+	}
+
+	urls = []string{"http://localhost:", "https://localhost:111111", "https://a.!.a", "no://10.12.12.12"}
+	for _, url := range urls {
+		if fn.IsVaildAddrWithHttpProtocol(url) {
+			t.Fatal("Test IsVaildAddrWithHttpProtocol failed", url)
+		}
+	}
+}
+
+func TestIsVaildAddrWithWsProtocol(t *testing.T) {
+	urls := []string{"ws://localhost", "wss://localhost", "wss://10.11.12.13", "wss://127.0.0.1:1234", "ws://a.b.c.s", "wss://a.c.v:233"}
+	for _, url := range urls {
+		if !fn.IsVaildAddrWithWsProtocol(url) {
+			t.Fatal("IsVaildAddrWithWsProtocol failed", url)
+		}
+	}
+
+	urls = []string{"ws://localhost:", "wss://localhost:111111", "wss://a.!.a", "no://a.b.c"}
+	for _, url := range urls {
+		if fn.IsVaildAddrWithWsProtocol(url) {
+			t.Fatal("IsVaildAddrWithWsProtocol failed", url)
+		}
 	}
 }

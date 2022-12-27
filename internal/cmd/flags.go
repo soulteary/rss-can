@@ -61,8 +61,7 @@ func ApplyFlags() {
 	if define.IN_MEMORY_CACHE {
 		define.IN_MEMORY_EXPIRATION = UpdateNumberOption(ENV_MEMORY_EXPIRATION, args.IN_MEMORY_EXPIRATION, define.DEFAULT_IN_MEMORY_CACHE_EXPIRATION, true)
 	}
-	// TODO check `addr:port` is vaild
-	define.HEADLESS_SERVER = UpdateStringOption(ENV_KEY_HEADLESS_SERVER, args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER)
+	define.HEADLESS_SERVER = UpdateHeadlessOptions(ENV_KEY_HEADLESS_SERVER, args.HEADLESS_SERVER, define.DEFAULT_HEADLESS_SERVER)
 	// TODO check `addr:port` is vaild
 	define.PROXY_SERVER = UpdateStringOption(ENV_KEY_PROXY, args.PROXY_SERVER, define.DEFAULT_PROXY_ADDRESS)
 	define.JS_EXECUTE_TIMEOUT = UpdateNumberOption(ENV_KEY_JS_EXEC_TIMEOUT, args.JS_EXECUTE_TIMEOUT, define.DEFAULT_JS_EXECUTE_TIMEOUT, true)

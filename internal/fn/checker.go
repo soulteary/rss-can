@@ -96,3 +96,27 @@ func IsVaildIPAddr(addr string) bool {
 	}
 	return false
 }
+
+func IsVaildAddrWithHttpProtocol(addr string) bool {
+	s := strings.ToLower(addr)
+	protocols := []string{"http://", "https://"}
+	for _, protocol := range protocols {
+		if strings.HasPrefix(s, protocol) {
+			host := strings.TrimLeft(s, protocol)
+			return IsVaildAddr(host)
+		}
+	}
+	return false
+}
+
+func IsVaildAddrWithWsProtocol(addr string) bool {
+	s := strings.ToLower(addr)
+	protocols := []string{"ws://", "wss://"}
+	for _, protocol := range protocols {
+		if strings.HasPrefix(s, protocol) {
+			host := strings.TrimLeft(s, protocol)
+			return IsVaildAddr(host)
+		}
+	}
+	return false
+}

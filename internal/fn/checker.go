@@ -1,6 +1,10 @@
 package fn
 
-import "strings"
+import (
+	"net"
+	"regexp"
+	"strings"
+)
 
 // ref: https://developer.mozilla.org/en-US/docs/Web/HTML/Element
 var DomList = func() []string {
@@ -46,6 +50,41 @@ func IsBoolString(input string) bool {
 	s := strings.ToLower(input)
 	if s == "true" || s == "1" || s == "on" {
 		return true
+	}
+	return false
+}
+
+func IsVaildAddr(addr string) bool {
+	host := strings.TrimSpace(addr)
+	port := ""
+
+	if strings.Contains(addr, ":") {
+		arr := strings.Split(addr, ":")
+		host = strings.TrimSpace(arr[0])
+		port = strings.TrimSpace(arr[1])
+
+		if port != "" {
+			p := StringToPositiveInteger(port)
+			if p < 0 {
+				return false
+			}
+			if !IsVaildPortRange(p) {
+				return false
+			}
+		} else {
+			// empty port
+			return false
+		}
+	}
+
+	var ipRegexp = regexp.MustCompile(`^(\d+\.){3}\d+$`)
+	if ipRegexp.MatchString(host) {
+		return net.ParseIP(host) != nil
+	}
+
+	var domainRegexp = regexp.MustCompile(`^([\w\d\-\_\.]+)?[\w\d\-\_]$`)
+	if domainRegexp.MatchString(host) {
+		return !regexp.MustCompile(`^([\d\.]+)?[\d]$`).MatchString(host)
 	}
 	return false
 }

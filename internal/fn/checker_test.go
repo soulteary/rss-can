@@ -134,3 +134,48 @@ func TestIsBoolString(t *testing.T) {
 		t.Fatal("IsBoolString failed")
 	}
 }
+
+func TestIsVaildAddr(t *testing.T) {
+
+	ips := []string{"10.10.10.10"}
+	for _, ip := range ips {
+		if !fn.IsVaildAddr(ip) {
+			t.Fatal("IsVaildAddr failed", ip)
+		}
+	}
+
+	ips = []string{"10.10.10.300", "1234.1234.1234.1234"}
+	for _, ip := range ips {
+		if fn.IsVaildAddr(ip) {
+			t.Fatal("IsVaildAddr failed", ip)
+		}
+	}
+
+	hosts := []string{"abc", "abc.cc", "a.b.c.d", "ajaja-11.a1.cn", "1-2.c.s", "1_2-a.1.a"}
+	for _, host := range hosts {
+		if !fn.IsVaildAddr(host) {
+			t.Fatal("IsVaildAddr failed", host)
+		}
+	}
+
+	hosts = []string{"1-a#.s.a", "1@ss.c.c", "1_2-a.1.", "!", "1.2.3"}
+	for _, host := range hosts {
+		if fn.IsVaildAddr(host) {
+			t.Fatal("IsVaildAddr failed", host)
+		}
+	}
+
+	addrs := []string{"10.10.10.10:1024", "127.0.0.1:6379"}
+	for _, addr := range addrs {
+		if !fn.IsVaildAddr(addr) {
+			t.Fatal("IsVaildAddr faild", addr)
+		}
+	}
+
+	addrs = []string{"10.10.10.10:", "127.0.0.1:637900", "127.0.0.1:-1"}
+	for _, addr := range addrs {
+		if fn.IsVaildAddr(addr) {
+			t.Fatal("IsVaildAddr faild", addr)
+		}
+	}
+}

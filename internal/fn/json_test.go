@@ -26,4 +26,12 @@ func TestJSONStringify(t *testing.T) {
 	if ret != `{"name":"A","age":10}` {
 		t.Fatal("JSONStringify failed")
 	}
+
+	mockErr := map[string]interface{}{
+		"foo": make(chan int),
+	}
+	ret = fn.JSONStringify(mockErr)
+	if ret != "" {
+		t.Fatal("JSONStringify failed")
+	}
 }

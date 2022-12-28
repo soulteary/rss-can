@@ -47,9 +47,17 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 	}
 }
 
-func RunCode(base string, export string) (string, error) {
+func GetCtxWithJS(basejs string) (*v8.Context, error) {
 	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, base, "base.js")
+	_, _, err := RunCodeInSandbox(ctx, basejs, "base.js")
+	if err != nil {
+		return nil, err
+	}
+	return ctx, nil
+}
+
+func RunCode(base string, export string) (string, error) {
+	ctx, err := GetCtxWithJS(base)
 	if err != nil {
 		return "", err
 	}

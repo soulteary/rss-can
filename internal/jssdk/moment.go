@@ -5,13 +5,10 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/fn"
-	v8 "rogchap.com/v8go"
 )
 
 func ConvertAgoToUnix(date string) (time.Time, error) {
-	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, TPL_DATE_JS, "moment.js")
-
+	ctx, err := GetCtxWithJS(TPL_DATE_JS)
 	if err != nil {
 		return time.Now(), err
 	}
@@ -26,9 +23,7 @@ func ConvertAgoToUnix(date string) (time.Time, error) {
 }
 
 func ConvertStrToUnix(str string) (time.Time, error) {
-	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, TPL_DATE_JS, "moment.js")
-
+	ctx, err := GetCtxWithJS(TPL_DATE_JS)
 	if err != nil {
 		return time.Now(), err
 	}

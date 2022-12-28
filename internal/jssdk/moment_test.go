@@ -8,12 +8,15 @@ import (
 )
 
 func TestConvertAgoToUnix(t *testing.T) {
-	timeUnix, err := jssdk.ConvertAgoToUnix("10天前")
+	_, err := jssdk.ConvertAgoToUnix("10天前")
 	if err != nil {
 		t.Fatal("ConvertAgoToUnix failed: ", err)
 	}
 
-	fmt.Println(timeUnix)
+	_, err = jssdk.ConvertAgoToUnix(`"10天前`)
+	if err == nil {
+		t.Fatal("ConvertAgoToUnix failed")
+	}
 }
 
 func TestConvertStrToUnix(t *testing.T) {
@@ -22,6 +25,11 @@ func TestConvertStrToUnix(t *testing.T) {
 		t.Fatal("ConvertStrToUnix failed: ", err)
 	}
 	fmt.Println(timeUnix)
+
+	_, err = jssdk.ConvertStrToUnix(`"10天前`)
+	if err == nil {
+		t.Fatal("ConvertStrToUnix failed")
+	}
 
 	timeUnix, err = jssdk.ConvertStrToUnix("2022年")
 	if err != nil {

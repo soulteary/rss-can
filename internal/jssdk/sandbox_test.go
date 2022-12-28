@@ -56,3 +56,15 @@ func TestRunCode(t *testing.T) {
 		t.Fatalf("Programs executed failed")
 	}
 }
+
+func TestGetCtxWithJS(t *testing.T) {
+	_, err := jssdk.GetCtxWithJS("1")
+	if err != nil {
+		t.Fatal("GetCtxWithJS failed")
+	}
+
+	_, err = jssdk.GetCtxWithJS("!not-found-command")
+	if err == nil {
+		t.Fatal("GetCtxWithJS failed")
+	}
+}

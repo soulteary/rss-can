@@ -4,8 +4,8 @@ var (
 	DEBUG_MODE      = false
 	DEBUG_LEVEL     = "info"
 	USER_AGENT      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36"
-	REQUEST_TIMEOUT = 5 // seconds, fetch remote data timeout
-	SERVER_TIMEOUT  = 8 // seconds, web server request timeout
+	REQUEST_TIMEOUT = 45 // seconds, fetch remote data timeout
+	SERVER_TIMEOUT  = 50 // seconds, web server request timeout
 	RULES_DIRECTORY = "./rules"
 	HTTP_HOST       = "0.0.0.0"
 	HTTP_PORT       = 8080
@@ -23,5 +23,5 @@ var (
 	PROXY_SERVER            = ""
 	JS_EXECUTE_TIMEOUT      = 200 // milliseconds
 	HEADLESS_SLOW_MOTION    = 2   // seconds
-	HEADLESS_EXCUTE_TIMEOUT = 5   // Second
+	HEADLESS_EXCUTE_TIMEOUT = 10  // Second
 )

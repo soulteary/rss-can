@@ -20,6 +20,7 @@ func MixCodeStatus(code define.ErrorCode, desc string, detail any) (define.Error
 }
 
 func HttpGet(url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
+	// TODO Consider setting it with a timeout in config
 	client := &http.Client{Timeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT)}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

@@ -147,6 +147,7 @@ func inspectorProxy() gin.HandlerFunc {
 		}
 
 		url := fn.Base64Decode(params.URL)
+		// TODO set with config or parameters
 		rawHtml := parser.ProxyPageByGoRod(url, define.HEADLESS_SERVER, define.PROXY_SERVER)
 		html := parser.ParseFullPageByGoQuery(rawHtml, func(document *goquery.Document) string {
 			document.Find("script").Remove()

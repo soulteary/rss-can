@@ -99,10 +99,15 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 
 	page := GetRodPageObject(container, proxyAddr)
 
-	// TODO timeout set by config
 	// TODO support pager config
+
+	timeout := define.HEADLESS_EXCUTE_TIMEOUT
+	if config.Timeout > 0 {
+		timeout = config.Timeout
+	}
+
 	page.
-		Timeout(fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT)).
+		Timeout(fn.ExpireBySecond(timeout)).
 		MustNavigate(config.URL).
 		MustWaitLoad().
 		MustElement(config.ListContainer).

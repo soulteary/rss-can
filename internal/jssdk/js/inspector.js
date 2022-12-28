@@ -27,17 +27,19 @@
         if (selectors.length > 4) {
           selectors = selectors.slice(0, 4).reverse().join(" ");
         }
-        console.log("choose elements: ")
+        console.log("choose elements: ");
         console.log(selectors);
 
-        const all = document.querySelectorAll(selectors)
-        console.log("similar elements count:", all.length)
-        console.log(all)
+        const all = document.querySelectorAll(selectors);
+        console.log("similar elements count:", all.length);
+        console.log(all);
       }
     });
   }
 
   function createPanel() {
+    document.documentElement.style.userSelect = "none";
+
     let panel = document.createElement("div");
     panel.id = "rss-can-be-easier";
     panel.style.width = "300px";

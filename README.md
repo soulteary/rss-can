@@ -94,7 +94,7 @@ Usage of rssc:
 - [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release v0.1.0 and Docker images.
 - [x] 2022.12.20 Support Redis, in-memory caching to avoid sending meaningless requests, dynamic loading rules.
 - [x] 2022.12.19 Support document charset auto detection, MIX parser, both use CSR and SSR parser, faster batch CSR processing, Extract combined data from detail pages and assemble detailed RSS feed data.
-- [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+- [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
 - [x] 2022.12.14 Convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
 - [x] 2022.12.13 Dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
 - [x] 2022.12.12  Websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)

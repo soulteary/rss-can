@@ -94,7 +94,7 @@ Usage of rssc:
 - [x] 2022.12.21 支持跨多个页面聚合信息为 RSS 订阅源，完成第一个版本的 JS SDK，发布 v0.1.0 版本程序和应用 Docker 镜像。
 - [x] 2022.12.20 支持使用 Redis 和 应用内存 作为数据缓存，避免大量不必要的网络请求造成的麻烦，支持动态加载 RSS 规则文件。
 - [x] 2022.12.19 支持自动解析目标网站的网页编码格式，支持混合解析模式，提供比 CSR 解析模式更快的处理速度，支持从其他页面抽取数据装填 RSS 列表页面数据。
-- [x] 2022.12.15 支持使用 CSR 解析模式处理数据，[博客](https://soulteary.io/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+- [x] 2022.12.15 支持使用 CSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
 - [x] 2022.12.14 支持将网站数据转换为可订阅的 RSS 订阅源, [博客](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
 - [x] 2022.12.13 支持“动态化”能力，[博客](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
 - [x] 2022.12.12 支持使用 SSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)

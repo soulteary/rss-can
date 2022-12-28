@@ -1,6 +1,8 @@
 package fn
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 )
@@ -32,4 +34,10 @@ func IsFile(src string) bool {
 		return false
 	}
 	return p.Mode().IsRegular()
+}
+
+func GetFileSHA1(src []byte) string {
+	h := sha1.New()
+	h.Write(src)
+	return hex.EncodeToString(h.Sum(nil))
 }

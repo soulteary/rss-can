@@ -62,3 +62,10 @@ func TestIsFile(t *testing.T) {
 		t.Fatal("IsFile failed")
 	}
 }
+
+func TestGetFileSHA1(t *testing.T) {
+	ret := fn.GetFileSHA1([]byte("RSS Can"))
+	if ret != "9cf95b72f5a88266bf7242d796826326dee3464b" {
+		t.Fatal("GetFileSHA1 failed")
+	}
+}

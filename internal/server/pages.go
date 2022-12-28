@@ -67,6 +67,9 @@ func UpdateListPage(content []byte) []byte {
 	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
 	baseLink := GetFeedPath()
 
+	// TODO Pre-execute configuration for caching
+	// TODO fixed sort
+
 	id := 1
 	tpl := ""
 	for dirName, RuleFile := range rule.RulesCache {

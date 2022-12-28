@@ -48,7 +48,7 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 	}
 
 	// avoid data process hang due to pop-up windows
-	page.MustEvalOnNewDocument(`window.alert = () => {};window.prompt = () => {}`)
+	page.MustEvalOnNewDocument(jssdk.CSR_NO_OP_ALERT)
 
 	router := page.HijackRequests()
 	frugal := func(ctx *rod.Hijack) {
@@ -64,8 +64,6 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 
 	return page
 }
-
-const INJECT_CODE_MIX_PARSER = `()=> document.documentElement.innerHTML`
 
 func GetCSRInjectCode(file string) string {
 	jsRule, err := os.ReadFile(file)
@@ -111,7 +109,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		CancelTimeout()
 
 	if useMixParser {
-		pageData := page.MustEval(INJECT_CODE_MIX_PARSER)
+		pageData := page.MustEval(jssdk.TPL_MIX_JS)
 		pageHTML := fmt.Sprint(pageData)
 		if cacher.IsEnable() && !config.DisableCache {
 			err := cacher.Set(config.URL, pageHTML)
@@ -164,6 +162,6 @@ func ProxyPageByGoRod(url string, container string, proxyAddr string) string {
 		MustElement("body").
 		CancelTimeout()
 
-	pageData := page.MustEval("()=>document.documentElement.innerHTML")
+	pageData := page.MustEval(jssdk.TPL_MIX_JS)
 	return fmt.Sprint(pageData)
 }

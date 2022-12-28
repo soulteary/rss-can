@@ -35,11 +35,17 @@ var TPL_CSR_JS = func() string {
 	return fmt.Sprintf("%s\n%s", FILE_SHIM_CSR, FILE_SDK)
 }()
 
+// MIX mode
+const TPL_MIX_JS = `()=> document.documentElement.innerHTML`
+
+const CSR_NO_OP_ALERT = `window.alert = () => {};window.prompt = () => {}`
+
 // mix rule with template, generate get config function for RSS Can
 func GenerateGetConfigWithRule(rule []byte) string {
 	return fmt.Sprintf("var potted = new POTTED();\n%s\n%s", rule, "JSON.stringify(potted.GetConfig());")
 }
 
+// mix csr sdk and csr app for cdp client
 var GenerateCSRInjectParser = func(app []byte) string {
 	return fmt.Sprintf("()=> (function(window){\n%s;\nvar potted = new POTTED();\n%s;\npotted.GetData();return potted.value;})(window)", TPL_CSR_JS, app)
 }

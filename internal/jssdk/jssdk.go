@@ -20,6 +20,9 @@ var FILE_MOMENT_JS string
 //go:embed js/date.js
 var FILE_DATE_JS string
 
+//go:embed js/hep.js
+var FILE_HEP_JS string
+
 // combine moment.js with date functions
 var TPL_DATE_JS = func() string {
 	return fmt.Sprintf("%s\n%s", FILE_MOMENT_JS, FILE_DATE_JS)
@@ -48,4 +51,9 @@ func GenerateGetConfigWithRule(rule []byte) string {
 // mix csr sdk and csr app for cdp client
 var GenerateCSRInjectParser = func(app []byte) string {
 	return fmt.Sprintf("()=> (function(window){\n%s;\nvar potted = new POTTED();\n%s;\npotted.GetData();return potted.value;})(window)", TPL_CSR_JS, app)
+}
+
+// mix hep.js and inspector js for inspector page
+var GenerateInspector = func(app []byte) string {
+	return fmt.Sprintf("<script>%s;\n%s;\n</script>", FILE_HEP_JS, app)
 }

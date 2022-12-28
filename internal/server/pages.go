@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
@@ -159,20 +160,9 @@ func inspectorProxy() gin.HandlerFunc {
 			document.Find("script").Remove()
 			html, _ := document.Html()
 
-			hep := fn.GetFileContent("internal/server/assets/js/html-element-picker/hep.js")
+			app := fn.GetFileContent("internal/jssdk/js/inspector.js")
+			script := jssdk.GenerateInspector(app)
 
-			script := fmt.Sprintf(`
-<script>
-%s
-hep = new ElementPicker();
-
-document.addEventListener('click', function(e){
-	console.log(hep.selectors)
-	e.preventDefault();
-	e.stopPropagation();
-});
-</script>
-`, hep)
 			html = strings.Replace(html, "</html>", script+"</html>", -1)
 			return html
 		})

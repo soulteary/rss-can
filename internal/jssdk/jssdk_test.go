@@ -22,3 +22,11 @@ func TestGenerateCSRInjectParser(t *testing.T) {
 		t.Fatal("GenerateCSRInjectParser failed")
 	}
 }
+
+func TestGenerateInspector(t *testing.T) {
+	const found = `console.log("hello world")`
+	ret := jssdk.GenerateInspector([]byte(found))
+	if !strings.Contains(ret, found) {
+		t.Fatal("GenerateInspector failed")
+	}
+}

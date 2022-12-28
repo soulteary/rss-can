@@ -1,4 +1,5 @@
 const config = {
+  Name: "极客公园",
   URL: "https://www.geekpark.net/",
   // optional
   // Mode: "ssr",

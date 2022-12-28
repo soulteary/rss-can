@@ -1,4 +1,5 @@
 const config = {
+  Name: "哔哩哔哩",
   URL: "https://www.bilibili.com/read/home",
   Mode: "mix",
   Title: ".article-title",

@@ -3,6 +3,7 @@ package rule
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
@@ -61,5 +62,39 @@ func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err erro
 	if err != nil {
 		logger.Instance.Errorf("Parsing rule file failed: %v", err)
 	}
+
+	config.Name = strings.TrimSpace(config.Name)
+	config.URL = strings.TrimSpace(config.URL)
+	config.Mode = strings.TrimSpace(config.Mode)
+	config.File = strings.TrimSpace(config.File)
+	config.Charset = strings.TrimSpace(config.Charset)
+	config.Headless = strings.TrimSpace(config.Headless)
+	config.Proxy = strings.TrimSpace(config.Proxy)
+
+	config.IdByRegexp = strings.TrimSpace(config.IdByRegexp)
+	config.ListContainer = strings.TrimSpace(config.ListContainer)
+	config.Title = strings.TrimSpace(config.Title)
+	config.Author = strings.TrimSpace(config.Author)
+	config.Link = strings.TrimSpace(config.Link)
+	config.DateTime = strings.TrimSpace(config.DateTime)
+	config.Description = strings.TrimSpace(config.Description)
+	config.Pager = strings.TrimSpace(config.Pager)
+
+	config.DateTimeHook.Action = strings.TrimSpace(config.DateTimeHook.Action)
+	config.DateTimeHook.Object = strings.TrimSpace(config.DateTimeHook.Object)
+	config.DateTimeHook.URL = strings.TrimSpace(config.DateTimeHook.URL)
+
+	config.CategoryHook.Action = strings.TrimSpace(config.CategoryHook.Action)
+	config.CategoryHook.Object = strings.TrimSpace(config.CategoryHook.Object)
+	config.CategoryHook.URL = strings.TrimSpace(config.CategoryHook.URL)
+
+	config.DescriptionHook.Action = strings.TrimSpace(config.DescriptionHook.Action)
+	config.DescriptionHook.Object = strings.TrimSpace(config.DescriptionHook.Object)
+	config.DescriptionHook.URL = strings.TrimSpace(config.DescriptionHook.URL)
+
+	config.ContentHook.Action = strings.TrimSpace(config.ContentHook.Action)
+	config.ContentHook.Object = strings.TrimSpace(config.ContentHook.Object)
+	config.ContentHook.URL = strings.TrimSpace(config.ContentHook.URL)
+
 	return config, err
 }

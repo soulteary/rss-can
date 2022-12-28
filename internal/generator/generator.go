@@ -12,11 +12,17 @@ import (
 func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed, rssType string) string {
 	now := time.Now()
 
-	// TODO update with rules
 	rssFeed := &feeds.Feed{
 		Title:   config.File,
-		Link:    &feeds.Link{Href: config.URL},
 		Created: now,
+	}
+
+	if config.URL != "" {
+		rssFeed.Link = &feeds.Link{Href: config.URL}
+	}
+
+	if config.Name != "" {
+		rssFeed.Title = config.Name
 	}
 
 	for _, data := range data.Body {
@@ -31,8 +37,6 @@ func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed,
 			timeUnix, err := jssdk.ConvertStrToUnix(data.Date)
 			if err == nil {
 				feedItem.Created = timeUnix
-			} else {
-				feedItem.Created = now
 			}
 		}
 

@@ -1,4 +1,5 @@
 const config = {
+  Name: "篝火营地",
   URL: "https://gouhuo.qq.com/content/tablist/1_110",
   // optional
   // Mode: "ssr",

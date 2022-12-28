@@ -1,4 +1,5 @@
 const config = {
+  Name: "36氪",
   URL: "https://36kr.com/",
   // optional
   // Mode: "ssr",

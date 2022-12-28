@@ -40,6 +40,7 @@ type PROP_ID struct {
 }
 
 type JavaScriptConfig struct {
+	Name         string  `json:"name"`
 	URL          string  `json:"URL"`
 	Mode         string  `json:"Mode"`
 	File         string  //private field

@@ -77,12 +77,13 @@ func UpdateListPage(content []byte) []byte {
 		jsonLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">JSON</span></a>`, baseLink+`/`+dirName+`/json`)
 		tpl = tpl + fmt.Sprintf(`
 <th>%d</th>
-	<td>%s</td>
-	<td>%s</td>
-	<td>%s</td>
-	<td>%s</td>
-	<td>%s</td>
-</tr>`, id, dirName, RuleFile.File, rssLink, atomLink, jsonLink)
+<td>%s</td>
+<td>%s</td>
+<td><span class="badge badge-sm badge-outline badge-success">%s</span></td>
+<td>%s</td>
+<td>%s</td>
+<td>%s</td>
+</tr>`, id, dirName, RuleFile.File, RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
 		id++
 	}
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(tpl))

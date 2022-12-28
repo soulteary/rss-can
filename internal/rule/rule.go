@@ -1,7 +1,6 @@
 package rule
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -41,8 +40,7 @@ func generateSDKsByRuleFile(file string) (app string, err error) {
 		return app, err
 	}
 
-	app = fmt.Sprintf("var potted = new POTTED();\n%s\n%s", jsRule, "JSON.stringify(potted.GetConfig());")
-	return app, nil
+	return jssdk.GenerateGetConfigWithRule(jsRule), nil
 }
 
 func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {

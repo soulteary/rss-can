@@ -34,3 +34,8 @@ var TPL_SSR_JS = func() string {
 var TPL_CSR_JS = func() string {
 	return fmt.Sprintf("%s\n%s", FILE_SHIM_CSR, FILE_SDK)
 }()
+
+// mix rule with template, generate get config function for RSS Can
+func GenerateGetConfigWithRule(rule []byte) string {
+	return fmt.Sprintf("var potted = new POTTED();\n%s\n%s", rule, "JSON.stringify(potted.GetConfig());")
+}

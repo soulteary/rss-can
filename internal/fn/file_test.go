@@ -69,3 +69,25 @@ func TestGetFileSHA1(t *testing.T) {
 		t.Fatal("GetFileSHA1 failed")
 	}
 }
+
+func TestGetFileContent(t *testing.T) {
+	ret := fn.GetFileContent(".")
+	if ret != nil {
+		t.Fatal("GetFileContent failed")
+	}
+
+	files := fn.ScanDirFiles(".")
+	if len(files) == 0 {
+		files = fn.ScanDirFiles("..")
+	}
+
+	for _, file := range files {
+		if fn.IsFile(file) {
+			buf := fn.GetFileContent(file)
+			if buf == nil {
+				t.Fatal("GetFileContent failed")
+				break
+			}
+		}
+	}
+}

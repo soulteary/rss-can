@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -40,4 +41,12 @@ func GetFileSHA1(src []byte) string {
 	h := sha1.New()
 	h.Write(src)
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+func GetFileContent(file string) []byte {
+	buf, err := os.ReadFile(path.Clean(file))
+	if err != nil {
+		return nil
+	}
+	return buf
 }

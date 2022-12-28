@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -50,12 +49,12 @@ func welcomePage() gin.HandlerFunc {
 	var homepage = UpdateHomePage(GetPageByName("home.html"))
 	return func(c *gin.Context) {
 		if define.DEBUG_MODE {
-			file, err := os.ReadFile("internal/server/templates/home.html")
-			if err == nil {
+			file := fn.GetFileContent("internal/server/templates/home.html")
+			if file != nil {
 				c.Data(http.StatusOK, "text/html", UpdateHomePage(file))
 			} else {
 				c.Data(http.StatusOK, "text/html", homepage)
-				logger.Instance.Warnf("rendering template home failed: %v", err)
+				logger.Instance.Warnf("rendering template home failed")
 			}
 		} else {
 			c.Data(http.StatusOK, "text/html", homepage)
@@ -95,12 +94,12 @@ func listPage() gin.HandlerFunc {
 	var homepage = UpdateListPage(GetPageByName("list.html"))
 	return func(c *gin.Context) {
 		if define.DEBUG_MODE {
-			file, err := os.ReadFile("internal/server/templates/list.html")
-			if err == nil {
+			file := fn.GetFileContent("internal/server/templates/list.html")
+			if file != nil {
 				c.Data(http.StatusOK, "text/html", UpdateListPage(file))
 			} else {
 				c.Data(http.StatusOK, "text/html", homepage)
-				logger.Instance.Warnf("rendering template home failed: %v", err)
+				logger.Instance.Warnf("rendering template home failed")
 			}
 		} else {
 			c.Data(http.StatusOK, "text/html", homepage)
@@ -110,7 +109,7 @@ func listPage() gin.HandlerFunc {
 
 func inspectorHome() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		file, _ := os.ReadFile("internal/server/templates/inspector.html")
+		file := fn.GetFileContent("internal/server/templates/inspector.html")
 		c.Data(http.StatusOK, "text/html", file)
 	}
 }
@@ -156,7 +155,7 @@ func inspectorProxy() gin.HandlerFunc {
 			document.Find("script").Remove()
 			html, _ := document.Html()
 
-			hep, _ := os.ReadFile("internal/server/assets/js/html-element-picker/hep.js")
+			hep := fn.GetFileContent("internal/server/assets/js/html-element-picker/hep.js")
 
 			script := fmt.Sprintf(`
 <script>

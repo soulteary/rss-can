@@ -1,7 +1,6 @@
 package rule
 
 import (
-	"os"
 	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -35,8 +34,8 @@ func LoadRules(ruleDir string) []string {
 }
 
 func generateSDKsByRuleFile(file string) (app string, err error) {
-	jsRule, err := os.ReadFile(file)
-	if err != nil {
+	jsRule := fn.GetFileContent(file)
+	if jsRule == nil {
 		return app, err
 	}
 

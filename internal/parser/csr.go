@@ -3,7 +3,6 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -66,9 +65,9 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 }
 
 func GetCSRInjectCode(file string) string {
-	jsRule, err := os.ReadFile(file)
-	if err != nil {
-		logger.Instance.Errorf("Open rule failed %v", err)
+	jsRule := fn.GetFileContent(file)
+	if jsRule == nil {
+		logger.Instance.Errorf("Open rule failed %v")
 		return ""
 	}
 	return jssdk.GenerateCSRInjectParser(jsRule)

@@ -71,6 +71,9 @@ func UpdateListPage(content []byte) []byte {
 
 	id := 1
 	tpl := ""
+
+	filePathFix := strings.Replace(define.RULES_DIRECTORY, "./", "", -1) + "/"
+
 	for dirName, RuleFile := range rule.RulesCache {
 		rssLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">RSS</span></a>`, baseLink+`/`+dirName+`/rss`)
 		atomLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">ATOM</span></a>`, baseLink+`/`+dirName+`/atom`)
@@ -83,7 +86,7 @@ func UpdateListPage(content []byte) []byte {
 <td>%s</td>
 <td>%s</td>
 <td>%s</td>
-</tr>`, id, dirName, RuleFile.File, RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
+</tr>`, id, dirName, strings.Replace(RuleFile.File, filePathFix, "", -1), RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
 		id++
 	}
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(tpl))

@@ -66,14 +66,6 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 }
 
 const INJECT_CODE_MIX_PARSER = `()=> document.documentElement.innerHTML`
-const INJECT_CODE_CSR_PARSER = `
-()=> (function(window){
-%s
-var potted = new POTTED();
-%s;
-potted.GetData();
-return potted.value;
-})(window)`
 
 func GetCSRInjectCode(file string) string {
 	jsRule, err := os.ReadFile(file)
@@ -81,8 +73,7 @@ func GetCSRInjectCode(file string) string {
 		logger.Instance.Errorf("Open rule failed %v", err)
 		return ""
 	}
-
-	return fmt.Sprintf(INJECT_CODE_CSR_PARSER, jssdk.TPL_CSR_JS, string(jsRule))
+	return jssdk.GenerateCSRInjectParser(jsRule)
 }
 
 func parseHTMLtoItems(data string) []define.InfoItem {

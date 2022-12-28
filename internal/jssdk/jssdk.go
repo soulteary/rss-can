@@ -39,3 +39,7 @@ var TPL_CSR_JS = func() string {
 func GenerateGetConfigWithRule(rule []byte) string {
 	return fmt.Sprintf("var potted = new POTTED();\n%s\n%s", rule, "JSON.stringify(potted.GetConfig());")
 }
+
+var GenerateCSRInjectParser = func(app []byte) string {
+	return fmt.Sprintf("()=> (function(window){\n%s;\nvar potted = new POTTED();\n%s;\npotted.GetData();return potted.value;})(window)", TPL_CSR_JS, app)
+}

@@ -82,7 +82,7 @@ func UpdateListPage(content []byte) []byte {
 	<td>%s</td>
 	<td>%s</td>
 	<td>%s</td>
-</tr>`, id, dirName, RuleFile, rssLink, atomLink, jsonLink)
+</tr>`, id, dirName, RuleFile.File, rssLink, atomLink, jsonLink)
 		id++
 	}
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(tpl))

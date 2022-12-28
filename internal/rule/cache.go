@@ -2,16 +2,21 @@ package rule
 
 import (
 	"strings"
+	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 )
 
-var RulesCache map[string]string
+var RulesCache map[string]define.RuleCache
 
-func makeMap(list []string) map[string]string {
-	result := make(map[string]string)
-	for _, s := range list {
-		result[strings.Split(s, "/")[1]] = s
+func makeMap(list []string) map[string]define.RuleCache {
+	result := make(map[string]define.RuleCache)
+	for _, file := range list {
+		body := fn.GetFileContent(file)
+		sha1 := fn.GetFileSHA1(body)
+		item := define.RuleCache{Body: body, Time: time.Now(), Sign: sha1, File: file}
+		result[strings.Split(file, "/")[1]] = item
 	}
 	return result
 }
@@ -21,12 +26,4 @@ func InitRules() {
 	newCache := makeMap(rules)
 
 	RulesCache = newCache
-}
-
-func GetRuleByName(name string) (string, bool) {
-	file, ok := RulesCache[name]
-	if !ok {
-		return "", false
-	}
-	return file, true
 }

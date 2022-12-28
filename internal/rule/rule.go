@@ -33,22 +33,8 @@ func LoadRules(ruleDir string) []string {
 	return rules
 }
 
-func generateSDKsByRuleFile(file string) (app string, err error) {
-	jsRule := fn.GetFileContent(file)
-	if jsRule == nil {
-		return app, err
-	}
-
-	return jssdk.GenerateGetConfigWithRule(jsRule), nil
-}
-
-func GenerateConfigByRule(rule string) (config define.JavaScriptConfig, err error) {
-	app, err := generateSDKsByRuleFile(rule)
-	if err != nil {
-		logger.Instance.Errorf("Read rule file failed: %v", err)
-		return config, err
-	}
-
+func GenerateConfigByRule(rule define.RuleCache) (config define.JavaScriptConfig, err error) {
+	app := jssdk.GenerateGetConfigWithRule(rule.Body)
 	jsConfig, err := jssdk.RunCode(jssdk.TPL_SSR_JS, app)
 	if err != nil {
 		logger.Instance.Errorf("Executing rule file failed: %v", err)

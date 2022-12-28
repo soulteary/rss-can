@@ -42,7 +42,7 @@ func apiRSS() gin.HandlerFunc {
 			return
 		}
 
-		ruleFile, exist := rule.GetRuleByName(rss.ID)
+		ruleFile, exist := rule.RulesCache[rss.ID]
 		if !exist {
 			c.JSON(http.StatusNotFound, gin.H{"msg": "rule not found"})
 			return

@@ -9,15 +9,15 @@ import (
 	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
-func ParseConfigFromJSON(str string, ruleFile string) (define.JavaScriptConfig, error) {
+func ParseConfigFromJSON(str string, rule define.RuleCache) (define.JavaScriptConfig, error) {
 	var config define.JavaScriptConfig
 	err := json.Unmarshal([]byte(str), &config)
 	if err != nil {
 		return config, err
 	}
 
-	if ruleFile != "" {
-		config.File = ruleFile
+	if rule.File != "" {
+		config.File = rule.File
 	}
 
 	modeInRule := strings.ToLower(config.Mode)

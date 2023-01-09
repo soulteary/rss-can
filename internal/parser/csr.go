@@ -3,6 +3,8 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -20,7 +22,7 @@ func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, pro
 	return ParsePageByGoRod(config, container, proxyAddr, false)
 }
 
-func GetRodPageObject(container string, proxyAddr string) *rod.Page {
+func GetRodPageObject(container string, proxyAddr string, cookies string) *rod.Page {
 	var browser *rod.Browser
 	var page *rod.Page
 
@@ -49,17 +51,50 @@ func GetRodPageObject(container string, proxyAddr string) *rod.Page {
 	// avoid data process hang due to pop-up windows
 	page.MustEvalOnNewDocument(jssdk.CSR_NO_OP_ALERT)
 
-	router := page.HijackRequests()
-	frugal := func(ctx *rod.Hijack) {
-		resType := ctx.Request.Type()
-		if resType == proto.NetworkResourceTypeImage || resType == proto.NetworkResourceTypeMedia || resType == proto.NetworkResourceTypeFont {
-			ctx.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
-		} else {
-			ctx.ContinueRequest(&proto.FetchContinueRequest{})
+	if cookies == "" {
+		router := page.HijackRequests()
+		frugal := func(ctx *rod.Hijack) {
+			resType := ctx.Request.Type()
+			if resType == proto.NetworkResourceTypeImage || resType == proto.NetworkResourceTypeMedia || resType == proto.NetworkResourceTypeFont {
+				ctx.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
+			} else {
+				ctx.ContinueRequest(&proto.FetchContinueRequest{})
+			}
+		}
+		router.MustAdd("*", frugal)
+		go router.Run()
+	}
+
+	if cookies != "" {
+		cookieList := strings.SplitN(cookies, ";", -1)
+		var splitCookie = regexp.MustCompile(`(?m)^(.+?=)(.+)$`)
+		expr := proto.TimeSinceEpoch(time.Now().Add(180 * 24 * time.Hour).Unix())
+
+		for _, cookie := range cookieList {
+			cookie = strings.TrimSpace(cookie)
+			for _, match := range splitCookie.FindAllStringSubmatch(cookie, -1) {
+				if len(match) == 3 {
+					key := strings.TrimRight(match[1], "=")
+					value := match[2]
+
+					cookieItem := &proto.NetworkCookieParam{
+						Name:    key,
+						Value:   value,
+						Domain:  ".linkedin.com",
+						Expires: expr,
+					}
+
+					page.MustSetCookies(cookieItem)
+					fmt.Println(key, value)
+				}
+			}
 		}
 	}
-	router.MustAdd("*", frugal)
-	go router.Run()
+
+	// read network values
+	for i, cookie := range page.MustCookies() {
+		fmt.Printf("chrome cookie %d: %+v", i, cookie)
+	}
 
 	return page
 }
@@ -96,7 +131,7 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		}
 	}
 
-	page := GetRodPageObject(container, proxyAddr)
+	page := GetRodPageObject(container, proxyAddr, config.Cookies)
 
 	// TODO support pager config
 
@@ -155,8 +190,8 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	return define.MixupBodyParsed(code, status, now, items)
 }
 
-func ProxyPageByGoRod(url string, container string, proxyAddr string) string {
-	page := GetRodPageObject(container, proxyAddr)
+func ProxyPageByGoRod(url string, container string, proxyAddr string, cookies string) string {
+	page := GetRodPageObject(container, proxyAddr, cookies)
 
 	// TODO timeout set by config
 	page.

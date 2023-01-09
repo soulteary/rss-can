@@ -52,6 +52,7 @@ type JavaScriptConfig struct {
 	DisableCache bool    `json:"DisableCache"`
 	IdByRegexp   string  `json:"IdByRegexp"`
 	IdByProp     PROP_ID `json:"IdByProp"`
+	Cookies      string  `json:"Cookies"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

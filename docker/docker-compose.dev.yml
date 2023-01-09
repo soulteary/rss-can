@@ -3,8 +3,12 @@ version: "3"
 services:
   browserless:
     image: browserless/chrome:1-puppeteer-19.2.2
+    environment:
+      - "DEFAULT_USER_DATA_DIR=/tmp/persistent-data"
     ports:
       - "9222:3000"
+    volumes:
+      - ./tmp:/tmp/persistent-data
 
   redis:
     image: redis:alpine

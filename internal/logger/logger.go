@@ -38,23 +38,27 @@ func Initialize() {
 }
 
 func SetLevel(level string) {
-	newLevel := strings.ToLower(level)
-	if !((newLevel == "debug") || (newLevel == "info") || (newLevel == "warn") || (newLevel == "error")) {
+	newLevel := strings.ToUpper(level)
+	if !((newLevel == "DEBUG") || (newLevel == "INFO") || (newLevel == "WARN") || (newLevel == "ERROR")) {
 		return
 	}
 
 	switch newLevel {
-	case "debug":
+	case "DEBUG":
 		atom.SetLevel(zap.DebugLevel)
 		return
-	case "info":
+	case "INFO":
 		atom.SetLevel(zap.InfoLevel)
 		return
-	case "warn":
+	case "WARN":
 		atom.SetLevel(zap.WarnLevel)
 		return
-	case "error":
+	case "ERROR":
 		atom.SetLevel(zap.ErrorLevel)
 		return
 	}
+}
+
+func GetLevel() string {
+	return atom.Level().CapitalString()
 }

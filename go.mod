@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-rod/rod v0.112.2
+	github.com/go-rod/rod v0.112.8
 	github.com/gorilla/feeds v1.1.1
 	github.com/muesli/cache2go v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.24.0

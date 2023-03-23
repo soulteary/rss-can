@@ -14,7 +14,7 @@ require (
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.4.0
 	golang.org/x/text v0.5.0
-	rogchap.com/v8go v0.7.0
+	rogchap.com/v8go v0.9.0
 )
 
 require (

@@ -1,6 +1,6 @@
 module github.com/soulteary/RSS-Can
 
-go 1.19
+go 1.20
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.3.7

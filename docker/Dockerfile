@@ -1,4 +1,4 @@
-FROM golang:1.19.4-bullseye as Builder
+FROM golang:1.20.3-bullseye as Builder
 WORKDIR /app
 RUN apt-get update && apt-get install -y upx
 ENV GO111MODULE=on

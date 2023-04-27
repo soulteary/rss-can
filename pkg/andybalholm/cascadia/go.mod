@@ -1,5 +1,5 @@
 module github.com/andybalholm/cascadia
 
-go 1.19
+go 1.20
 
-require golang.org/x/net v0.4.0
+require golang.org/x/net v0.9.0

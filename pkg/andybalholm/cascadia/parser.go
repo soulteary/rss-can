@@ -19,14 +19,6 @@ type parser struct {
 	acceptPseudoElements bool
 }
 
-func parseUint64toInt32(number uint64) (int32, error) {
-	parsed, err := strconv.ParseInt(fmt.Sprint(number), 10, 32)
-	if err != nil {
-		return 0, err
-	}
-	return int32(parsed), nil
-}
-
 // parseEscape parses a backslash escape.
 func (p *parser) parseEscape() (result string, err error) {
 	if len(p.s) < p.i+2 || p.s[p.i] != '\\' {
@@ -57,12 +49,7 @@ func (p *parser) parseEscape() (result string, err error) {
 			}
 		}
 		p.i = i
-
-		n, err := parseUint64toInt32(v)
-		if err != nil {
-			return "", errors.New("escaped hexDigit failed")
-		}
-		return string(n), nil
+		return string(rune(v)), nil
 	}
 
 	// Return the literal character after the backslash.

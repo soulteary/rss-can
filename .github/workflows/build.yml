@@ -63,7 +63,7 @@ jobs:
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
-          args: release --rm-dist --debug --config build/darwin-amd64.yaml
+          args: release --clean --debug --config build/darwin-amd64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 1
@@ -159,7 +159,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --config build/linux.yaml
+          args: release --clean --config build/linux.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -100,7 +100,6 @@ Usage of rssc:
 - [x] 2022.12.12  Websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
 
 - [ ] Docs: Provide a simple tutorial on how to use Docker images with common technology stacks
-- [ ] Golang: Optimized for Golang 1.19
 - [ ] Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software
 - [ ] AI: NLP tasks
 - [ ] Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)

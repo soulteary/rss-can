@@ -100,7 +100,6 @@ Usage of rssc:
 - [x] 2022.12.12 支持使用 SSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
 
 - [ ] 文档: 提供简单的教程和文档，阐述如何使用常见技术栈来玩转 RSS Can。
-- [ ] Golang: 为 Golang 1.19 进一步优化代码。
 - [ ] Pipeline: 支持 RSS 信息流水线，能够定制信息处理任务，以及提供集成到各种开源软件的能力。
 - [ ] AI: NLP 任务的集成和使用。
 - [ ] 规则: 能够将社区两款软件的规则导入程序： [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)

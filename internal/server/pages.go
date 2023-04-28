@@ -65,6 +65,8 @@ func welcomePage() gin.HandlerFunc {
 
 func UpdateListPage(content []byte) []byte {
 	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
+
 	baseLink := GetFeedPath()
 
 	// TODO Pre-execute configuration for caching

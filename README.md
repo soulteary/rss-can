@@ -9,11 +9,11 @@
 📰 🥫 **Got RSS CAN be better and simple.**
 
 <p style="text-align: center;">
-  <img src="./assets/images/hp.jpg">
+  <img src="./.github/images/hp.jpg">
 </p>
 
 <p style="text-align: center;">
-  <img src="./assets/images/feeds.jpg">
+  <img src="./.github/images/feeds.jpg">
 </p>
 
 ## Supported Systems and Architectures

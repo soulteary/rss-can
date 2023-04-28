@@ -6,14 +6,14 @@
   <a href="README.md" target="_blank">ENGLISH</a> | <a href="README_CN.md">中文文档</a>
 </p>
 
-📰 🥫 **做更好的 RSS 聚合方案**
+📰 🥫 **借助 AI 模型能力，做更好的 RSS 解决方案**
 
 <p style="text-align: center;">
-  <img src="./assets/images/hp.jpg">
+  <img src="./.github/images/hp.jpg">
 </p>
 
 <p style="text-align: center;">
-  <img src="./assets/images/feeds.jpg">
+  <img src="./.github/images/feeds.jpg">
 </p>
 
 ## 支持软硬件环境

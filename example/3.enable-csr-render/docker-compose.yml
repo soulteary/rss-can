@@ -2,7 +2,7 @@ version: "3"
 
 services:
   rssc:
-    image: soulteary/rss-can:0.3.5
+    image: soulteary/rss-can:v0.3.6
     environment:
       - RSS_HEADLESS_SERVER=http://browserless:3000
       - RSS_SERVER=redis:6379

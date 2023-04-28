@@ -101,7 +101,7 @@ Usage of rssc:
 
 ## PLAN
 
-- [ ] Docs: Provide a simple tutorial on how to use Docker images with common technology stacks
+- [ ] Docs: Provide a simple tutorial on how to use Docker images with common technology stacks [#16](https://github.com/soulteary/rss-can/issues/16)
 - [ ] Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software
 - [ ] AI: NLP tasks
 - [ ] Rules: Support merge open-source software rules: [rss-bridge](https://github.com/RSS-Bridge/rss-bridge/tree/master/bridges) / [RSSHub](https://github.com/DIYgod/RSSHub/tree/master/lib)

@@ -88,16 +88,18 @@ Usage of rssc:
     	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
 ```
 
-## PLAN
+## Milestone
 
-- [x] 2022.12.22 Support parameters call, release v0.2.0; Support simple web UI, and new parameters, release version v0.3.0.
-- [x] 2022.12.21 Support aggregate results across multiple pages, complete the first version of the JS SDK, release v0.1.0 and Docker images.
-- [x] 2022.12.20 Support Redis, in-memory caching to avoid sending meaningless requests, dynamic loading rules.
-- [x] 2022.12.19 Support document charset auto detection, MIX parser, both use CSR and SSR parser, faster batch CSR processing, Extract combined data from detail pages and assemble detailed RSS feed data.
-- [x] 2022.12.15 Websites parsing via CSR render, [Blog](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
-- [x] 2022.12.14 Convert website page as RSS feeds, [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
-- [x] 2022.12.13 Dynamic rule capability, [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
-- [x] 2022.12.12  Websites parsing via SSR render, [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [Base CLI & WebUI Support](https://github.com/soulteary/rss-can/issues/8)
+- [Aggregate Results, JS SDK, Dockerize](https://github.com/soulteary/rss-can/issues/9)
+- [Redis, in-memory cache, Dynamic loading rules](https://github.com/soulteary/rss-can/issues/10)
+- [Charset auto detection, Mix parser support, Improve CSR, Muti-page data extract](https://github.com/soulteary/rss-can/issues/11)
+- [Websites parsing via SSR render](https://github.com/soulteary/rss-can/issues/12), [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [Dynamic rule capability](https://github.com/soulteary/rss-can/issues/13), [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
+- [Convert website page as RSS feeds](https://github.com/soulteary/rss-can/issues/14), [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
+- [Websites parsing via CSR render](https://github.com/soulteary/rss-can/issues/15), [Blog](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+
+## PLAN
 
 - [ ] Docs: Provide a simple tutorial on how to use Docker images with common technology stacks
 - [ ] Pipeline: Support RSS pipeline flow, customize information processing tasks and integrate other open-source software

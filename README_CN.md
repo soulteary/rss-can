@@ -88,16 +88,18 @@ Usage of rssc:
     	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
 ```
 
-## 项目计划
+## 里程碑
 
-- [x] 2022.12.22 程序支持参数化调用，发布版本 v0.2.0；支持简单的 Web UI，以及新的参数，发布版本 v0.3.0。
-- [x] 2022.12.21 支持跨多个页面聚合信息为 RSS 订阅源，完成第一个版本的 JS SDK，发布 v0.1.0 版本程序和应用 Docker 镜像。
-- [x] 2022.12.20 支持使用 Redis 和 应用内存 作为数据缓存，避免大量不必要的网络请求造成的麻烦，支持动态加载 RSS 规则文件。
-- [x] 2022.12.19 支持自动解析目标网站的网页编码格式，支持混合解析模式，提供比 CSR 解析模式更快的处理速度，支持从其他页面抽取数据装填 RSS 列表页面数据。
-- [x] 2022.12.15 支持使用 CSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
-- [x] 2022.12.14 支持将网站数据转换为可订阅的 RSS 订阅源, [博客](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
-- [x] 2022.12.13 支持“动态化”能力，[博客](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
-- [x] 2022.12.12 支持使用 SSR 解析模式处理数据，[博客](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [支持使用 CSR 解析模式处理数据](https://github.com/soulteary/rss-can/issues/15), [Blog](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)
+- [支持将网站数据转换为可订阅的 RSS 订阅源](https://github.com/soulteary/rss-can/issues/14), [Blog](https://soulteary.com/2022/12/14/rsscan-convert-website-information-stream-to-rss-feed-part-3.html)
+- [支持“动态化”能力](https://github.com/soulteary/rss-can/issues/13), [Blog](https://soulteary.com/2022/12/13/rsscan-make-golang-applications-with-v8-part-2.html)
+- [支持自动解析目标网站的网页编码格式，支持混合解析模式，提供比 CSR 解析模式更快的处理速度，支持从其他页面抽取数据装填 RSS 列表页面数据](https://github.com/soulteary/rss-can/issues/11)
+- [支持使用 SSR 解析模式处理数据](https://github.com/soulteary/rss-can/issues/12), [Blog](https://soulteary.com/2022/12/12/rsscan-better-rsshub-service-build-with-golang-part-1.html)
+- [支持使用 Redis 和 应用内存 作为数据缓存，避免大量不必要的网络请求造成的麻烦，支持动态加载 RSS 规则文件](https://github.com/soulteary/rss-can/issues/10)
+- [支持跨多个页面聚合信息为 RSS 订阅源，完成第一个版本的 JS SDK，发布，支持 Docker 镜像](https://github.com/soulteary/rss-can/issues/9)
+- [程序支持参数化调用，发布版本；支持简单的 Web UI，以及新的参数，发布版本](https://github.com/soulteary/rss-can/issues/8)
+
+## 项目计划
 
 - [ ] 文档: 提供简单的教程和文档，阐述如何使用常见技术栈来玩转 RSS Can。
 - [ ] Pipeline: 支持 RSS 信息流水线，能够定制信息处理任务，以及提供集成到各种开源软件的能力。

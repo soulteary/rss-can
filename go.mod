@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-rod/rod v0.112.9
+	github.com/go-rod/rod v0.113.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	go.uber.org/zap v1.24.0
@@ -42,6 +42,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/ysmood/fetchup v0.2.3 // indirect
 	github.com/ysmood/goob v0.4.0 // indirect
+	github.com/ysmood/got v0.34.1 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
 	github.com/ysmood/leakless v0.8.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect

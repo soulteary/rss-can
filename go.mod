@@ -13,7 +13,7 @@ require (
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.10.0
-	golang.org/x/text v0.9.0
+	golang.org/x/text v0.11.0
 	rogchap.com/v8go v0.9.0
 )
 

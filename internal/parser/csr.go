@@ -123,11 +123,8 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 		cache, err := cacher.Get(config.URL)
 		if err == nil && cache != "" {
 			logger.Instance.Debugln("Get remote document from cache")
-			code := define.ERROR_CODE_NULL
-			status := define.ERROR_STATUS_NULL
-			items := parseHTMLtoItems(cache)
-			now := time.Now()
-			return define.MixupBodyParsed(code, status, now, items)
+			var emptyBody define.RemoteBodySanitized
+			return ParseDataAndConfigBySSR(config, emptyBody, cache)
 		}
 	}
 

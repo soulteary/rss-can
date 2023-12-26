@@ -2,7 +2,7 @@ version: "3"
 
 services:
   rssc:
-    image: soulteary/rss-can:v0.3.7
+    image: soulteary/rss-can:v0.3.8
     environment:
       - RSS_SERVER=redis:6379
     ports:

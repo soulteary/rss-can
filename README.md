@@ -34,8 +34,8 @@ Download the binary from the github [release page](https://github.com/soulteary/
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:
 
 ```
-docker pull soulteary/rss-can:v0.3.7
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.7
+docker pull soulteary/rss-can:v0.3.8
+docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.8
 ```
 
 ### Cli Parameters & Environment

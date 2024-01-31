@@ -5,6 +5,9 @@ on:
   push:
 env:
   GO_VERSION: "1.21"
+  GO111MODULE: on
+  CGO_ENABLED: 1
+  RSS_SERVER: redis:6379
 
 jobs:
   CodeCov:
@@ -21,10 +24,6 @@ jobs:
         ports:
           - 6379:6379
 
-    env:
-      GO111MODULE: on
-      CGO_ENABLED: 1
-      RSS_SERVER: redis:6379
     steps:
       - name: Checkout
         uses: actions/checkout@v4

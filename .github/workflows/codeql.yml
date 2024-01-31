@@ -1,70 +1,67 @@
-# For most projects, this workflow file will not need changing; you simply need
-# to commit it to your repository.
-#
-# You may wish to alter this file to override the set of languages analyzed,
-# or to provide custom queries or build logic.
-#
-# ******** NOTE ********
-# We have attempted to detect the languages in your repository. Please check
-# the `language` matrix defined below to confirm you have the correct set of
-# supported CodeQL languages.
-#
 name: "CodeQL"
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - 'pkg/andybalholm/cascadia/fuzz/corpus'
-      - 'pkg/andybalholm/cascadia/test_resources'
-      - 'pkg/PuerkitoBio/goquery/bench'
-      - 'pkg/PuerkitoBio/goquery/testdata'
+      - "**/*.md"
+      - "**/*.txt"
+      - "pkg/andybalholm/cascadia/fuzz/corpus"
+      - "pkg/andybalholm/cascadia/test_resources"
+      - "pkg/PuerkitoBio/goquery/bench"
+      - "pkg/PuerkitoBio/goquery/testdata"
   pull_request:
     # The branches below must be a subset of the branches above
-    branches: [ "main" ]
+    branches: ["main"]
     paths-ignore:
-      - '**/*.md'
-      - '**/*.txt'
-      - 'pkg/andybalholm/cascadia/fuzz/corpus'
-      - 'pkg/andybalholm/cascadia/test_resources'
-      - 'pkg/PuerkitoBio/goquery/bench'
-      - 'pkg/PuerkitoBio/goquery/testdata'
-      - 'pkg/JohannesKaufmann/html-to-markdown/testdata'
-      - 'pkg/JohannesKaufmann/html-to-markdown/examples'
-      - 'pkg/muesli/cache2go/examples'
+      - "**/*.md"
+      - "**/*.txt"
+      - "pkg/andybalholm/cascadia/fuzz/corpus"
+      - "pkg/andybalholm/cascadia/test_resources"
+      - "pkg/PuerkitoBio/goquery/bench"
+      - "pkg/PuerkitoBio/goquery/testdata"
+      - "pkg/JohannesKaufmann/html-to-markdown/testdata"
+      - "pkg/JohannesKaufmann/html-to-markdown/examples"
+      - "pkg/muesli/cache2go/examples"
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
+
+env:
+  GO_VERSION: "1.21"
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
 
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
 
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'go', 'javascript' ]
+        language: ["go", "javascript"]
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
 
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
 
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        category: "/language:${{matrix.language}}"
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"

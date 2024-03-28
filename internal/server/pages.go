@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -70,14 +71,24 @@ func UpdateListPage(content []byte) []byte {
 	baseLink := GetFeedPath()
 
 	// TODO Pre-execute configuration for caching
-	// TODO fixed sort
 
 	id := 1
 	tpl := ""
 
 	filePathFix := strings.Replace(define.RULES_DIRECTORY, "./", "", -1) + "/"
 
-	for dirName, RuleFile := range rule.RulesCache {
+	rulesOrdered := []string{}
+	for dirName := range rule.RulesCache {
+		rulesOrdered = append(rulesOrdered, dirName)
+	}
+	slices.Sort(rulesOrdered)
+
+	for _, dirName := range rulesOrdered {
+		RuleFile, ok := rule.RulesCache[dirName]
+		if !ok {
+			continue
+		}
+
 		rssLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">RSS</span></a>`, baseLink+`/`+dirName+`/rss`)
 		atomLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">ATOM</span></a>`, baseLink+`/`+dirName+`/atom`)
 		jsonLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">JSON</span></a>`, baseLink+`/`+dirName+`/json`)

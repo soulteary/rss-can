@@ -1,3 +1,4 @@
+```go
 package main
 
 import (
@@ -43,3 +44,4 @@ func main() {
 
 	fmt.Printf("\n\nresult:'%s'\n", markdown)
 }
+```

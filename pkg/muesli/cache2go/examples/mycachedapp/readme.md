@@ -1,3 +1,4 @@
+```go
 package main
 
 import (
@@ -51,3 +52,4 @@ func main() {
 	// And wipe the entire cache table.
 	cache.Flush()
 }
+```

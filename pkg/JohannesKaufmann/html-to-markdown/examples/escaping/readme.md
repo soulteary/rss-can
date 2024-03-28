@@ -1,3 +1,4 @@
+```go
 package main
 
 import (
@@ -44,3 +45,4 @@ func main() {
 	fmt.Println("with basic:", markdown1)
 	fmt.Println("with disabled:", markdown2)
 }
+```

@@ -84,8 +84,14 @@ func UpdateListPage(content []byte) []byte {
 	slices.Sort(rulesOrdered)
 
 	for _, dirName := range rulesOrdered {
-		RuleFile, ok := rule.RulesCache[dirName]
-		if !ok {
+		RuleFile, exist := rule.RulesCache[dirName]
+		if !exist {
+			continue
+		}
+
+		config, err := rule.GenerateConfigByRule(RuleFile)
+		if err != nil {
+			logger.Instance.Errorf("Parsing rule file failed: %v", err)
 			continue
 		}
 
@@ -100,7 +106,7 @@ func UpdateListPage(content []byte) []byte {
 <td>%s</td>
 <td>%s</td>
 <td>%s</td>
-</tr>`, id, dirName, strings.Replace(RuleFile.File, filePathFix, "", -1), RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
+</tr>`, id, config.Name, strings.Replace(RuleFile.File, filePathFix, "", -1), RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
 		id++
 	}
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(tpl))

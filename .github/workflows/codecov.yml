@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
 env:
-  GO_VERSION: "1.22"
+  GO_VERSION: "1.22.4"
   GO111MODULE: on
   CGO_ENABLED: 1
   RSS_SERVER: redis:6379

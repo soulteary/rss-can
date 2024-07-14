@@ -1,6 +1,6 @@
 module github.com/soulteary/RSS-Can
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown v1.6.0
@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/gzip v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-rod/rod v0.116.1
+	github.com/go-rod/rod v0.116.2
 	github.com/gorilla/feeds v1.2.0
 	github.com/muesli/cache2go v0.0.0-20221011235721-518229cd8021
 	go.uber.org/zap v1.27.0
@@ -46,7 +46,7 @@ require (
 	github.com/ysmood/goob v0.4.0 // indirect
 	github.com/ysmood/got v0.40.0 // indirect
 	github.com/ysmood/gson v0.7.3 // indirect
-	github.com/ysmood/leakless v0.8.0 // indirect
+	github.com/ysmood/leakless v0.9.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.25.0 // indirect

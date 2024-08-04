@@ -19,7 +19,7 @@ func init() {
 func TestRunCode(t *testing.T) {
 	// test forever loops
 	start := time.Now()
-	_, err := jssdk.RunCode(`while(1){console.log(1)}`, "")
+	_, err := jssdk.RunCode(`while(1){console.log(1)}`, "", "test.js")
 	if err == nil {
 		t.Fatalf("Programs executed without aborting timeouts")
 	}
@@ -30,7 +30,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test normal code
-	ret, err := jssdk.RunCode(`var a = 1;`, "")
+	ret, err := jssdk.RunCode(`var a = 1;`, "", "test.js")
 	if err != nil {
 		t.Fatalf("Programs executed failed: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test inject code
-	ret, err = jssdk.RunCode(`var a = 1;`, "a")
+	ret, err = jssdk.RunCode(`var a = 1;`, "a", "test.js")
 	if err != nil {
 		t.Fatalf("Programs executed failed: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestRunCode(t *testing.T) {
 	}
 
 	// test inject code with error
-	ret, err = jssdk.RunCode(`var a = 1;`, "b")
+	ret, err = jssdk.RunCode(`var a = 1;`, "b", "test.js")
 	if err == nil {
 		t.Fatalf("Programs executed failed")
 	}
@@ -58,12 +58,12 @@ func TestRunCode(t *testing.T) {
 }
 
 func TestGetCtxWithJS(t *testing.T) {
-	_, err := jssdk.GetCtxWithJS("1")
+	_, err := jssdk.GetCtxWithJS("1", "test.js")
 	if err != nil {
 		t.Fatal("GetCtxWithJS failed")
 	}
 
-	_, err = jssdk.GetCtxWithJS("!not-found-command")
+	_, err = jssdk.GetCtxWithJS("!not-found-command", "test.js")
 	if err == nil {
 		t.Fatal("GetCtxWithJS failed")
 	}

@@ -32,7 +32,7 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 		if !timeout.Stop() {
 			<-timeout.C
 		}
-		logger.Instance.Infof("Parsing config successed, cost time: %v", duration)
+		logger.Instance.Infof("Parsing config [%s] successed, cost time: %v", fileName, duration)
 		return val, duration, nil
 	case err := <-errs:
 		return nil, duration, err
@@ -47,17 +47,17 @@ func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Valu
 	}
 }
 
-func GetCtxWithJS(basejs string) (*v8.Context, error) {
+func GetCtxWithJS(basejs string, originFile string) (*v8.Context, error) {
 	ctx := v8.NewContext()
-	_, _, err := RunCodeInSandbox(ctx, basejs, "base.js")
+	_, _, err := RunCodeInSandbox(ctx, basejs, originFile)
 	if err != nil {
 		return nil, err
 	}
 	return ctx, nil
 }
 
-func RunCode(base string, export string) (string, error) {
-	ctx, err := GetCtxWithJS(base)
+func RunCode(base string, export string, originFile string) (string, error) {
+	ctx, err := GetCtxWithJS(base, originFile)
 	if err != nil {
 		return "", err
 	}

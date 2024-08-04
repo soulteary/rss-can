@@ -8,7 +8,7 @@ import (
 )
 
 func ConvertAgoToUnix(date string) (time.Time, error) {
-	ctx, err := GetCtxWithJS(TPL_DATE_JS)
+	ctx, err := GetCtxWithJS(TPL_DATE_JS, "convert.js")
 	if err != nil {
 		return time.Now(), err
 	}
@@ -23,7 +23,7 @@ func ConvertAgoToUnix(date string) (time.Time, error) {
 }
 
 func ConvertStrToUnix(str string) (time.Time, error) {
-	ctx, err := GetCtxWithJS(TPL_DATE_JS)
+	ctx, err := GetCtxWithJS(TPL_DATE_JS, "convert.js")
 	if err != nil {
 		return time.Now(), err
 	}

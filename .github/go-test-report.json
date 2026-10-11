@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "tests": {
+    "total": 56,
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0
+  },
+  "coverage": {
+    "covered_statements": 440,
+    "total_statements": 1087,
+    "percentage": 40.48,
+    "threshold": 0
+  },
+  "packages": [
+    {
+      "name": ".",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/cacher",
+      "status": "pass",
+      "tests": 5,
+      "failed": 0,
+      "coverage": 78.51
+    },
+    {
+      "name": "internal/cmd",
+      "status": "pass",
+      "tests": 12,
+      "failed": 0,
+      "coverage": 100
+    },
+    {
+      "name": "internal/define",
+      "status": "pass",
+      "tests": 2,
+      "failed": 0,
+      "coverage": 100
+    },
+    {
+      "name": "internal/fn",
+      "status": "pass",
+      "tests": 28,
+      "failed": 0,
+      "coverage": 97.62
+    },
+    {
+      "name": "internal/generator",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/jssdk",
+      "status": "pass",
+      "tests": 7,
+      "failed": 0,
+      "coverage": 94.83
+    },
+    {
+      "name": "internal/logger",
+      "status": "pass",
+      "tests": 2,
+      "failed": 0,
+      "coverage": 100
+    },
+    {
+      "name": "internal/network",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/parser",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/rule",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/server",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
+    },
+    {
+      "name": "internal/version",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": null
+    }
+  ],
+  "failures": null
+}

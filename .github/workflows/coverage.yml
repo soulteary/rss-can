@@ -47,7 +47,7 @@ jobs:
 
       - name: Run coverage
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
-        if: "!(github.event_name == 'pull_request')"
+        if: always() && (!(github.event_name == 'pull_request'))
       - name: Remove stale generated report evidence
         if: always() && (github.event_name == 'pull_request')
         shell: bash
@@ -68,7 +68,7 @@ jobs:
           version: "v1.1.2"
           cover_mode: "atomic"
           commit: "false"
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
       - name: Go quality report (v1.1.3)
         id: go_report_card
         uses: soulteary/goreportcard-action@fc43049a5fe61c3313294d217c2a783f375a7970  # v1.1.3
@@ -78,9 +78,9 @@ jobs:
           threshold: "0"
           report: "true"
           commit: "false"
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
       - name: Reuse GTR coverage profile
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         shell: bash
         env:
           PROFILE: ${{ steps.go_test_report.outputs.coverage_profile }}

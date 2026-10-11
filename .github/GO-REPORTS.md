@@ -25,3 +25,5 @@ without authentication, in an isolated CI runner. `RSS_SERVER` names the host
 endpoint, not the service-container DNS name. The root Go module is tested;
 vendored nested modules are dependencies and are not independently tested.
 macOS Redis setup and platform release/build tests remain in `build.yml`.
+
+Published releases with a CI skip annotation use the release-event fallback. Ordinary releases use the tag-push report run; the release gate skips duplicate tests. Stable artifacts containing only reports under `.github` are downloaded into that directory explicitly; mixed report/document artifacts retain the repository hierarchy.

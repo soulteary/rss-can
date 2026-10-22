@@ -1,0 +1,172 @@
+name: Recover Linux release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing audited release tag
+        required: true
+        default: v0.3.11
+        type: string
+      source_sha:
+        description: Exact immutable source commit
+        required: true
+        default: ce8e50e32749126650c42e5dc29c3ce558fa22d7
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-release-recovery-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    services:
+      redis:
+        image: redis
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    env:
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      REPOSITORY: ${{ github.repository }}
+      CGO_ENABLED: '1'
+      RSS_SERVER: 127.0.0.1:6379
+
+    steps:
+      - name: Validate the audited recovery source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Expanding this recovery scope requires another reviewed change.
+          test "$RELEASE_TAG" = v0.3.11
+          test "$SOURCE_SHA" = ce8e50e32749126650c42e5dc29c3ce558fa22d7
+          test "$GITHUB_REF" = refs/heads/main
+          actual=$(gh api "repos/$REPOSITORY/commits/$RELEASE_TAG" --jq .sha)
+          test "$actual" = "$SOURCE_SHA"
+          gh api "repos/$REPOSITORY/releases/tags/$RELEASE_TAG" > "$RUNNER_TEMP/release-before.json"
+          echo "Workflow source: $GITHUB_WORKFLOW_SHA; application source: $SOURCE_SHA"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the checked-out tag
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-list -n 1 "refs/tags/$RELEASE_TAG")" = "$SOURCE_SHA"
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+
+      - name: Install the Linux ARM64 cross compiler
+        run: |
+          set -euo pipefail
+          # Avoid the Azure mirror download stall observed in the tag run.
+          if [ -f /etc/apt/apt-mirrors.txt ]; then
+            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          fi
+          sudo apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 update
+          sudo apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Test and check the unchanged release source
+        run: |
+          set -euo pipefail
+          test "$(go env GOVERSION)" = go1.27.3
+          go test -race ./...
+          go vet ./...
+          git diff --exit-code
+
+      - name: Validate the original Linux release configuration
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de
+        with:
+          version: v2.18.3
+          args: check --config build/linux.yaml
+
+      - name: Build the original Linux release without publication
+        uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de
+        with:
+          version: v2.18.3
+          args: release --clean --skip=publish --config build/linux.yaml
+        env:
+          GORELEASER_CURRENT_TAG: ${{ inputs.release_tag }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Verify and upload missing Linux assets without replacement
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PYTHON'
+          import hashlib, json, os, pathlib, subprocess, tarfile, tempfile
+          repo, tag, source = (os.environ[k] for k in ('REPOSITORY', 'RELEASE_TAG', 'SOURCE_SHA'))
+          def gh(*args):
+              return subprocess.check_output(['gh', *args], text=True)
+          def release():
+              return json.loads(gh('api', f'repos/{repo}/releases/tags/{tag}'))
+          def same_source():
+              assert gh('api', f'repos/{repo}/commits/{tag}', '--jq', '.sha').strip() == source
+              assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() == source
+              subprocess.run(['git', 'diff', '--exit-code'], check=True)
+          same_source()
+          version = tag.removeprefix('v')
+          archives = {f'RSS-Can_{version}_linux_x86_64.tar.gz': 'amd64',
+                      f'RSS-Can_{version}_linux_arm64.tar.gz': 'arm64'}
+          dist = pathlib.Path('dist')
+          assert {p.name for p in dist.glob('*.tar.gz')} == set(archives)
+          sums = dict(line.split(None, 1)[::-1] for line in (dist / 'checksums.txt').read_text().splitlines())
+          assert set(sums) == set(archives)
+          for name, arch in archives.items():
+              archive = dist / name
+              assert hashlib.sha256(archive.read_bytes()).hexdigest() == sums[name]
+              with tarfile.open(archive) as package, tempfile.TemporaryDirectory() as temporary:
+                  binaries = [m for m in package.getmembers() if m.isfile() and m.name.rsplit('/', 1)[-1] in {'rssc', 'RSS-Can'}]
+                  assert len(binaries) == 1
+                  binary = pathlib.Path(temporary) / 'binary'
+                  binary.write_bytes(package.extractfile(binaries[0]).read())
+                  metadata = subprocess.check_output(['go', 'version', '-m', str(binary)], text=True)
+                  assert 'go1.27.3' in metadata and f'Version={tag}' in metadata
+                  assert 'GOOS=linux' in metadata and f'GOARCH={arch}' in metadata
+          before = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'release-before.json').read_text())
+          assert before['tag_name'] == tag
+          preserved = {a['name']: (a['id'], a.get('digest')) for a in before['assets'] if a['name'] not in {*archives, 'checksums.txt'}}
+          assert {f'rssc_{version}_darwin_{arch}{suffix}' for arch in ('amd64', 'arm64') for suffix in ('.zip', '_checksums.txt')} <= set(preserved)
+          current_release = release()
+          assert current_release['id'] == before['id'] and current_release['tag_name'] == tag
+          current = {a['name']: a for a in current_release['assets']}
+          for name in [*archives, 'checksums.txt']:
+              path = dist / name
+              digest = 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
+              if name in current:
+                  assert current[name].get('digest') == digest, f'Existing {name} differs; replacement is forbidden'
+              else:
+                  same_source()
+                  assert release()['id'] == before['id'], 'Release identity changed; upload refused'
+                  subprocess.run(['gh', 'release', 'upload', tag, str(path), '--repo', repo], check=True)
+          after_release = release()
+          assert after_release['id'] == before['id'] and after_release['tag_name'] == tag
+          after = {a['name']: a for a in after_release['assets']}
+          for name, identity in preserved.items():
+              assert (after[name]['id'], after[name].get('digest')) == identity, f'Preserved asset changed: {name}'
+          for name in [*archives, 'checksums.txt']:
+              assert after[name]['state'] == 'uploaded'
+              assert after[name].get('digest') == 'sha256:' + hashlib.sha256((dist / name).read_bytes()).hexdigest()
+          same_source()
+          print('Verified both Linux architectures, checksums and immutable source; preserved all macOS assets.')
+          PYTHON

@@ -22,13 +22,6 @@
 
 ### gocyclo
 
-- `pkg/andybalholm/cascadia/parser.go`
-  - Line 463: cyclomatic complexity 61 for function (*parser).parsePseudoclassSelector
-  - Line 645: cyclomatic complexity 25 for function (*parser).parseNth
-  - Line 767: cyclomatic complexity 19 for function (*parser).parseSimpleSelectorSequence
-  - Line 365: cyclomatic complexity 19 for function (*parser).parseAttributeSelector
-  - Line 172: cyclomatic complexity 19 for function (*parser).parseString
-  - Line 31: cyclomatic complexity 16 for function (*parser).parseEscape
 - `internal/cacher/cacher_test.go`
   - Line 11: cyclomatic complexity 52 for function TestCacher
 - `internal/parser/ssr.go`
@@ -39,11 +32,16 @@
   - Line 11: cyclomatic complexity 22 for function TestApplyFlags
 - `pkg/PuerkitoBio/goquery/traversal.go`
   - Line 613: cyclomatic complexity 21 for function getChildrenWithSiblingType
+- `pkg/andybalholm/cascadia/parser.go`
+  - Line 463: cyclomatic complexity 61 for function (*parser).parsePseudoclassSelector
+  - Line 645: cyclomatic complexity 25 for function (*parser).parseNth
+  - Line 767: cyclomatic complexity 19 for function (*parser).parseSimpleSelectorSequence
+  - Line 365: cyclomatic complexity 19 for function (*parser).parseAttributeSelector
+  - Line 172: cyclomatic complexity 19 for function (*parser).parseString
+  - Line 31: cyclomatic complexity 16 for function (*parser).parseEscape
 
 ### misspell
 
-- `internal/jssdk/js/hep.js`
-  - Line 36: "truely" is a misspelling of "truly"
 - `pkg/PuerkitoBio/goquery/README.md`
   - Line 167: "adressed" is a misspelling of "addressed"
 - `pkg/andybalholm/cascadia/selector.go`
@@ -52,6 +50,8 @@
   - Line 688: "thrid" is a misspelling of "third"
 - `internal/define/default.go`
   - Line 32: "THORTTLING" is a misspelling of "THROTTLING"
+- `internal/jssdk/js/hep.js`
+  - Line 36: "truely" is a misspelling of "truly"
 - `internal/jssdk/sandbox.go`
   - Line 45: "THORTTLING" is a misspelling of "THROTTLING"
 

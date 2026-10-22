@@ -1,6 +1,6 @@
 module github.com/JohannesKaufmann/html-to-markdown
 
-go 1.22
+go 1.27.3
 
 require (
 	github.com/PuerkitoBio/goquery v1.9.1

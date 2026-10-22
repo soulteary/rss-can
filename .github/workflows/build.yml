@@ -1,6 +1,7 @@
 name: Build Artifacts
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - "main"
@@ -20,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -28,7 +29,7 @@ jobs:
         run: git fetch --force --tags
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Cache Go modules
@@ -51,7 +52,7 @@ jobs:
           go test -v ./...
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
@@ -61,27 +62,29 @@ jobs:
           CGO_ENABLED: 1
 
       - name: Upload assets (macos-amd64)
-        uses: actions/upload-artifact@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v7
         with:
-          name: rssc
-          path: dist/rssc*-amd*/rssc.zip
+          name: rssc-darwin-amd64
+          path: dist/*.zip
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --debug --config build/darwin-arm64.yaml
+          args: release --clean --debug --config build/darwin-arm64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 1
 
       - name: Upload assets (macos-arm64)
-        uses: actions/upload-artifact@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v7
         with:
-          name: rssc
-          path: dist/rssc*-arm*/rssc.zip
+          name: rssc-darwin-arm64
+          path: dist/*.zip
 
   linux:
     runs-on: ubuntu-latest
@@ -102,7 +105,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -110,11 +113,11 @@ jobs:
         run: git fetch --force --tags
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -131,14 +134,14 @@ jobs:
 
       - name: Login to Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to the GPR
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -148,7 +151,7 @@ jobs:
         run: sudo apt-get install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+        uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           distribution: goreleaser
@@ -158,10 +161,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload assets (linux)
-        uses: actions/upload-artifact@v3
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v7
         with:
           name: RSS-Can
-          path: dist/RSS-Can_0.1.0_linux_amd64.zip
+          path: dist/*.tar.gz
 
   report_release:
     name: Dispatch verified release reports

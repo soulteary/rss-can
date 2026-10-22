@@ -33,13 +33,6 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Setup redis
         uses: shogo82148/actions-setup-redis@v1
@@ -58,12 +51,26 @@ jobs:
           version: latest
           args: check --config build/darwin-amd64.yaml
 
+      - name: Validate darwin-amd64 release build without publication
+        if: github.event_name == 'pull_request'
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: build --snapshot --clean --config build/darwin-amd64.yaml
+
+      - name: Validate darwin-arm64 release build without publication
+        if: github.event_name == 'pull_request'
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: build --snapshot --clean --config build/darwin-arm64.yaml
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
         with:
           version: latest
-          args: release --clean --debug --config build/darwin-amd64.yaml
+          args: release --clean --config build/darwin-amd64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 1
@@ -81,7 +88,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release --clean --debug --config build/darwin-arm64.yaml
+          args: release --clean --config build/darwin-arm64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 1
@@ -126,13 +133,6 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
 
       - name: Tests
         run: |
@@ -162,6 +162,13 @@ jobs:
         with:
           version: latest
           args: check --config build/linux.yaml
+
+      - name: Validate linux release build without publication
+        if: github.event_name == 'pull_request'
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: build --snapshot --clean --config build/linux.yaml
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7

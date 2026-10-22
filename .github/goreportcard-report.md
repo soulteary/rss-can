@@ -11,8 +11,8 @@
 
 | Check | Score |
 | ----- | ----- |
-| gofmt | 100% |
 | go_vet | 100% |
+| gofmt | 100% |
 | ineffassign | 100% |
 | gocyclo | 95% |
 | license | 100% |
@@ -22,8 +22,6 @@
 
 ### gocyclo
 
-- `pkg/PuerkitoBio/goquery/traversal.go`
-  - Line 613: cyclomatic complexity 21 for function getChildrenWithSiblingType
 - `pkg/andybalholm/cascadia/parser.go`
   - Line 463: cyclomatic complexity 61 for function (*parser).parsePseudoclassSelector
   - Line 645: cyclomatic complexity 25 for function (*parser).parseNth
@@ -39,21 +37,23 @@
   - Line 10: cyclomatic complexity 22 for function TestLinkResolveRelative
 - `internal/cmd/flags_test.go`
   - Line 11: cyclomatic complexity 22 for function TestApplyFlags
+- `pkg/PuerkitoBio/goquery/traversal.go`
+  - Line 613: cyclomatic complexity 21 for function getChildrenWithSiblingType
 
 ### misspell
 
-- `pkg/andybalholm/cascadia/test_resources/valid_selectors.json`
-  - Line 688: "thrid" is a misspelling of "third"
-- `internal/define/default.go`
-  - Line 32: "THORTTLING" is a misspelling of "THROTTLING"
 - `internal/jssdk/js/hep.js`
   - Line 36: "truely" is a misspelling of "truly"
-- `internal/jssdk/sandbox.go`
-  - Line 45: "THORTTLING" is a misspelling of "THROTTLING"
 - `pkg/PuerkitoBio/goquery/README.md`
   - Line 167: "adressed" is a misspelling of "addressed"
 - `pkg/andybalholm/cascadia/selector.go`
   - Line 309: "satisifes" is a misspelling of "satisfies"
+- `pkg/andybalholm/cascadia/test_resources/valid_selectors.json`
+  - Line 688: "thrid" is a misspelling of "third"
+- `internal/define/default.go`
+  - Line 32: "THORTTLING" is a misspelling of "THROTTLING"
+- `internal/jssdk/sandbox.go`
+  - Line 45: "THORTTLING" is a misspelling of "THROTTLING"
 
 ---
 

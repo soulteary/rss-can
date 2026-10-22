@@ -10,6 +10,7 @@ on:
 env:
   GO111MODULE: on
   CGO_ENABLED: 1
+  RSS_SERVER: 127.0.0.1:6379
   DOCKER_CLI_EXPERIMENTAL: "enabled"
 
 permissions:

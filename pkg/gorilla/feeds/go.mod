@@ -1,6 +1,6 @@
 module github.com/gorilla/feeds
 
-go 1.22
+go 1.27.3
 
 require github.com/kr/pretty v0.3.1
 

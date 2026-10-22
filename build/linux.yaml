@@ -1,3 +1,5 @@
+version: 2
+
 project_name: RSS-Can
 
 builds:
@@ -12,8 +14,6 @@ builds:
       - -X "github.com/soulteary/RSS-Can/internal/version.BuildDate={{.Date}}"
     goos:
       - linux
-      - windows
-      - darwin
     goarch: [ amd64 ]
     binary: rssc
 
@@ -28,12 +28,10 @@ builds:
       - -X "github.com/soulteary/RSS-Can/internal/version.BuildDate={{.Date}}"
     goos:
       - linux
-      - windows
-      - darwin
     goarch: [ arm64 ]
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ .ProjectName }}_
@@ -46,11 +44,11 @@ archives:
     # use zip for windows archives
     format_overrides:
     - goos: windows
-      format: zip
+      formats: [zip]
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 # https://goreleaser.com/customization/changelog/
 changelog:
@@ -93,4 +91,4 @@ changelog:
       order: 9999
 release:
   footer: |
-    **Full Changelog**: https://github.com/soulteary/amazing-openai-api/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/soulteary/rss-can/compare/{{ .PreviousTag }}...{{ .Tag }}

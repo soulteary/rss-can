@@ -1,3 +1,5 @@
+version: 2
+
 project_name: RSS Can (Darwin ARMv64)
 
 builds:
@@ -14,7 +16,7 @@ builds:
     goos: [ darwin ]
     goarch: [ arm64 ]
 archives:
-  - format: zip
+  - formats: [zip]
     name_template: "rssc_{{ .Version }}_darwin_arm64"
 checksum:
   name_template: "rssc_{{ .Version }}_darwin_arm64_checksums.txt"

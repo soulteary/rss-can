@@ -7,6 +7,8 @@ builds:
     env:
       - CGO_ENABLED=1
       - GO111MODULE=on
+      - CC=gcc
+      - CXX=g++
     ldflags:
       - -w -s
       - -X "github.com/soulteary/RSS-Can/internal/version.Version={{ .Tag }}"
@@ -21,6 +23,8 @@ builds:
     env:
       - CGO_ENABLED=1
       - GO111MODULE=on
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
     ldflags:
       - -w -s
       - -X "github.com/soulteary/RSS-Can/internal/version.Version={{ .Tag }}"

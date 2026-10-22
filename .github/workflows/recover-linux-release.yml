@@ -107,6 +107,7 @@ jobs:
           args: release --clean --skip=publish --config build/linux.yaml
         env:
           GORELEASER_CURRENT_TAG: ${{ inputs.release_tag }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Verify and upload missing Linux assets without replacement
         env:
@@ -143,9 +144,12 @@ jobs:
                   assert 'go1.27.3' in metadata and f'Version={tag}' in metadata
                   assert 'GOOS=linux' in metadata and f'GOARCH={arch}' in metadata
           before = json.loads((pathlib.Path(os.environ['RUNNER_TEMP']) / 'release-before.json').read_text())
+          assert before['tag_name'] == tag
           preserved = {a['name']: (a['id'], a.get('digest')) for a in before['assets'] if a['name'] not in {*archives, 'checksums.txt'}}
           assert {f'rssc_{version}_darwin_{arch}{suffix}' for arch in ('amd64', 'arm64') for suffix in ('.zip', '_checksums.txt')} <= set(preserved)
-          current = {a['name']: a for a in release()['assets']}
+          current_release = release()
+          assert current_release['id'] == before['id'] and current_release['tag_name'] == tag
+          current = {a['name']: a for a in current_release['assets']}
           for name in [*archives, 'checksums.txt']:
               path = dist / name
               digest = 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
@@ -153,8 +157,11 @@ jobs:
                   assert current[name].get('digest') == digest, f'Existing {name} differs; replacement is forbidden'
               else:
                   same_source()
+                  assert release()['id'] == before['id'], 'Release identity changed; upload refused'
                   subprocess.run(['gh', 'release', 'upload', tag, str(path), '--repo', repo], check=True)
-          after = {a['name']: a for a in release()['assets']}
+          after_release = release()
+          assert after_release['id'] == before['id'] and after_release['tag_name'] == tag
+          after = {a['name']: a for a in after_release['assets']}
           for name, identity in preserved.items():
               assert (after[name]['id'], after[name].get('digest')) == identity, f'Preserved asset changed: {name}'
           for name in [*archives, 'checksums.txt']:

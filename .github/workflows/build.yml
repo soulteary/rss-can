@@ -52,6 +52,12 @@ jobs:
           go mod tidy
           go test -v ./...
 
+      - name: Validate GoReleaser configuration
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: check --config build/darwin-amd64.yaml
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         if: success() && startsWith(github.ref, 'refs/tags/')
@@ -150,6 +156,12 @@ jobs:
 
       - name: Install cross-compiler for linux/arm64
         run: sudo apt-get install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Validate GoReleaser configuration
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          version: latest
+          args: check --config build/linux.yaml
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7

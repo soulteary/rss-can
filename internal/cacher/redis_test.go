@@ -73,6 +73,29 @@ func TestRedis(t *testing.T) {
 	}
 }
 
+func TestRedisLegacyJSONBodiesRemainUnchanged(t *testing.T) {
+	instance := cacher.InitializeRedis(true)
+	defer cacher.Disconnect(instance)
+
+	for _, body := range []string{`"hello"`, `null`, `{"title":"example"}`} {
+		key := t.Name() + body
+		if err := instance.Set(t.Context(), key, body, time.Minute).Err(); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := cacher.GetDataFromRedis(instance, key)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != body {
+			t.Fatalf("legacy body changed: got %q, want %q", got, body)
+		}
+		if err := cacher.DelDataByKeyFromRedis(instance, key); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func TestInitializeRedis(t *testing.T) {
 	ret := cacher.InitializeRedis(false)
 	if ret != nil {

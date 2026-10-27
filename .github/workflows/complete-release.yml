@@ -85,6 +85,7 @@ jobs:
             echo "Existing release draft=$(cat "$RUNNER_TEMP/is-draft")"
           else
             gh release create "$TAG" --repo "$REPOSITORY" --verify-tag --draft --title "$TAG" --notes-file "$notes"
+            echo true > "$RUNNER_TEMP/is-draft"
           fi
           if test ! -f "$RUNNER_TEMP/is-draft" || test "$(cat "$RUNNER_TEMP/is-draft")" = true; then
             gh release upload "$TAG" release-assets/* --repo "$REPOSITORY" --clobber

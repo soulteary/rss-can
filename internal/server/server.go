@@ -39,11 +39,11 @@ func StartWebServer() {
 	route.Use(Logger(logger.Instance), gin.Recovery())
 	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
 	route.GET(GetFeedPath(), listPage())
-	route.GET("/config/:type/:value/", apiConfig())
+	route.GET("/config/:type/:value/", adminOnly(), apiConfig())
 
-	route.GET("/inspector/:url/", inspectorProxy())
-	route.GET("/inspector", inspectorHome())
-	route.POST("/inspector", inspectorPrepare())
+	route.GET("/inspector/:url/", adminOnly(), inspectorProxy())
+	route.GET("/inspector", adminOnly(), inspectorHome())
+	route.POST("/inspector", adminOnly(), inspectorPrepare())
 	route.GET("/_/1x1.gif", PixelImage())
 
 	route.GET("/_/health/", apiHealth())

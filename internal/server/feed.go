@@ -42,7 +42,7 @@ func apiRSS() gin.HandlerFunc {
 			return
 		}
 
-		ruleFile, exist := rule.RulesCache[rss.ID]
+		ruleFile, exist := rule.Lookup(rss.ID)
 		if !exist {
 			c.JSON(http.StatusNotFound, gin.H{"msg": "rule not found"})
 			return
@@ -56,7 +56,7 @@ func apiRSS() gin.HandlerFunc {
 
 		data := rule.GetWebsiteDataWithConfig(config)
 		if data.Code != define.ERROR_CODE_NULL {
-			c.JSON(http.StatusNoContent, gin.H{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
+			c.JSON(http.StatusBadGateway, gin.H{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
 			return
 		}
 

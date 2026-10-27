@@ -15,6 +15,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/version"
@@ -77,14 +78,15 @@ func UpdateListPage(content []byte) []byte {
 
 	filePathFix := strings.Replace(define.RULES_DIRECTORY, "./", "", -1) + "/"
 
+	rules := rule.Snapshot()
 	rulesOrdered := []string{}
-	for dirName := range rule.RulesCache {
+	for dirName := range rules {
 		rulesOrdered = append(rulesOrdered, dirName)
 	}
 	slices.Sort(rulesOrdered)
 
 	for _, dirName := range rulesOrdered {
-		RuleFile, exist := rule.RulesCache[dirName]
+		RuleFile, exist := rules[dirName]
 		if !exist {
 			continue
 		}
@@ -115,25 +117,25 @@ func UpdateListPage(content []byte) []byte {
 }
 
 func listPage() gin.HandlerFunc {
-	var homepage = UpdateListPage(GetPageByName("list.html"))
+
 	return func(c *gin.Context) {
 		if define.DEBUG_MODE {
 			file := fn.GetFileContent("internal/server/templates/list.html")
 			if file != nil {
 				c.Data(http.StatusOK, "text/html", UpdateListPage(file))
 			} else {
-				c.Data(http.StatusOK, "text/html", homepage)
-				logger.Instance.Warnf("rendering template home failed")
+				c.Data(http.StatusOK, "text/html", UpdateListPage(GetPageByName("list.html")))
+				logger.Instance.Warnf("rendering template list failed")
 			}
 		} else {
-			c.Data(http.StatusOK, "text/html", homepage)
+			c.Data(http.StatusOK, "text/html", UpdateListPage(GetPageByName("list.html")))
 		}
 	}
 }
 
 func inspectorHome() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		file := fn.GetFileContent("internal/server/templates/inspector.html")
+		file := GetPageByName("inspector.html")
 		c.Data(http.StatusOK, "text/html", file)
 	}
 }
@@ -141,8 +143,8 @@ func inspectorHome() gin.HandlerFunc {
 func inspectorPrepare() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		url := c.PostForm("url")
-		// todo check url vaild
-		if url == "" {
+		// Validate before allocating browser resources.
+		if network.PublicURL(url) != nil {
 			c.Redirect(http.StatusFound, "./inspector")
 			c.Abort()
 			return
@@ -174,17 +176,28 @@ func inspectorProxy() gin.HandlerFunc {
 
 		url := fn.Base64Decode(params.URL)
 		// TODO set with config or parameters
-		rawHtml := parser.ProxyPageByGoRod(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
+		if err := network.PublicURL(url); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid inspector URL"})
+			return
+		}
+		rawHtml, err := parser.ProxyPageByGoRod(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"msg": "inspector fetch failed"})
+			return
+		}
 		html := parser.ParseFullPageByGoQuery(rawHtml, func(document *goquery.Document) string {
 			document.Find("script").Remove()
 			html, _ := document.Html()
 
-			app := fn.GetFileContent("internal/jssdk/js/inspector.js")
+			app := []byte(jssdk.FILE_INSPECTOR_JS)
 			script := jssdk.GenerateInspector(app)
 
 			html = strings.Replace(html, "</html>", script+"</html>", -1)
 			return html
 		})
+		// Render fetched markup in an opaque origin: event handlers and frames
+		// must not inherit the management service's origin or credentials.
+		c.Header("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' http: https:; img-src data: http: https:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'")
 		c.Data(http.StatusOK, "text/html", []byte(html))
 	}
 }

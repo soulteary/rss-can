@@ -70,8 +70,11 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 
 func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {
 	doc := network.GetRemoteDocument(config.URL, config.Charset, config.Expire, config.DisableCache)
+	if doc.Code != define.ERROR_CODE_NULL {
+		return define.MixupBodyParsed(doc.Code, doc.Status, doc.Date, nil)
+	}
 	if doc.Body == "" {
-		return result
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, "empty upstream response", doc.Date, nil)
 	}
 	return ParseDataAndConfigBySSR(config, doc, "")
 }
@@ -128,6 +131,9 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 			newConfig.URL = link
 			newConfig.Pager = ""
 			ret := GetDataAndConfigBySSR(newConfig)
+			if ret.Code != define.ERROR_CODE_NULL {
+				return ret
+			}
 			items = append(items, ret.Body...)
 		}
 		code := define.ERROR_CODE_NULL

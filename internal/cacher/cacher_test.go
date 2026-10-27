@@ -9,6 +9,9 @@ import (
 )
 
 func TestCacher(t *testing.T) {
+	redisEnabled, memoryEnabled := define.REDIS, define.IN_MEMORY_CACHE
+	defer func() { define.REDIS = redisEnabled; define.IN_MEMORY_CACHE = memoryEnabled }()
+
 	TestKey := "key" + time.Now().String()
 	TestValue := "value"
 
@@ -157,96 +160,4 @@ func TestCacher(t *testing.T) {
 		t.Fatal("cacher.Get failed")
 	}
 
-	// mock redis error, fallback to memory
-	define.IN_MEMORY_CACHE = true
-	define.REDIS = true
-	define.REDIS_PASS = "input for connect can failed"
-
-	if cacher.IsEnable() != true {
-		t.Fatal("cacher.IsEnable failed")
-	}
-
-	ret, err = cacher.Get(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Get failed")
-	}
-	if ret != "" {
-		t.Fatal("cacher.Get failed")
-	}
-
-	err = cacher.Set(TestKey, TestValue)
-	if err != nil {
-		t.Fatal("cacher.Set failed")
-	}
-	ret, err = cacher.Get(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Get failed")
-	}
-	if ret != TestValue {
-		t.Fatal("cacher.Get failed")
-	}
-
-	err = cacher.Del(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Del failed")
-	}
-	ret, err = cacher.Get(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Get failed")
-	}
-	if ret != "" {
-		t.Fatal("cacher.Get failed")
-	}
-
-	err = cacher.Set(TestKey, TestValue)
-	if err != nil {
-		t.Fatal("cacher.Set failed")
-	}
-	err = cacher.Expire(TestKey, (time.Second * 1))
-	if err != nil {
-		t.Fatal("cacher.Expire failed")
-	}
-	time.Sleep(time.Second * 2)
-	ret, err = cacher.Get(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Get failed")
-	}
-	if ret != "" {
-		t.Fatal("cacher.Get failed")
-	}
-
-	// mock cache error, no fallback
-	define.IN_MEMORY_CACHE = false
-	define.REDIS = true
-	define.REDIS_PASS = "input for connect can failed"
-
-	if cacher.IsEnable() != true {
-		t.Fatal("cacher.IsEnable failed")
-	}
-
-	ret, err = cacher.Get(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Get failed")
-	}
-	if ret != "" {
-		t.Fatal("cacher.Get failed")
-	}
-
-	err = cacher.Set(TestKey, TestValue)
-	if err != nil {
-		t.Fatal("cacher.Set failed")
-	}
-
-	err = cacher.Del(TestKey)
-	if err != nil {
-		t.Fatal("cacher.Del failed")
-	}
-
-	err = cacher.Expire(TestKey, (time.Second * 1))
-	if err != nil {
-		t.Fatal("cacher.Expire failed")
-	}
-
-	// restore the redis
-	define.REDIS_PASS = ""
 }

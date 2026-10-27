@@ -80,7 +80,10 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}
 
 	buffer := new(bytes.Buffer)
-	buffer.ReadFrom(bodyParsed)
+	if _, err := buffer.ReadFrom(bodyParsed); err != nil {
+		code, status = MixCodeStatus(define.ERROR_CODE_NETWORK, define.ERROR_STATUS_NETWORK, err)
+		return define.MixupRemoteBodySanitized(code, status, now, "")
+	}
 
 	if cacher.IsEnable() && !disableCache {
 		err = cacher.Set(url, buffer.String())

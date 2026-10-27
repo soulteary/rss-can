@@ -58,11 +58,12 @@ func TestRunCode(t *testing.T) {
 }
 
 func TestGetCtxWithJS(t *testing.T) {
-	_, err := jssdk.GetCtxWithJS("1", "test.js")
+	ctx, err := jssdk.GetCtxWithJS("1", "test.js")
 	if err != nil {
 		t.Fatal("GetCtxWithJS failed")
 	}
 
+	jssdk.CloseContext(ctx)
 	_, err = jssdk.GetCtxWithJS("!not-found-command", "test.js")
 	if err == nil {
 		t.Fatal("GetCtxWithJS failed")

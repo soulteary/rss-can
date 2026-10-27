@@ -66,3 +66,19 @@ func TestDecodeHTMLBody(t *testing.T) {
 		t.Fatal("DecodeHTMLBody failed")
 	}
 }
+
+func TestAutoCharsetPreservesResponseBody(t *testing.T) {
+	for _, body := range []string{"<article>short page</article>", strings.Repeat("x", 9000)} {
+		decoded, err := fn.DecodeHTMLBody(strings.NewReader(body), "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual, err := io.ReadAll(decoded)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(actual) != body {
+			t.Fatalf("auto detection consumed response bytes: got %d, want %d", len(actual), len(body))
+		}
+	}
+}

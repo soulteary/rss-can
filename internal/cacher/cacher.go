@@ -2,6 +2,7 @@ package cacher
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -16,12 +17,19 @@ var noAlivedBackend = (func() error {
 var instanceMemory *cache2go.CacheTable
 var instanceRedis *redis.Client
 
-func init() {
-	instanceMemory = InitializeMemory(define.IN_MEMORY_CACHE, define.DEFAULT_IN_MEMORY_CACHE_STORE_NAME)
-	instanceRedis = InitializeRedis(define.REDIS)
+var initializeOnce sync.Once
+
+// Initialize creates clients after command-line and environment configuration is applied.
+// Redis connects lazily on its first command. Configuration is fixed for this process.
+func Initialize() {
+	initializeOnce.Do(func() {
+		instanceMemory = InitializeMemory(true, define.DEFAULT_IN_MEMORY_CACHE_STORE_NAME)
+		instanceRedis = InitializeRedis(true)
+	})
 }
 
 func Get(key string) (string, error) {
+	Initialize()
 	if define.REDIS {
 		str, err := GetDataFromRedis(instanceRedis, key)
 		if err != nil {
@@ -40,6 +48,7 @@ func Get(key string) (string, error) {
 }
 
 func FallbackToMemoryGet(key string) (string, error) {
+	Initialize()
 	data, err := GetDataFromMemory(instanceMemory, key)
 	if err != nil {
 		return "", err
@@ -48,6 +57,7 @@ func FallbackToMemoryGet(key string) (string, error) {
 }
 
 func Set(key string, value string) error {
+	Initialize()
 	if define.REDIS {
 		err := UpdateDataToRedis(instanceRedis, key, value)
 		if err != nil {
@@ -66,11 +76,13 @@ func Set(key string, value string) error {
 }
 
 func FallbackToMemorySet(key string, value string) error {
+	Initialize()
 	UpdateDataToMemory(instanceMemory, key, value)
 	return nil
 }
 
 func Del(key string) error {
+	Initialize()
 	if define.REDIS {
 		err := DelDataByKeyFromRedis(instanceRedis, key)
 		if err != nil {
@@ -89,11 +101,13 @@ func Del(key string) error {
 }
 
 func FallbackToMemoryDel(key string) error {
+	Initialize()
 	DelDataByKeyFromMemory(instanceMemory, key)
 	return nil
 }
 
 func Expire(key string, expire time.Duration) error {
+	Initialize()
 	if define.REDIS {
 		err := SetDataExpireByKeyFromRedis(instanceRedis, key, expire)
 		if err != nil {
@@ -112,6 +126,7 @@ func Expire(key string, expire time.Duration) error {
 }
 
 func FallbackToMemoryExpire(key string, expire time.Duration) error {
+	Initialize()
 	err := SetDataExpireByKeyFromMemory(instanceMemory, key, expire)
 	if err != nil {
 		return err

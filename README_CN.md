@@ -88,6 +88,24 @@ Usage of rssc:
     	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
 ```
 
+### 管理接口与页面检查工具
+
+`/config/*` 和 `/inspector*` 默认仅接受直接来自本机回环地址、且使用 `localhost` 或回环 IP 作为 Host 的请求。反向代理转发的请求需要配置 `RSS_ADMIN_TOKEN`，并在请求中提供 `Authorization: Bearer <token>`。配置 token 后，本机请求也需要认证；浏览器使用这些工具时，可由已认证的反向代理注入该请求头。跨站请求不允许调用管理接口。
+
+页面检查工具仅访问公网 HTTP(S) 目标；重定向和子资源同样受到限制，不支持内网地址、Cookie 或代理转发。抓取的页面在独立沙箱中显示。普通订阅抓取仍可使用规则中的 Cookie 和代理配置。
+
+浏览器任务最多同时执行 4 个，超时包括排队、连接、导航和脚本执行。每次任务使用独立浏览器上下文，并在完成或失败后释放。CSR、混合模式和 SSR 使用隔离的缓存；规则内容或 Cookie 改变后不会复用原有 CSR 缓存。
+
+### 运行回归测试
+
+测试需要可用的 Redis；浏览器集成测试使用本机安装的 Chrome / Chromium，不会自动下载浏览器：
+
+```bash
+RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
+```
+
+可通过 `RSS_TEST_CHROME` 指定浏览器二进制路径。未安装浏览器时，默认跳过浏览器集成测试；设置 `RSS_TEST_BROWSER_REQUIRED=1` 则将缺少浏览器视为失败。Redis 地址可通过 `RSS_SERVER` 指定。缓存连接配置在进程启动后固定，修改后需要重启。
+
 ## 里程碑
 
 - [支持使用 CSR 解析模式处理数据](https://github.com/soulteary/rss-can/issues/15), [Blog](https://soulteary.com/2022/12/15/rsscan-use-golang-rod-to-parse-the-content-dynamically-rendered-in-the-browser-part-4.html)

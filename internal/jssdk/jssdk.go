@@ -23,6 +23,9 @@ var FILE_DATE_JS string
 //go:embed js/hep.js
 var FILE_HEP_JS string
 
+//go:embed js/inspector.js
+var FILE_INSPECTOR_JS string
+
 // combine moment.js with date functions
 var TPL_DATE_JS = func() string {
 	return fmt.Sprintf("%s\n%s", FILE_MOMENT_JS, FILE_DATE_JS)

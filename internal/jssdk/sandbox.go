@@ -5,52 +5,46 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
-	"github.com/soulteary/RSS-Can/internal/fn"
-	"github.com/soulteary/RSS-Can/internal/logger"
 	v8 "rogchap.com/v8go"
 )
 
-func RunCodeInSandbox(ctx *v8.Context, unsafe string, fileName string) (*v8.Value, time.Duration, error) {
-	vals := make(chan *v8.Value, 1)
-	errs := make(chan error, 1)
-
+func RunCodeInSandbox(ctx *v8.Context, source string, fileName string) (*v8.Value, time.Duration, error) {
+	type execution struct {
+		value *v8.Value
+		err   error
+	}
+	done := make(chan execution, 1)
 	start := time.Now()
 	go func() {
-		val, err := ctx.RunScript(unsafe, fileName)
-		if err != nil {
-			errs <- err
-			return
-		}
-		vals <- val
+		value, err := ctx.RunScript(source, fileName)
+		done <- execution{value, err}
 	}()
-
-	duration := time.Since(start)
-	timeout := time.NewTimer(fn.I2T(define.JS_EXECUTE_TIMEOUT) * time.Millisecond)
-
+	timeout := time.NewTimer(time.Duration(define.JS_EXECUTE_TIMEOUT) * time.Millisecond)
+	defer timeout.Stop()
 	select {
-	case val := <-vals:
-		if !timeout.Stop() {
-			<-timeout.C
-		}
-		logger.Instance.Infof("Parsing config [%s] successed, cost time: %v", fileName, duration)
-		return val, duration, nil
-	case err := <-errs:
-		return nil, duration, err
+	case result := <-done:
+		return result.value, time.Since(start), result.err
 	case <-timeout.C:
-		timeout.Stop()
-		vm := ctx.Isolate()
-		vm.TerminateExecution()
-		err := <-errs
-		logger.Instance.Infof("execution timeout: %v", duration)
-		time.Sleep(fn.ExpireBySecond(define.DEFAULT_JS_EXECUTE_THORTTLING))
-		return nil, duration, err
+		ctx.Isolate().TerminateExecution()
+		// Join the worker before its context/isolate can be disposed. A single result
+		// channel also handles a script finishing at the same instant as the timer.
+		<-done
+		return nil, time.Since(start), fmt.Errorf("JavaScript execution timed out: %s", fileName)
 	}
+}
+
+// CloseContext releases both the context and the isolate created by GetCtxWithJS.
+func CloseContext(ctx *v8.Context) {
+	isolate := ctx.Isolate()
+	ctx.Close()
+	isolate.Dispose()
 }
 
 func GetCtxWithJS(basejs string, originFile string) (*v8.Context, error) {
 	ctx := v8.NewContext()
 	_, _, err := RunCodeInSandbox(ctx, basejs, originFile)
 	if err != nil {
+		CloseContext(ctx)
 		return nil, err
 	}
 	return ctx, nil
@@ -61,9 +55,10 @@ func RunCode(base string, export string, originFile string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	result, err := ctx.RunScript(export, "export.js")
+	defer CloseContext(ctx)
+	result, _, err := RunCodeInSandbox(ctx, export, originFile)
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("%s", result), err
+	return fmt.Sprint(result), nil
 }

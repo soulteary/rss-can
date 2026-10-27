@@ -1,29 +1,56 @@
 package rule
 
 import (
-	"strings"
+	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
-var RulesCache map[string]define.RuleCache
+var rulesMu sync.RWMutex
+var rulesCache = map[string]define.RuleCache{}
+
+func Lookup(id string) (define.RuleCache, bool) {
+	rulesMu.RLock()
+	defer rulesMu.RUnlock()
+	item, ok := rulesCache[id]
+	return item, ok
+}
+
+// Snapshot returns a consistent copy so readers do not race with a reload.
+func Snapshot() map[string]define.RuleCache {
+	rulesMu.RLock()
+	defer rulesMu.RUnlock()
+	result := make(map[string]define.RuleCache, len(rulesCache))
+	for id, item := range rulesCache {
+		result[id] = item
+	}
+	return result
+}
 
 func makeMap(list []string) map[string]define.RuleCache {
 	result := make(map[string]define.RuleCache)
 	for _, file := range list {
+		id := filepath.Base(filepath.Dir(file))
+		if _, exists := result[id]; exists {
+			logger.Instance.Warnf("Ignoring duplicate rule ID %s: %s", id, file)
+			continue
+		}
 		body := fn.GetFileContent(file)
-		sha1 := fn.GetFileSHA1(body)
-		item := define.RuleCache{Body: body, Time: time.Now(), Sign: sha1, File: file}
-		result[strings.Split(file, "/")[1]] = item
+		if body == nil {
+			continue
+		}
+		result[id] = define.RuleCache{Body: body, Time: time.Now(), Sign: fn.GetFileSHA1(body), File: file}
 	}
 	return result
 }
 
 func InitRules() {
-	rules := LoadRules(define.RULES_DIRECTORY)
-	newCache := makeMap(rules)
-
-	RulesCache = newCache
+	newCache := makeMap(LoadRules(define.RULES_DIRECTORY))
+	rulesMu.Lock()
+	rulesCache = newCache
+	rulesMu.Unlock()
 }

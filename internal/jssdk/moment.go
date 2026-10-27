@@ -2,18 +2,14 @@ package jssdk
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/fn"
 )
 
 func ConvertAgoToUnix(date string) (time.Time, error) {
-	ctx, err := GetCtxWithJS(TPL_DATE_JS, "convert.js")
-	if err != nil {
-		return time.Now(), err
-	}
-
-	unixStr, err := ctx.RunScript(`ConvertAgoToUnix("`+date+`")`, "convert.js")
+	unixStr, err := RunCode(TPL_DATE_JS, "ConvertAgoToUnix("+strconv.Quote(date)+")", "convert.js")
 	if err != nil {
 		return time.Now(), err
 	}
@@ -23,12 +19,7 @@ func ConvertAgoToUnix(date string) (time.Time, error) {
 }
 
 func ConvertStrToUnix(str string) (time.Time, error) {
-	ctx, err := GetCtxWithJS(TPL_DATE_JS, "convert.js")
-	if err != nil {
-		return time.Now(), err
-	}
-
-	unixStr, err := ctx.RunScript(`ConvertStrToUnix("`+str+`")`, "convert.js")
+	unixStr, err := RunCode(TPL_DATE_JS, "ConvertStrToUnix("+strconv.Quote(str)+")", "convert.js")
 	if err != nil {
 		return time.Now(), err
 	}

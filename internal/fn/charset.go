@@ -24,7 +24,11 @@ func DetectContentEncoding(body io.Reader) string {
 // If `charset` is empty, decodeHTMLBody tries to guess the encoding from the content
 func DecodeHTMLBody(body io.Reader, charset string) (io.Reader, error) {
 	if charset == "" {
-		charset = DetectContentEncoding(body)
+		// Keep the sniffed bytes in the reader returned to the caller.
+		// Discarding Peek's buffered reader used to consume the start of the page.
+		buffered := bufio.NewReader(body)
+		charset = DetectContentEncoding(buffered)
+		body = buffered
 	} else {
 		if !(charset == define.CHARSET_UTF8 || charset == define.CHARSET_GB2312 || charset == define.CHARSET_GBK || charset == define.CHARSET_GB18030) {
 			charset = define.DEFAULT_DOCUMENT_CHARSET

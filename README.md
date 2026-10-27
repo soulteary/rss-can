@@ -88,6 +88,24 @@ Usage of rssc:
     	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
 ```
 
+### Management endpoints and page inspector
+
+`/config/*` and `/inspector*` accept direct loopback clients using a `localhost` or loopback-IP Host by default. Remote or reverse-proxied access requires `RSS_ADMIN_TOKEN` and an `Authorization: Bearer <token>` request header. Once a token is configured, local requests require it too. For browser access, an authenticated reverse proxy can inject the header. Cross-site management requests are rejected.
+
+The inspector only fetches public HTTP(S) destinations, including redirects and subresources. It does not forward cookies or use a proxy. Fetched markup is displayed in an isolated sandbox. Normal feed rules retain cookie and proxy support.
+
+Browser tasks run in isolated contexts with a concurrency limit of four. Their deadline covers queueing, connection, navigation, and script execution. Contexts are released on success and failure. SSR, CSR and mixed-mode caches are separate; CSR cache keys also include rule contents and cookies.
+
+### Running regression tests
+
+Tests require Redis. Browser integration tests use an installed Chrome / Chromium without downloading a browser:
+
+```bash
+RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
+```
+
+Set `RSS_TEST_CHROME` to override the browser executable. Browser integration tests skip when no browser is installed unless `RSS_TEST_BROWSER_REQUIRED=1` is set. Use `RSS_SERVER` to select the test Redis address. Cache connection settings are fixed after process startup; restart to apply changes.
+
 ## Milestone
 
 - [Base CLI & WebUI Support](https://github.com/soulteary/rss-can/issues/8)

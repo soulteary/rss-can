@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/cmd"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
@@ -12,6 +13,7 @@ func main() {
 	logger.Initialize()
 
 	cmd.ApplyFlags()
+	cacher.Initialize()
 
 	if define.DEBUG_MODE {
 		logger.SetLevel("debug")

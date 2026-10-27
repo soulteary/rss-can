@@ -2,6 +2,7 @@ package cacher
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -22,22 +23,9 @@ func InitializeRedis(enabled bool) *redis.Client {
 	return instance
 }
 
-func Connect(instance *redis.Client) *redis.Client {
-	var ctx = context.Background()
-
-	if instance == nil {
-		return nil
-	}
-
-	err := instance.Ping(ctx).Err()
-	if err == nil {
-		return instance
-	}
-
-	Disconnect(instance)
-
-	return InitializeRedis(define.REDIS)
-}
+// Connect retains the configured client: go-redis reconnects its own pool.
+// Closing/replacing a client on Ping failure loses configuration and leaks pools.
+func Connect(instance *redis.Client) *redis.Client { return instance }
 
 func Disconnect(instance *redis.Client) (err error) {
 	return instance.Close()
@@ -47,6 +35,9 @@ func UpdateDataToRedis(instance *redis.Client, key string, value string) (err er
 	var ctx = context.Background()
 
 	rdb := Connect(instance)
+	if rdb == nil {
+		return errors.New("redis cache is not initialized")
+	}
 	err = rdb.Set(ctx, key, value, 0).Err()
 	if err != nil {
 		return err
@@ -58,6 +49,9 @@ func GetDataFromRedis(instance *redis.Client, key string) (result string, err er
 	var ctx = context.Background()
 
 	rdb := Connect(instance)
+	if rdb == nil {
+		return "", errors.New("redis cache is not initialized")
+	}
 	data, err := rdb.Get(ctx, key).Result()
 	// REDIS_KEY_NOT_EXIST
 	if err == redis.Nil {
@@ -73,6 +67,9 @@ func DelDataByKeyFromRedis(instance *redis.Client, key string) (err error) {
 	var ctx = context.Background()
 
 	rdb := Connect(instance)
+	if rdb == nil {
+		return errors.New("redis cache is not initialized")
+	}
 	_, err = rdb.Del(ctx, key).Result()
 	if err != nil {
 		return err
@@ -84,6 +81,9 @@ func SetDataExpireByKeyFromRedis(instance *redis.Client, key string, expire time
 	var ctx = context.Background()
 
 	rdb := Connect(instance)
+	if rdb == nil {
+		return errors.New("redis cache is not initialized")
+	}
 	_, err = rdb.Expire(ctx, key, expire).Result()
 	if err != nil {
 		return err

@@ -14,8 +14,9 @@ func TestConvertAgoToUnix(t *testing.T) {
 	}
 
 	_, err = jssdk.ConvertAgoToUnix(`"10天前`)
-	if err == nil {
-		t.Fatal("ConvertAgoToUnix failed")
+	// Quotes are input data, not JavaScript delimiters.
+	if err != nil {
+		t.Fatal("quoted date must not become executable source:", err)
 	}
 }
 
@@ -27,8 +28,9 @@ func TestConvertStrToUnix(t *testing.T) {
 	fmt.Println(timeUnix)
 
 	_, err = jssdk.ConvertStrToUnix(`"10天前`)
-	if err == nil {
-		t.Fatal("ConvertStrToUnix failed")
+	// Quotes are input data, not JavaScript delimiters.
+	if err != nil {
+		t.Fatal("quoted date must not become executable source:", err)
 	}
 
 	timeUnix, err = jssdk.ConvertStrToUnix("2022年")

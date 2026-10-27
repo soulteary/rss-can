@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -17,7 +18,7 @@ func LoadRules(ruleDir string) []string {
 		if fn.IsDir(item) {
 			subFiles := fn.ScanDirFiles(item)
 			for _, sItem := range subFiles {
-				if fn.IsFile(sItem) {
+				if fn.IsFile(sItem) && strings.EqualFold(filepath.Ext(sItem), ".js") {
 					rules = append(rules, sItem)
 				}
 			}

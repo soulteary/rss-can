@@ -1,5 +1,6 @@
 import hashlib
 import io
+import json
 import pathlib
 import tarfile
 import tempfile
@@ -78,6 +79,13 @@ class VerifyReleaseTests(unittest.TestCase):
         for replacement in [metadata.replace(self.tag, "v0.3.120"), metadata.replace("amd64", "arm64"), metadata.replace(self.commit, "b" * 40)]:
             with self.assertRaises(ValueError):
                 release.validate_metadata(replacement, "linux", "amd64", self.tag, self.commit, "go1.27.3")
+
+    def test_real_goreleaser_quoted_linker_flags(self):
+        flags = f'-w -s -X "github.com/soulteary/RSS-Can/internal/version.Version={self.tag}" -X "github.com/soulteary/RSS-Can/internal/version.Commit={self.commit}"'
+        metadata = f'/tmp/rssc: go1.27.3\n build -ldflags={json.dumps(flags)}\n build CGO_ENABLED=1\n build GOOS=darwin\n build GOARCH=arm64\n'
+        release.validate_metadata(metadata, "darwin", "arm64", self.tag, self.commit, "go1.27.3")
+        with self.assertRaises(ValueError):
+            release.validate_metadata(metadata.replace(self.tag, self.tag+"0"), "darwin", "arm64", self.tag, self.commit, "go1.27.3")
 
 
 if __name__ == "__main__":

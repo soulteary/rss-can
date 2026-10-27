@@ -49,8 +49,8 @@ in `.github/GO-REPORTS.md`.
 
 ## Post-release verification
 
-Download all assets into an otherwise empty directory and run, from this tag's
-checkout:
+Download all assets into an otherwise empty directory and run the verifier from
+the current default branch against the immutable release source:
 
 ```sh
 python3 scripts/verify_release_assets.py /tmp/release-assets v0.3.12 "$(git rev-parse v0.3.12^{commit})"
@@ -66,3 +66,13 @@ Archives and image registries are independent distributions from the same
 source commit; binaries inside the Debian-built images need not be byte-identical
 to the standalone Ubuntu/macOS archives. Each distribution is verified against
 its recorded checksums and source identity.
+
+## Completing an interrupted publication
+
+`complete-release.yml` is a manual, audited completion path. It verifies the
+original tag, source commit, tag-triggered Build Artifacts run, all binary/image
+build jobs, and the exact failure step before downloading the original artifacts.
+It uses the corrected verifier from the current workflow source; it does not move
+the release tag or rebuild any archive. Published assets are checksum-verified
+without replacement. This handles the Go string-quoted linker metadata validation
+failure encountered during v0.3.12 publication.

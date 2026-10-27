@@ -23,6 +23,9 @@ def archive_names(tag):
 
 
 def validate_metadata(metadata, system, arch, tag, commit, go_version):
+    # go version -m quotes -ldflags using Go string escapes. Match token
+    # boundaries after unescaping quotes, rather than accepting version prefixes.
+    metadata = metadata.replace(r'\"', '"')
     expected = [f"GOOS={system}", f"GOARCH={arch}", "CGO_ENABLED=1",
                 f"Version={tag}", f"Commit={commit}"]
     for value in expected:

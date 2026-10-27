@@ -29,6 +29,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+      - name: Set up Go for release fixture builds
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          # This short gate builds tiny fixture binaries. Avoid a cache
+          # restore/save cycle that cannot materially improve its runtime.
+          cache: false
       - name: Test publication and recovery tooling
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Check tag, notes and Docker toolchain before publication

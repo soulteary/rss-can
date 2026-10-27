@@ -3,65 +3,45 @@ package cacher
 import (
 	"time"
 
-	"github.com/muesli/cache2go"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
-	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/cache-kit/v2/ttlcache"
 )
 
-type InMemoryPageCache struct {
-	CreateAt time.Time
-	page     []byte
-}
-
-func InitializeMemory(enabled bool, store string) *cache2go.CacheTable {
+func InitializeMemory(enabled bool, _ string) *ttlcache.Memory[string, []byte] {
 	if enabled {
-		return cache2go.Cache(store)
+		return ttlcache.New(ttlcache.Config[string, []byte]{
+			DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION),
+		})
 	}
 	return nil
 }
 
-func IsMemoryEmpty(instance *cache2go.CacheTable) bool {
-	return instance.Count() == 0
+func IsMemoryEmpty(instance *ttlcache.Memory[string, []byte]) bool {
+	return instance.Len() == 0
 }
 
-func UpdateDataToMemory(instance *cache2go.CacheTable, key, value string) {
-	now := time.Now()
-	val := InMemoryPageCache{now, []byte(value)}
-	instance.Add(key, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), &val)
+func UpdateDataToMemory(instance *ttlcache.Memory[string, []byte], key, value string) {
+	_ = instance.Set(key, []byte(value), 0)
 }
 
-func GetDataFromMemory(instance *cache2go.CacheTable, key string) ([]byte, error) {
-	if IsMemoryEmpty(instance) {
+func GetDataFromMemory(instance *ttlcache.Memory[string, []byte], key string) ([]byte, error) {
+	value, ok := instance.Get(key)
+	if !ok {
 		return []byte(""), nil
 	}
-	res, err := instance.Value(key)
-	if err != nil {
-		logger.Instance.Errorf("Error retrieving value from cache: %v", err)
-		return []byte(""), err
-	}
-	return res.Data().(*InMemoryPageCache).page, nil
+	return value, nil
 }
 
-func DelDataByKeyFromMemory(instance *cache2go.CacheTable, key string) {
-	if IsMemoryEmpty(instance) {
-		return
-	}
+func DelDataByKeyFromMemory(instance *ttlcache.Memory[string, []byte], key string) {
 	instance.Delete(key)
 }
 
-func SetDataExpireByKeyFromMemory(instance *cache2go.CacheTable, key string, expire time.Duration) error {
-	data, err := GetDataFromMemory(instance, key)
-	if err != nil {
-		logger.Instance.Errorf("Error retrieving value from cache: %v", err)
-		return err
-	}
-	now := time.Now()
-	val := InMemoryPageCache{now, data}
-	instance.Add(key, expire, &val)
+func SetDataExpireByKeyFromMemory(instance *ttlcache.Memory[string, []byte], key string, expire time.Duration) error {
+	instance.Expire(key, expire)
 	return nil
 }
 
-func FlushDataFromMemory(instance *cache2go.CacheTable) {
-	instance.Flush()
+func FlushDataFromMemory(instance *ttlcache.Memory[string, []byte]) {
+	instance.Clear()
 }

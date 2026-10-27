@@ -14,6 +14,11 @@ func main() {
 
 	cmd.ApplyFlags()
 	cacher.Initialize()
+	defer func() {
+		if err := cacher.Close(); err != nil {
+			logger.Instance.Warnf("Unable to close cache: %v", err)
+		}
+	}()
 
 	if define.DEBUG_MODE {
 		logger.SetLevel("debug")

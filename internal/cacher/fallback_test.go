@@ -13,13 +13,20 @@ func TestUnavailableRedisFallsBackWithoutReplacingClient(t *testing.T) {
 	logger.Initialize()
 	Initialize()
 	original := instanceRedis
+	originalPrimary := instanceService.primary
 	redisEnabled, memoryEnabled := define.REDIS, define.IN_MEMORY_CACHE
 	failed := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
 	failed.Close() // Deterministic outage; no network or connection retries.
 	instanceRedis = failed
+	instanceService.primary = newRedisBackend(failed)
 	define.REDIS = true
 	define.IN_MEMORY_CACHE = true
-	defer func() { instanceRedis = original; define.REDIS = redisEnabled; define.IN_MEMORY_CACHE = memoryEnabled }()
+	defer func() {
+		instanceRedis = original
+		instanceService.primary = originalPrimary
+		define.REDIS = redisEnabled
+		define.IN_MEMORY_CACHE = memoryEnabled
+	}()
 	key := t.Name()
 	if err := Set(key, "fallback"); err != nil {
 		t.Fatal(err)

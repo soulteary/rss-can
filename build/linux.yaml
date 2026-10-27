@@ -33,9 +33,21 @@ builds:
     goos:
       - linux
     goarch: [ arm64 ]
+    binary: rssc
 
 archives:
   - formats: [tar.gz]
+    files:
+      - LICENSE
+      - README.md
+      - README_CN.md
+      - CREDITS.md
+      - DEPENDENCIES.md
+      - CHANGELOG.md
+      - docs/releases/*.md
+      - third_party/licenses/*
+      - internal/jssdk/js/*.LICENSE
+      - rules/**/*
     # this name template makes the OS and Arch compatible with the results of uname.
     name_template: >-
       {{ .ProjectName }}_

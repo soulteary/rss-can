@@ -23,7 +23,7 @@ Raw profiles/test logs are artifacts, never committed.
 Redis-backed cache tests require a healthy Redis 8 service on `127.0.0.1:6379`,
 without authentication, in an isolated CI runner. `RSS_SERVER` names the host
 endpoint, not the service-container DNS name. The root Go module is tested;
-vendored nested modules are dependencies and are not independently tested.
+upstream modules are resolved through the root manifest.
 macOS Redis setup and platform release/build tests remain in `build.yml`.
 
 Published releases and automated release dispatches reuse only completed successful tag-push report runs for the tested SHA that still have an unexpired stable report artifact. An artifact from an earlier attempt of the same run is valid after a partial retry (`artifact_attempt <= run_attempt`). Active, failed, cancelled, missing, or expired runs do not suppress fresh reports. API errors fail the gate rather than silently assume evidence exists.
@@ -35,3 +35,5 @@ Report concurrency includes the source ref and unique run ID, so pending reports
 Cleanup runs even after preceding steps fail. Stable and raw evidence is uploaded after gate failures, and failed report jobs cannot publish repository changes. Report commits have no CI skip annotation: the normal workflow token prevents recursive push triggers. Production Actions and CLI versions remain pinned to formal releases; PR report calls remain read-only.
 
 Successful token-published releases explicitly dispatch the current default-branch report workflow for their released tag, since token-generated release events do not start another workflow. Branch snapshots and PR release checks do not dispatch report publishers. Historical tags can also be reported manually from the default-branch workflow using `source_ref`.
+
+Release publication waits for all seven verified binary/checksum assets and tested AMD64/ARM64 images in both registries. See `RELEASING.md` for the staging and verification process.

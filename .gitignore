@@ -19,3 +19,6 @@
 rules/test
 
 dist
+
+# Python release verification caches
+__pycache__/

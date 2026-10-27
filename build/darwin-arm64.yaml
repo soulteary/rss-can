@@ -17,6 +17,17 @@ builds:
     goarch: [ arm64 ]
 archives:
   - formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - README_CN.md
+      - CREDITS.md
+      - DEPENDENCIES.md
+      - CHANGELOG.md
+      - docs/releases/*.md
+      - third_party/licenses/*
+      - internal/jssdk/js/*.LICENSE
+      - rules/**/*
     name_template: "rssc_{{ .Version }}_darwin_arm64"
 checksum:
   name_template: "rssc_{{ .Version }}_darwin_arm64_checksums.txt"

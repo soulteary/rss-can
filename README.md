@@ -18,8 +18,10 @@
 
 ## Supported Systems and Architectures
 
-- Linux: AMD64(x86_64)
+- Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
+
+Current release: [v0.3.12](https://github.com/soulteary/rss-can/releases/tag/v0.3.12). See the [release notes](docs/releases/v0.3.12.md) for changes and upgrade requirements.
 
 ## Usage
 
@@ -34,9 +36,12 @@ Download the binary from the github [release page](https://github.com/soulteary/
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:
 
 ```
-docker pull soulteary/rss-can:v0.3.8
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.8
+docker pull soulteary/rss-can:v0.3.12
+docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.12
 ```
+
+
+The Docker Hub image supports Linux AMD64/ARM64. Images include example rules; add `-e RSS_REDIS=false` for memory-only caching. Binary archives include `rssc`, `rules/`, documentation and license notices. Verify downloads with the accompanying SHA-256 files.
 
 ### Cli Parameters & Environment
 

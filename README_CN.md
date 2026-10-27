@@ -18,8 +18,10 @@
 
 ## 支持软硬件环境
 
-- Linux: AMD64(x86_64)
+- Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
+
+当前版本：[v0.3.12](https://github.com/soulteary/rss-can/releases/tag/v0.3.12)。变更和升级须知见[发布说明](docs/releases/v0.3.12.md)。
 
 ## 使用方法
 
@@ -34,9 +36,12 @@
 使用下面的命令，下载最新版本的软件之后，使用 `docker run` 运行即可（记得将项目中的 Feed Rules 挂载到容器中）：
 
 ```
-docker pull soulteary/rss-can:v0.3.8
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.8
+docker pull soulteary/rss-can:v0.3.12
+docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.12
 ```
+
+
+Docker Hub 镜像支持 Linux AMD64/ARM64。镜像已包含示例规则；仅使用内存缓存时添加 `-e RSS_REDIS=false`。二进制归档包含 `rssc`、`rules/`、文档和许可证，可使用随附的 SHA-256 文件校验。
 
 ### 支持的命令行参数及环境变量
 

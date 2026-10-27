@@ -5,5 +5,5 @@ import (
 )
 
 func GetDataAndConfigByMix(config define.JavaScriptConfig, container string, proxyAddr string) (result define.BodyParsed) {
-	return ParsePageByGoRod(config, container, proxyAddr, true)
+	return ParsePageByBrowser(config, container, proxyAddr, true)
 }

@@ -180,7 +180,7 @@ func inspectorProxy() gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid inspector URL"})
 			return
 		}
-		rawHtml, err := parser.ProxyPageByGoRod(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
+		rawHtml, err := parser.ProxyPageByBrowser(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
 		if err != nil {
 			c.JSON(http.StatusBadGateway, gin.H{"msg": "inspector fetch failed"})
 			return

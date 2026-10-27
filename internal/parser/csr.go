@@ -1,23 +1,25 @@
 package parser
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/cdp"
-	"github.com/go-rod/rod/lib/launcher"
-	"github.com/go-rod/rod/lib/launcher/flags"
-	"github.com/go-rod/rod/lib/proto"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/fetch"
+	cdpnetwork "github.com/chromedp/cdproto/network"
+	"github.com/chromedp/cdproto/page"
+	"github.com/chromedp/cdproto/security"
+	"github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/remote"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
@@ -30,7 +32,7 @@ import (
 var browserSlots = make(chan struct{}, 4)
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) define.BodyParsed {
-	return ParsePageByGoRod(config, container, proxyAddr, false)
+	return ParsePageByBrowser(config, container, proxyAddr, false)
 }
 
 func resolveBrowserURL(ctx context.Context, address string) (string, error) {
@@ -99,152 +101,184 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	return websocketURL.String(), nil
 }
 
-// browserDialer bounds the websocket handshake, which Rod's websocket client
-// otherwise performs without a socket deadline. The caller owns the connection.
-type browserDialer struct {
-	conn   net.Conn
-	secure bool
-}
-
-func (d *browserDialer) DialContext(ctx context.Context, network, address string) (net.Conn, error) {
-	var err error
-	address = browserDialAddress(address, d.secure)
-	if d.secure {
-		dialer := &tls.Dialer{}
-		d.conn, err = dialer.DialContext(ctx, network, address)
-	} else {
-		dialer := &net.Dialer{}
-		d.conn, err = dialer.DialContext(ctx, network, address)
-	}
-	if err != nil {
-		return nil, err
-	}
-	if err := d.conn.SetDeadline(deadline(ctx)); err != nil {
-		_ = d.conn.Close()
-		return nil, err
-	}
-	return d.conn, nil
-}
-
-func browserDialAddress(address string, secure bool) string {
-	if _, _, err := net.SplitHostPort(address); err == nil {
-		return address
-	}
-	port := "80"
-	if secure {
-		port = "443"
-	}
-	return net.JoinHostPort(strings.Trim(address, "[]"), port)
-}
-
-// withRodPage owns an isolated browser context and its connection. It never
-// closes the shared remote browser. Cleanup also runs after panics or timeouts.
-func withRodPage(ctx context.Context, container, proxyAddr, target, cookies string, publicOnly bool, action func(*rod.Page)) error {
+// withBrowserPage owns an isolated browser context and its connection. It never
+// closes the shared remote browser. Cleanup also runs after errors or timeouts.
+func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cookies string, publicOnly bool, action func(context.Context) error) error {
 	select {
 	case browserSlots <- struct{}{}:
 		defer func() { <-browserSlots }()
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	return rod.Try(func() {
-		var address string
-		if define.CSR_DEBUG && !publicOnly {
-			l := launcher.New().Context(ctx).Headless(false).Devtools(true)
-			if proxyAddr != "" {
-				l.Set(flags.ProxyServer, proxyAddr)
-			}
-			defer l.Cleanup()
-			defer l.Kill()
-			address = l.MustLaunch()
-		} else {
-			var err error
-			address, err = resolveBrowserURL(ctx, container)
-			if err != nil {
-				panic(err)
-			}
+
+	var allocCtx context.Context
+	var allocCancel context.CancelFunc
+	if define.CSR_DEBUG && !publicOnly {
+		opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+		opts = append(opts, chromedp.VisibleWindow)
+		if proxyAddr != "" {
+			opts = append(opts, chromedp.ProxyServer(proxyAddr))
 		}
-		dialer := &browserDialer{secure: strings.HasPrefix(address, "wss://")}
-		defer func() {
-			if dialer.conn != nil {
-				_ = dialer.conn.Close()
-			}
-		}()
-		ws := &cdp.WebSocket{Dialer: dialer}
-		if err := ws.Connect(ctx, address, nil); err != nil {
-			panic(err)
+		if define.CSR_IGNORE_CERT_ERRORS {
+			opts = append(opts, chromedp.IgnoreCertErrors)
 		}
-		if err := dialer.conn.SetDeadline(time.Time{}); err != nil {
-			panic(err)
-		}
-		browser := rod.New().Client(cdp.New().Start(ws)).Context(ctx)
-		if err := browser.Connect(); err != nil {
-			panic(err)
-		}
-		// Dispose on connection loss even if creation succeeds remotely after
-		// the command times out locally and its context ID is never received.
-		isolated := browser.Context(ctx)
-		created, err := (proto.TargetCreateBrowserContext{DisposeOnDetach: true}).Call(isolated)
+		allocCtx, allocCancel = chromedp.NewExecAllocator(ctx, opts...)
+	} else {
+		address, err := resolveBrowserURL(ctx, container)
 		if err != nil {
-			panic(err)
+			return err
 		}
-		isolated.BrowserContextID = created.BrowserContextID
-		defer func() {
-			cleanupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			_ = isolated.Context(cleanupCtx).Close()
-		}()
-		if define.CSR_IGNORE_CERT_ERRORS && !publicOnly {
-			isolated.MustIgnoreCertErrors(true)
+		allocCtx, allocCancel = remote.NewAllocator(ctx, address, remote.NoModifyURL, remote.WithDialTimeout(time.Until(deadline(ctx))))
+	}
+	defer allocCancel()
+
+	rootCtx, rootCancel := chromedp.NewContext(allocCtx)
+	defer rootCancel()
+	// Initialize the shared browser before creating an isolated BrowserContext.
+	if err := chromedp.Do(rootCtx); err != nil {
+		return err
+	}
+	pageCtx, pageCancel := chromedp.NewContext(rootCtx, chromedp.WithNewBrowserContext())
+	defer pageCancel()
+	if err := chromedp.Do(pageCtx); err != nil {
+		return err
+	}
+	if define.CSR_IGNORE_CERT_ERRORS && !publicOnly {
+		if _, err := cdp.Call(pageCtx, chromedp.FromContext(pageCtx).Target, security.SetIgnoreCertificateErrors, security.SetIgnoreCertificateErrorsParams{Ignore: true}); err != nil {
+			return err
 		}
-		page := isolated.MustPage()
-		page.MustEvalOnNewDocument(jssdk.CSR_NO_OP_ALERT)
-		if publicOnly {
-			if err := (proto.NetworkSetBlockedURLs{Urls: []string{"ws://*", "wss://*", "file://*", "ftp://*"}}).Call(page); err != nil {
-				panic(err)
-			}
-			if err := (proto.NetworkSetBypassServiceWorker{Bypass: true}).Call(page); err != nil {
-				panic(err)
-			}
+	}
+	if _, err := cdp.Call(pageCtx, chromedp.FromContext(pageCtx).Target, page.AddScriptToEvaluateOnNewDocument, page.AddScriptToEvaluateOnNewDocumentParams{Source: jssdk.CSR_NO_OP_ALERT}); err != nil {
+		return err
+	}
+	if err := configureBrowserRequests(pageCtx, publicOnly); err != nil {
+		return err
+	}
+	if err := setBrowserCookies(pageCtx, targetURL, cookies); err != nil {
+		return err
+	}
+	return action(pageCtx)
+}
+
+func configureBrowserRequests(ctx context.Context, publicOnly bool) error {
+	patterns := []*fetch.RequestPattern{
+		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeImage},
+		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeMedia},
+		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeFont},
+	}
+	if publicOnly {
+		patterns = []*fetch.RequestPattern{{URLPattern: "*"}}
+		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.Enable, cdpnetwork.EnableParams{}); err != nil {
+			return err
 		}
-		router := page.HijackRequests()
-		client := network.PublicHTTPClient(time.Until(deadline(ctx)))
-		router.MustAdd("*", func(h *rod.Hijack) {
-			resource := h.Request.Type()
-			if resource == proto.NetworkResourceTypeImage || resource == proto.NetworkResourceTypeMedia || resource == proto.NetworkResourceTypeFont {
-				h.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
-				return
-			}
-			if publicOnly {
-				h.Request.SetContext(ctx)
-				if err := network.PublicURL(h.Request.URL().String()); err != nil {
-					h.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
-					return
-				}
-				if err := h.LoadResponse(client, true); err != nil {
-					h.Response.Fail(proto.NetworkErrorReasonBlockedByClient)
-				}
-				return
-			}
-			h.ContinueRequest(&proto.FetchContinueRequest{})
-		})
-		defer router.Stop()
-		go router.Run()
-		if cookies != "" {
-			// Scope rule cookies to the rule's actual host and never write them to logs.
-			response := &http.Response{Header: http.Header{"Set-Cookie": nil}}
-			u, err := url.Parse(target)
+		blocked := []*cdpnetwork.BlockPattern{
+			{URLPattern: "ws://*:*/*", Block: true},
+			{URLPattern: "wss://*:*/*", Block: true},
+			{URLPattern: "file://*/*", Block: true},
+			{URLPattern: "ftp://*:*/*", Block: true},
+		}
+		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.SetBlockedURLs, cdpnetwork.SetBlockedURLsParams{URLPatterns: blocked}); err != nil {
+			return err
+		}
+		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.SetBypassServiceWorker, cdpnetwork.SetBypassServiceWorkerParams{Bypass: true}); err != nil {
+			return err
+		}
+	}
+	client := network.PublicHTTPClient(time.Until(deadline(ctx)))
+	executor := chromedp.FromContext(ctx).Target
+	events := cdp.Events(ctx, executor, fetch.RequestPaused)
+	go func() {
+		for paused, err := range events {
 			if err != nil {
-				panic(err)
+				return
 			}
-			for _, raw := range strings.Split(cookies, ";") {
-				response.Header.Set("Set-Cookie", strings.TrimSpace(raw))
-				for _, c := range response.Cookies() {
-					page.MustSetCookies(&proto.NetworkCookieParam{Name: c.Name, Value: c.Value, URL: u.Scheme + "://" + u.Host + "/"})
-				}
+			paused := paused
+			go func() {
+				handlePausedRequest(ctx, &paused, publicOnly, client)
+			}()
+		}
+	}()
+	if _, err := cdp.Call(ctx, executor, fetch.Enable, fetch.EnableParams{Patterns: patterns}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func handlePausedRequest(ctx context.Context, paused *fetch.EventRequestPaused, publicOnly bool, client *http.Client) {
+	executor := chromedp.FromContext(ctx).Target
+	fail := func() {
+		_, _ = cdp.Call(ctx, executor, fetch.FailRequest, fetch.FailRequestParams{RequestID: paused.RequestID, ErrorReason: cdpnetwork.ErrorReasonBlockedByClient})
+	}
+	if paused.ResourceType == cdpnetwork.ResourceTypeImage || paused.ResourceType == cdpnetwork.ResourceTypeMedia || paused.ResourceType == cdpnetwork.ResourceTypeFont {
+		fail()
+		return
+	}
+	if !publicOnly {
+		_, _ = cdp.Call(ctx, executor, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: paused.RequestID})
+		return
+	}
+	if err := network.PublicURL(paused.Request.URL); err != nil {
+		fail()
+		return
+	}
+	postData := make([][]byte, 0, len(paused.Request.PostDataEntries))
+	for _, entry := range paused.Request.PostDataEntries {
+		postData = append(postData, entry.Bytes)
+	}
+	req, err := http.NewRequestWithContext(ctx, paused.Request.Method, paused.Request.URL, bytes.NewReader(bytes.Join(postData, nil)))
+	if err != nil {
+		fail()
+		return
+	}
+	for name, value := range paused.Request.Headers {
+		if text, ok := value.(string); ok && !strings.EqualFold(name, "host") {
+			req.Header.Set(name, text)
+		}
+	}
+	response, err := client.Do(req)
+	if err != nil {
+		fail()
+		return
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fail()
+		return
+	}
+	headers := make([]*fetch.HeaderEntry, 0, len(response.Header))
+	for name, values := range response.Header {
+		for _, value := range values {
+			headers = append(headers, &fetch.HeaderEntry{Name: name, Value: value})
+		}
+	}
+	_, _ = cdp.Call(ctx, executor, fetch.FulfillRequest, fetch.FulfillRequestParams{
+		RequestID:       paused.RequestID,
+		ResponseCode:    int64(response.StatusCode),
+		ResponseHeaders: headers,
+		Body:            body,
+		ResponsePhrase:  strings.TrimSpace(strings.TrimPrefix(response.Status, strconv.Itoa(response.StatusCode))),
+	})
+}
+
+func setBrowserCookies(ctx context.Context, targetURL, cookies string) error {
+	if cookies == "" {
+		return nil
+	}
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		return err
+	}
+	response := &http.Response{Header: http.Header{"Set-Cookie": nil}}
+	for _, raw := range strings.Split(cookies, ";") {
+		response.Header.Set("Set-Cookie", strings.TrimSpace(raw))
+		for _, cookie := range response.Cookies() {
+			if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.SetCookie, cdpnetwork.SetCookieParams{Name: cookie.Name, Value: cookie.Value, URL: u.Scheme + "://" + u.Host + "/"}); err != nil {
+				return err
 			}
 		}
-		action(page)
-	})
+	}
+	return nil
 }
 
 func deadline(ctx context.Context) time.Time {
@@ -280,7 +314,7 @@ func browserCacheKey(config define.JavaScriptConfig, useMixParser bool) string {
 	return fmt.Sprintf("browser:v2:%t:%x", useMixParser, sum)
 }
 
-func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
+func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
 	key := browserCacheKey(config, useMixParser)
 	decode := func(data string) define.BodyParsed {
 		if useMixParser {
@@ -300,17 +334,22 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	ctx, cancel := context.WithTimeout(context.Background(), fn.ExpireBySecond(timeout))
 	defer cancel()
 	var data string
-	err := withRodPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(page *rod.Page) {
-		page.MustNavigate(config.URL).MustWaitLoad().MustElement(config.ListContainer)
+	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
+		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(config.ListContainer))); err != nil {
+			return err
+		}
 		if useMixParser {
-			data = fmt.Sprint(page.MustEval(jssdk.TPL_MIX_JS))
-			return
+			var err error
+			data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+jssdk.TPL_MIX_JS+")()"))
+			return err
 		}
 		injectCode := GetCSRInjectCode(config.File)
 		if injectCode == "" {
-			panic(fmt.Errorf("cannot read rule %s", config.File))
+			return fmt.Errorf("cannot read rule %s", config.File)
 		}
-		data = fmt.Sprint(page.MustEval(injectCode))
+		var err error
+		data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+injectCode+")()"))
+		return err
 	})
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
@@ -330,16 +369,20 @@ func ParsePageByGoRod(config define.JavaScriptConfig, container string, proxyAdd
 	return result
 }
 
-func ProxyPageByGoRod(url string, container string, proxyAddr string, cookies string) (string, error) {
+func ProxyPageByBrowser(url string, container string, proxyAddr string, cookies string) (string, error) {
 	if err := network.PublicURL(url); err != nil {
 		return "", err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT))
 	defer cancel()
 	var html string
-	err := withRodPage(ctx, container, "", url, "", true, func(page *rod.Page) {
-		page.MustNavigate(url).MustWaitLoad().MustElement("body")
-		html = fmt.Sprint(page.MustEval(jssdk.TPL_MIX_JS))
+	err := withBrowserPage(ctx, container, "", url, cookies, true, func(pageCtx context.Context) error {
+		if err := chromedp.Do(pageCtx, chromedp.Navigate(url), chromedp.WaitReady(chromedp.CSS("body"))); err != nil {
+			return err
+		}
+		var err error
+		html, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+jssdk.TPL_MIX_JS+")()"))
+		return err
 	})
 	return html, err
 }

@@ -10,7 +10,8 @@ source copies under `pkg/` are no longer used or maintained here.
 - [gorilla/feeds](https://github.com/gorilla/feeds), by the Gorilla Web Toolkit team: RSS, Atom and JSON Feed generation, v1.2.0, BSD-2-Clause.
 - [Gin](https://github.com/gin-gonic/gin), by the Gin team: HTTP service, v1.12.0, MIT.
 - [gin-contrib/gzip](https://github.com/gin-contrib/gzip): response compression, v1.2.8, MIT.
-- [Rod](https://github.com/go-rod/rod), by the go-rod team: Chrome DevTools Protocol automation, v0.116.2, MIT.
+- [chromedp](https://github.com/chromedp/chromedp), by the chromedp team: Chrome DevTools Protocol automation, v0.21.0, MIT.
+- [cdproto](https://github.com/chromedp/cdproto), by the chromedp team: generated Chrome DevTools Protocol types, v0.157.8, MIT.
 - [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown), by Johannes Kaufmann and contributors: Markdown conversion, v2.5.2, MIT.
 - [cache2go](https://github.com/muesli/cache2go), by muesli and contributors: in-memory caching, commit `518229cd8021`, BSD-3-Clause.
 - [go-redis](https://github.com/redis/go-redis), by the Redis Go team: Redis caching, v9.23.0, BSD-2-Clause.

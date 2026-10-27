@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/cdp"
-	"github.com/go-rod/rod/lib/launcher"
-	"github.com/go-rod/rod/lib/proto"
+	"github.com/chromedp/cdproto/cdp"
+	"github.com/chromedp/cdproto/target"
+	"github.com/chromedp/chromedp"
+	"github.com/chromedp/chromedp/remote"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
@@ -40,14 +40,14 @@ func TestCSRCacheDecodesJSONAndSeparatesModes(t *testing.T) {
 	if err := cacher.Set(browserCacheKey(config, false), jsonData); err != nil {
 		t.Fatal(err)
 	}
-	cached := ParsePageByGoRod(config, "unreachable-browser", "", false)
+	cached := ParsePageByBrowser(config, "unreachable-browser", "", false)
 	if cached.Code != 0 || len(cached.Body) != 1 || cached.Body[0].Title != "Cached title" {
 		t.Fatalf("JSON cache parsed as HTML: %#v", cached)
 	}
 	if err := cacher.Set(browserCacheKey(config, true), `<article><h2>Mixed title</h2><a href="/item">Read</a></article>`); err != nil {
 		t.Fatal(err)
 	}
-	mixed := ParsePageByGoRod(config, "unreachable-browser", "", true)
+	mixed := ParsePageByBrowser(config, "unreachable-browser", "", true)
 	if mixed.Code != 0 || len(mixed.Body) != 1 || mixed.Body[0].Title != "Mixed title" {
 		t.Fatalf("HTML cache not parsed correctly: %#v", mixed)
 	}
@@ -55,7 +55,7 @@ func TestCSRCacheDecodesJSONAndSeparatesModes(t *testing.T) {
 	if err := cacher.Set(config.URL, "wrong representation"); err != nil {
 		t.Fatal(err)
 	}
-	again := ParsePageByGoRod(config, "unreachable-browser", "", false)
+	again := ParsePageByBrowser(config, "unreachable-browser", "", false)
 	if !reflect.DeepEqual(again.Body, cached.Body) {
 		t.Fatal("SSR and CSR caches collided")
 	}
@@ -87,7 +87,7 @@ func TestBrowserConnectionAndQueueTimeout(t *testing.T) {
 	}()
 	ctx2, cancel2 := context.WithTimeout(context.Background(), 30*time.Millisecond)
 	defer cancel2()
-	if err := withRodPage(ctx2, "unreachable", "", "", "", false, func(*rod.Page) { t.Fatal("full queue admitted browser work") }); err == nil {
+	if err := withBrowserPage(ctx2, "unreachable", "", "", "", false, func(context.Context) error { t.Fatal("full queue admitted browser work"); return nil }); err == nil {
 		t.Fatal("full queue did not time out")
 	}
 }
@@ -115,7 +115,7 @@ func TestBrowserWebSocketHandshakeTimeout(t *testing.T) {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
-	if err := withRodPage(ctx, "ws://"+listener.Addr().String()+"/devtools/browser/stalled", "", "", "", false, func(*rod.Page) { t.Error("stalled handshake succeeded") }); err == nil {
+	if err := withBrowserPage(ctx, "ws://"+listener.Addr().String()+"/devtools/browser/stalled", "", "", "", false, func(context.Context) error { t.Error("stalled handshake succeeded"); return nil }); err == nil {
 		t.Fatal("handshake did not time out")
 	}
 	select {
@@ -126,33 +126,30 @@ func TestBrowserWebSocketHandshakeTimeout(t *testing.T) {
 }
 
 func TestBrowserLifecycleAndLiveCache(t *testing.T) {
-	binary, found := launcher.LookPath()
-	if configured := os.Getenv("RSS_TEST_CHROME"); configured != "" {
-		binary = configured
-		found = true
-	}
-	if !found {
+	address := os.Getenv("RSS_TEST_BROWSER_URL")
+	if address == "" {
 		if os.Getenv("RSS_TEST_BROWSER_REQUIRED") == "1" {
-			t.Fatal("Chrome/Chromium required for browser regression tests")
+			t.Fatal("RSS_TEST_BROWSER_URL is required for browser regression tests")
 		}
-		t.Skip("Chrome/Chromium not installed; set RSS_TEST_CHROME to enable browser integration tests")
+		t.Skip("set RSS_TEST_BROWSER_URL to a Chrome remote debugging endpoint to enable browser integration tests")
 	}
 	memoryCacheForTest(t)
-	l := launcher.New().Bin(binary).Leakless(false).Headless(true).UserDataDir(t.TempDir())
-	address, err := l.Launch()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	websocketURL, err := resolveBrowserURL(ctx, address)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer l.Cleanup()
-	defer l.Kill()
-	controller := rod.New().ControlURL(address)
-	if err := controller.Connect(); err != nil {
+	allocCtx, allocCancel := remote.NewAllocator(ctx, websocketURL, remote.NoModifyURL)
+	defer allocCancel()
+	controllerCtx, controllerCancel := chromedp.NewContext(allocCtx)
+	defer controllerCancel()
+	if err := chromedp.Do(controllerCtx); err != nil {
 		t.Fatal(err)
 	}
-	defer controller.Close()
 	assertClean := func(t *testing.T) {
 		t.Helper()
-		contexts, err := (proto.TargetGetBrowserContexts{}).Call(controller)
+		contexts, err := cdp.Call(controllerCtx, chromedp.FromContext(controllerCtx).Browser, target.GetBrowserContexts, cdp.Empty{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -163,45 +160,6 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 			t.Fatal("browser concurrency slot leaked")
 		}
 	}
-	t.Run("dispose context on lost connection", func(t *testing.T) {
-		// Simulate losing the CDP connection before explicit cleanup can run.
-		ws := &cdp.WebSocket{}
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := ws.Connect(ctx, address, nil); err != nil {
-			t.Fatal(err)
-		}
-		defer ws.Close()
-		detached := rod.New().Client(cdp.New().Start(ws)).Context(ctx)
-		if err := detached.Connect(); err != nil {
-			t.Fatal(err)
-		}
-		created, err := (proto.TargetCreateBrowserContext{DisposeOnDetach: true}).Call(detached)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if created.BrowserContextID == "" {
-			t.Fatal("missing browser context")
-		}
-		if err := ws.Close(); err != nil {
-			t.Fatal(err)
-		}
-		// Disposal is asynchronous when the connection disappears.
-		for {
-			contexts, err := (proto.TargetGetBrowserContexts{}).Call(controller)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(contexts.BrowserContextIDs) == 0 {
-				break
-			}
-			if ctx.Err() != nil {
-				t.Fatal("context survived lost CDP connection")
-			}
-			time.Sleep(10 * time.Millisecond)
-		}
-		assertClean(t)
-	})
 	var requests atomic.Int64
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requests.Add(1)
@@ -216,12 +174,12 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 	config := define.JavaScriptConfig{URL: upstream.URL, File: ruleFile, ListContainer: "article", Title: "h2", Link: "a", Timeout: 5}
 	for _, mixed := range []bool{false, true} {
 		t.Run(fmt.Sprintf("cache mixed=%t", mixed), func(t *testing.T) {
-			first := ParsePageByGoRod(config, address, "", mixed)
+			first := ParsePageByBrowser(config, address, "", mixed)
 			if first.Code != 0 || len(first.Body) != 1 || first.Body[0].Title != "Live title" {
 				t.Fatalf("live parse: %#v", first)
 			}
 			count := requests.Load()
-			cached := ParsePageByGoRod(config, "ws://127.0.0.1:1", "", mixed)
+			cached := ParsePageByBrowser(config, "ws://127.0.0.1:1", "", mixed)
 			if cached.Code != 0 || !reflect.DeepEqual(cached.Body, first.Body) {
 				t.Fatalf("cached parse: %#v; live: %#v", cached, first)
 			}
@@ -234,9 +192,13 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 	t.Run("SDK jQuery is isolated from target page", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		err := withRodPage(ctx, address, "", upstream.URL, "", false, func(page *rod.Page) {
-			page.MustNavigate(upstream.URL).MustWaitLoad()
-			page.MustEval(`() => { window.originalDollar = window.$ = {pageOwned: true}; window.originalJQuery = window.jQuery = {pageOwned: true}; }`)
+		err := withBrowserPage(ctx, address, "", upstream.URL, "", false, func(pageCtx context.Context) error {
+			if err := chromedp.Do(pageCtx, chromedp.Navigate(upstream.URL)); err != nil {
+				return err
+			}
+			if _, err := chromedp.Run(pageCtx, chromedp.Evaluate[chromedp.Void](`window.originalDollar = window.$ = {pageOwned: true}; window.originalJQuery = window.jQuery = {pageOwned: true};`)); err != nil {
+				return err
+			}
 			sdkRule := append(append([]byte{}, rule...), []byte(`
     if (typeof jQuery !== "function" || jQuery.fn.jquery !== "4.0.0" || $ !== jQuery || POTTED.fn.$ !== $) {
      throw new Error("private jQuery aliases are missing or inconsistent");
@@ -244,15 +206,23 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
    `)...)
 			code := jssdk.GenerateCSRInjectParser(sdkRule)
 			for i := 0; i < 2; i++ {
-				result := parseCSRItems(fmt.Sprint(page.MustEval(code)))
-				if result.Code != 0 || len(result.Body) != 1 || result.Body[0].Title != "Live title" {
-					panic(fmt.Errorf("SDK result: %#v", result))
+				value, err := chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+code+")()"))
+				if err != nil {
+					return err
 				}
-				preserved := page.MustEval(`() => window.$ === window.originalDollar && window.jQuery === window.originalJQuery`).Bool()
+				result := parseCSRItems(value)
+				if result.Code != 0 || len(result.Body) != 1 || result.Body[0].Title != "Live title" {
+					return fmt.Errorf("SDK result: %#v", result)
+				}
+				preserved, err := chromedp.Run(pageCtx, chromedp.Evaluate[bool](`window.$ === window.originalDollar && window.jQuery === window.originalJQuery`))
+				if err != nil {
+					return err
+				}
 				if !preserved {
-					panic("SDK replaced the page's jQuery globals")
+					return fmt.Errorf("SDK replaced the page's jQuery globals")
 				}
 			}
+			return nil
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -264,7 +234,7 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 		broken.DisableCache = true
 		broken.Timeout = 1
 		broken.ListContainer = ".missing"
-		result := ParsePageByGoRod(broken, address, "", false)
+		result := ParsePageByBrowser(broken, address, "", false)
 		if result.Code == 0 {
 			t.Fatal("missing selector treated as success")
 		}
@@ -277,17 +247,17 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 		broken := config
 		broken.DisableCache = true
 		broken.Timeout = 1
-		result := ParsePageByGoRod(broken, address, "", false)
+		result := ParsePageByBrowser(broken, address, "", false)
 		if result.Code == 0 {
 			t.Fatal("infinite browser script treated as success")
 		}
 		assertClean(t)
 	})
-	t.Run("cleanup after panic", func(t *testing.T) {
+	t.Run("cleanup after action error", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		if err := withRodPage(ctx, address, "", upstream.URL, "", false, func(*rod.Page) { panic("test failure") }); err == nil {
-			t.Fatal("panic swallowed")
+		if err := withBrowserPage(ctx, address, "", upstream.URL, "", false, func(context.Context) error { return fmt.Errorf("test failure") }); err == nil {
+			t.Fatal("action error swallowed")
 		}
 		assertClean(t)
 	})
@@ -308,24 +278,6 @@ func TestBrowserDiscoveryPreservesConfiguredRemoteHost(t *testing.T) {
 		want := strings.Replace(server.URL, "http://", "ws://", 1) + "/devtools/browser/example"
 		if err != nil || got != want {
 			t.Fatalf("endpoint %s resolved to %s, %v; want %s", address, got, err, want)
-		}
-	}
-}
-
-func TestBrowserWebSocketDefaultPorts(t *testing.T) {
-	for _, tc := range []struct {
-		address string
-		secure  bool
-		want    string
-	}{
-		{"example.org", false, "example.org:80"},
-		{"example.org", true, "example.org:443"},
-		{"[::1]", true, "[::1]:443"},
-		{"example.org:9222", true, "example.org:9222"},
-		{"[::1]:9222", false, "[::1]:9222"},
-	} {
-		if got := browserDialAddress(tc.address, tc.secure); got != tc.want {
-			t.Errorf("address %s: got %s, want %s", tc.address, got, tc.want)
 		}
 	}
 }

@@ -38,7 +38,9 @@ var TPL_SSR_JS = func() string {
 
 // combine sdk and csr shim for CSR
 var TPL_CSR_JS = func() string {
-	return fmt.Sprintf("%s\n%s", FILE_SHIM_CSR, FILE_SDK)
+	// Keep the SDK's jQuery in its injection scope and restore any page-owned
+	// jQuery/$ globals before running the rule.
+	return fmt.Sprintf("%s\nvar jQuery = window.jQuery.noConflict(true); var $ = jQuery;\n%s", FILE_SHIM_CSR, FILE_SDK)
 }()
 
 // MIX mode

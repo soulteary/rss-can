@@ -1,11 +1,10 @@
 package fn
 
 import (
-	markdown "github.com/JohannesKaufmann/html-to-markdown"
+	markdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 )
 
 func Html2Md(html string) string {
-	converter := markdown.NewConverter("", true, nil)
-	markdown, _ := converter.ConvertString(html)
+	markdown, _ := markdown.ConvertString(html)
 	return markdown
 }

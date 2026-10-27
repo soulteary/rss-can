@@ -1,0 +1,16 @@
+{
+  "jquery": {
+    "version": "4.0.0",
+    "source": "https://registry.npmjs.org/jquery/-/jquery-4.0.0.tgz",
+    "integrity": "sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==",
+    "file": "dist/jquery.min.js",
+    "sha256": "39a546ea9ad97f8bfaf5d3e0e8f8556adb415e470e59007ada9759dce472adaa"
+  },
+  "moment": {
+    "version": "2.31.0",
+    "source": "https://registry.npmjs.org/moment/-/moment-2.31.0.tgz",
+    "integrity": "sha512-0acOTfMiWOheYS4eoWb80yYMb/JLvVv9SHbs2PehaDzfUG0Bw855SKyk0IKTnPGa5+U2bmi3W68l1+sGLX/pvw==",
+    "file": "min/moment.min.js",
+    "sha256": "c111ad2e4447c253765e679bb4a40ba91a3e23d80b4b69d603a0fd25164cb9de"
+  }
+}

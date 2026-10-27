@@ -20,6 +20,7 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 )
 
@@ -230,6 +231,34 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 			assertClean(t)
 		})
 	}
+	t.Run("SDK jQuery is isolated from target page", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := withRodPage(ctx, address, "", upstream.URL, "", false, func(page *rod.Page) {
+			page.MustNavigate(upstream.URL).MustWaitLoad()
+			page.MustEval(`() => { window.originalDollar = window.$ = {pageOwned: true}; window.originalJQuery = window.jQuery = {pageOwned: true}; }`)
+			sdkRule := append(append([]byte{}, rule...), []byte(`
+    if (typeof jQuery !== "function" || jQuery.fn.jquery !== "4.0.0" || $ !== jQuery || POTTED.fn.$ !== $) {
+     throw new Error("private jQuery aliases are missing or inconsistent");
+    }
+   `)...)
+			code := jssdk.GenerateCSRInjectParser(sdkRule)
+			for i := 0; i < 2; i++ {
+				result := parseCSRItems(fmt.Sprint(page.MustEval(code)))
+				if result.Code != 0 || len(result.Body) != 1 || result.Body[0].Title != "Live title" {
+					panic(fmt.Errorf("SDK result: %#v", result))
+				}
+				preserved := page.MustEval(`() => window.$ === window.originalDollar && window.jQuery === window.originalJQuery`).Bool()
+				if !preserved {
+					panic("SDK replaced the page's jQuery globals")
+				}
+			}
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertClean(t)
+	})
 	t.Run("cleanup after navigation timeout", func(t *testing.T) {
 		broken := config
 		broken.DisableCache = true

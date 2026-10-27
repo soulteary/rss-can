@@ -1,19 +1,17 @@
-FROM golang:1.27.3-bullseye as Builder
+FROM golang:1.27.3-bookworm AS Builder
 WORKDIR /app
-RUN apt-get update && apt-get install -y upx
-ENV GO111MODULE=on
 ENV CGO_ENABLED=1
-ENV GOPROXY=https://goproxy.cn
-COPY . ./
+COPY go.mod go.sum ./
 RUN go mod download
-RUN go build -o rssc
-RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
+COPY . ./
+RUN go build -trimpath -ldflags="-s -w" -o /rssc .
 
-FROM debian:bullseye
-RUN apt-get update && apt-get install -y ca-certificates
-COPY --from=Builder /app/rssc /bin/rssc
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata libstdc++6 && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=Builder /rssc /bin/rssc
 COPY --from=Builder /app/rules /rules
 ENV TZ=Asia/Shanghai
-RUN cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+RUN ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo Asia/Shanghai > /etc/timezone
 EXPOSE 8080
 CMD ["rssc"]

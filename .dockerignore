@@ -6,3 +6,6 @@ docker
 CREDITS.md
 docker-compose.yml
 SECURITY.md
+.git
+dist
+coverage.out

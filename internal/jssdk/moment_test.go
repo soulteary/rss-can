@@ -3,6 +3,7 @@ package jssdk_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 )
@@ -57,4 +58,18 @@ func TestConvertStrToUnix(t *testing.T) {
 	}
 	fmt.Println(timeUnix)
 
+}
+
+func TestMomentUpgradePreservesDateValues(t *testing.T) {
+	for _, input := range []string{"2022-12-12", "2022年12月12日"} {
+		got, err := jssdk.ConvertStrToUnix(input)
+		if err != nil || got.Year() != 2022 || got.Month() != time.December || got.Day() != 12 {
+			t.Errorf("%q: got %s, %v", input, got, err)
+		}
+	}
+	before := time.Now().AddDate(0, 0, -10)
+	got, err := jssdk.ConvertAgoToUnix("10天前")
+	if err != nil || got.Sub(before) < -time.Minute || got.Sub(before) > time.Minute {
+		t.Fatalf("relative date changed: %s, %v", got, err)
+	}
 }

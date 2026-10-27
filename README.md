@@ -96,6 +96,8 @@ The inspector only fetches public HTTP(S) destinations, including redirects and 
 
 Browser tasks run in isolated contexts with a concurrency limit of four. Their deadline covers queueing, connection, navigation, and script execution. Contexts are released on success and failure. SSR, CSR and mixed-mode caches are separate; CSR cache keys also include rule contents and cookies.
 
+See [dependency maintenance](DEPENDENCIES.md) for pinned versions, upgrade constraints and embedded library provenance.
+
 ### Running regression tests
 
 Tests require Redis. Browser integration tests use an installed Chrome / Chromium without downloading a browser:

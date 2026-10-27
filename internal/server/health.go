@@ -3,11 +3,11 @@ package server
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 )
 
-func apiHealth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "pong"})
+func apiHealth() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		return c.Status(http.StatusOK).JSON(fiber.Map{"message": "pong"})
 	}
 }

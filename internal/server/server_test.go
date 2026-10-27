@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
@@ -17,7 +19,6 @@ import (
 )
 
 func TestManagementAccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
 	for _, tc := range []struct {
 		name, token, remote, supplied, forwarded, site, origin string
 		want                                                   int
@@ -36,22 +37,37 @@ func TestManagementAccess(t *testing.T) {
 		{name: "same origin allowed", remote: "127.0.0.1:1234", origin: "http://localhost", site: "same-origin", want: 200},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Setenv("RSS_ADMIN_TOKEN", tc.token)
-			route := gin.New()
-			route.GET("/config", adminOnly(), func(c *gin.Context) { c.Status(200) })
-			req := httptest.NewRequest("GET", "http://localhost/config", nil)
-			req.RemoteAddr = tc.remote
-			req.Header.Set("Authorization", tc.supplied)
-			req.Header.Set("X-Forwarded-For", tc.forwarded)
-			req.Header.Set("Sec-Fetch-Site", tc.site)
-			req.Header.Set("Origin", tc.origin)
-			rec := httptest.NewRecorder()
-			route.ServeHTTP(rec, req)
-			if rec.Code != tc.want {
-				t.Fatalf("got %d, want %d", rec.Code, tc.want)
+			got := adminAccessStatus(adminRequest{
+				token:         tc.token,
+				site:          tc.site,
+				origin:        tc.origin,
+				host:          "localhost",
+				authorization: tc.supplied,
+				xForwardedFor: tc.forwarded,
+				remoteAddr:    tc.remote,
+			})
+			if got == 0 {
+				got = http.StatusOK
+			}
+			if got != tc.want {
+				t.Fatalf("got %d, want %d", got, tc.want)
 			}
 		})
 	}
+}
+
+func testResponse(t *testing.T, app *fiber.App, req *http.Request) (int, string) {
+	t.Helper()
+	response, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response.StatusCode, string(body)
 }
 
 func installTestRule(t *testing.T, upstream string) (string, string) {
@@ -78,12 +94,11 @@ func TestFeedReturnsBadGatewayForUpstreamFailure(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(503) }))
 	defer upstream.Close()
 	installTestRule(t, upstream.URL)
-	route := gin.New()
-	route.GET("/feed/:id/:type/", apiRSS())
-	rec := httptest.NewRecorder()
-	route.ServeHTTP(rec, httptest.NewRequest("GET", "/feed/example/rss/", nil))
-	if rec.Code != http.StatusBadGateway || !strings.Contains(rec.Body.String(), "get website data failed") {
-		t.Fatalf("response: %d %s", rec.Code, rec.Body.String())
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	status, body := testResponse(t, route, httptest.NewRequest("GET", "/feed/example/rss/", nil))
+	if status != http.StatusBadGateway || !strings.Contains(body, "get website data failed") {
+		t.Fatalf("response: %d %s", status, body)
 	}
 }
 
@@ -92,12 +107,11 @@ func TestListReflectsReload(t *testing.T) {
 	previous := define.DEBUG_MODE
 	define.DEBUG_MODE = false
 	defer func() { define.DEBUG_MODE = previous }()
-	route := gin.New()
-	route.GET("/feed", listPage())
+	route := fiber.New()
+	route.Get("/feed", listPage())
 	get := func() string {
-		rec := httptest.NewRecorder()
-		route.ServeHTTP(rec, httptest.NewRequest("GET", "/feed", nil))
-		return rec.Body.String()
+		_, body := testResponse(t, route, httptest.NewRequest("GET", "/feed", nil))
+		return body
 	}
 	if !strings.Contains(get(), "Before") {
 		t.Fatal("initial rule missing")
@@ -113,36 +127,67 @@ func TestListReflectsReload(t *testing.T) {
 
 func TestInspectorRejectsPrivateTargetBeforeBrowserConnection(t *testing.T) {
 	logger.Initialize()
-	route := gin.New()
-	route.GET("/inspector/:url/", inspectorProxy())
+	route := fiber.New()
+	route.Get("/inspector/:url/", inspectorProxy())
 	for _, target := range []string{"http://127.0.0.1:6379", "file:///etc/passwd", "http://169.254.169.254"} {
-		rec := httptest.NewRecorder()
-		route.ServeHTTP(rec, httptest.NewRequest("GET", "/inspector/"+fn.Base64Encode(target)+"/", nil))
-		if rec.Code != http.StatusBadRequest {
-			t.Errorf("target %s: %d", target, rec.Code)
+		status, _ := testResponse(t, route, httptest.NewRequest("GET", "/inspector/"+fn.Base64Encode(target)+"/", nil))
+		if status != http.StatusBadRequest {
+			t.Errorf("target %s: %d", target, status)
 		}
 	}
 }
 
 func TestManagementRejectsRebindingHost(t *testing.T) {
 	t.Setenv("RSS_ADMIN_TOKEN", "")
-	route := gin.New()
-	route.GET("/config", adminOnly(), func(c *gin.Context) { c.Status(200) })
+	route := fiber.New()
+	route.Get("/config", adminOnly(), func(c fiber.Ctx) error { return c.SendStatus(http.StatusOK) })
 	req := httptest.NewRequest("GET", "http://attacker.invalid/config", nil)
-	req.RemoteAddr = "127.0.0.1:1234"
-	rec := httptest.NewRecorder()
-	route.ServeHTTP(rec, req)
-	if rec.Code != http.StatusForbidden {
+	status, _ := testResponse(t, route, req)
+	if status != http.StatusForbidden {
 		t.Fatal("non-local Host accepted without a token")
 	}
 }
 
 func TestInspectorHomeUsesEmbeddedAssets(t *testing.T) {
-	route := gin.New()
-	route.GET("/inspector", inspectorHome())
-	rec := httptest.NewRecorder()
-	route.ServeHTTP(rec, httptest.NewRequest("GET", "/inspector", nil))
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "<html") {
+	route := fiber.New()
+	route.Get("/inspector", inspectorHome())
+	status, body := testResponse(t, route, httptest.NewRequest("GET", "/inspector", nil))
+	if status != http.StatusOK || !strings.Contains(body, "<html") {
 		t.Fatal("inspector template not embedded")
+	}
+}
+
+func TestFiberUtilityRoutesAndEmbeddedAssets(t *testing.T) {
+	route := fiber.New()
+	route.Get("/_/health/", apiHealth())
+	route.Get("/_/1x1.gif", PixelImage())
+	route.Use("/assets", static.New("/", static.Config{FS: ServerAssets()}))
+
+	for _, test := range []struct {
+		path, contentType, body string
+	}{
+		{path: "/_/health/", contentType: "application/json", body: `"pong"`},
+		{path: "/_/1x1.gif", contentType: "image/gif", body: "GIF89a"},
+		{path: "/assets/css/tailwind.min.css", contentType: "text/css", body: "--tw-"},
+	} {
+		req := httptest.NewRequest(http.MethodGet, test.path, nil)
+		response, err := route.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusOK {
+			t.Errorf("%s: got status %d", test.path, response.StatusCode)
+		}
+		if !strings.HasPrefix(response.Header.Get("Content-Type"), test.contentType) {
+			t.Errorf("%s: got content type %q", test.path, response.Header.Get("Content-Type"))
+		}
+		if !strings.Contains(string(data), test.body) {
+			t.Errorf("%s: expected body to contain %q", test.path, test.body)
+		}
 	}
 }

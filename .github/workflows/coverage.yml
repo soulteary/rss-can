@@ -4,12 +4,16 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - '**'
+      - main
   pull_request:
 env:
   GO111MODULE: on
   CGO_ENABLED: 1
   RSS_SERVER: 127.0.0.1:6379
+
+concurrency:
+  group: coverage-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   coverage:
@@ -28,22 +32,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-
-      - name: Cache Go modules
-        uses: actions/cache@v4
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Run coverage
         if: "!(github.event_name == 'pull_request')"

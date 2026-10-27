@@ -18,7 +18,9 @@ permissions:
 
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: false
+  # Preserve immutable release builds, but stop spending runner time on
+  # superseded branch and pull-request revisions.
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   release_tooling:
@@ -27,9 +29,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
       - name: Test publication and recovery tooling
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Check tag, notes and Docker toolchain before publication
@@ -55,6 +54,8 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Setup redis
         uses: shogo82148/actions-setup-redis@v1
@@ -160,9 +161,8 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
-
+          cache: true
+          cache-dependency-path: go.sum
 
       - name: Tests
         run: |

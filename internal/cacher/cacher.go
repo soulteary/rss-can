@@ -5,16 +5,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/muesli/cache2go"
 	"github.com/redis/go-redis/v9"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/cache-kit/v2/ttlcache"
 )
 
 var noAlivedBackend = (func() error {
 	return errors.New("no cache enabled")
 })()
 
-var instanceMemory *cache2go.CacheTable
+var instanceMemory *ttlcache.Memory[string, []byte]
 var instanceRedis *redis.Client
 
 var initializeOnce sync.Once

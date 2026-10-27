@@ -24,15 +24,12 @@ array and the legacy `author` field. RSS and Atom entry IDs, content and links
 are covered by regression tests. Markdown conversion has focused tests for
 headings, Unicode text, emphasis, links, images, ordered lists and code.
 
-Keep these compatibility constraints until Rod is updated upstream:
+Browser automation now uses chromedp v0.21.0 and generated cdproto v0.157.8.
+The migration removes Rod and its pinned fetchup/got/goob/gson/leakless dependency
+chain. Remote Chrome discovery, isolated browser contexts, request filtering,
+cookies and deadline-bounded WebSocket connections remain covered by parser tests.
 
-- Rod v0.116.2 uses `fetchup.New(destination, urls...)`. Fetchup v0.5.3 instead
-  uses `New(urls...)`, `WithSaveTo(destination)` and `Fetch()`; upgrading it independently breaks
-  Rod's browser launcher. Keep v0.2.4.
-- Rod imports `github.com/ysmood/got/lib/lcs`, which is absent from got v0.43.0.
-  Keep got v0.41.0 and its gop v0.2.0 dependency. A trial upgrade failed package
-  loading and was reverted before validation.
-- Gin, gzip, Zap, Rod, v8go and the selected `golang.org/x/*` versions were already
+- Gin, gzip, Zap, chromedp, v8go and the selected `golang.org/x/*` versions were already
   at their latest stable releases when checked. v8go includes native V8 libraries;
   changing to another fork is a separate runtime/build migration, not a version bump.
 
@@ -59,18 +56,18 @@ verification; no newer release was substituted without that work.
 
 ## Validation
 
-Use an installed Chrome/Chromium and a test Redis instance:
+Use a remote-debuggable Chrome/Chromium endpoint and a test Redis instance:
 
 ```sh
-RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
+RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_URL=http://127.0.0.1:9222 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
 go vet ./...
 go mod verify
 go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
 go build -o /tmp/rssc .
 ```
 
-Use `RSS_TEST_CHROME` if Chrome cannot be located automatically. Redis client
-compatibility is also tested against Redis 6, matching the existing macOS CI
+`RSS_TEST_BROWSER_URL` may be an HTTP discovery endpoint or a complete browser
+WebSocket debugger URL. Redis client compatibility is also tested against Redis 6, matching the existing macOS CI
 configuration. Browser integration tests must execute, rather than skip, during
 upgrade verification.
 

@@ -1,6 +1,7 @@
 package cacher
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ var noAlivedBackend = (func() error {
 
 var instanceMemory *ttlcache.Memory[string, []byte]
 var instanceRedis *redis.Client
+var instanceService *Service
 
 var initializeOnce sync.Once
 
@@ -25,26 +27,23 @@ func Initialize() {
 	initializeOnce.Do(func() {
 		instanceMemory = InitializeMemory(true, define.DEFAULT_IN_MEMORY_CACHE_STORE_NAME)
 		instanceRedis = InitializeRedis(true)
+		instanceService = NewService(
+			newRedisBackend(instanceRedis),
+			newMemoryBackend(instanceMemory),
+			func() bool { return define.REDIS },
+			func() bool { return define.IN_MEMORY_CACHE },
+		)
 	})
 }
 
 func Get(key string) (string, error) {
-	Initialize()
-	if define.REDIS {
-		str, err := GetDataFromRedis(instanceRedis, key)
-		if err != nil {
-			if define.IN_MEMORY_CACHE {
-				return FallbackToMemoryGet(key)
-			}
-			return "", err
-		}
-		return str, nil
-	}
+	value, _, err := GetWithStatus(context.Background(), key)
+	return value, err
+}
 
-	if define.IN_MEMORY_CACHE {
-		return FallbackToMemoryGet(key)
-	}
-	return "", noAlivedBackend
+func GetWithStatus(ctx context.Context, key string) (string, bool, error) {
+	Initialize()
+	return instanceService.Get(ctx, key)
 }
 
 func FallbackToMemoryGet(key string) (string, error) {
@@ -57,22 +56,12 @@ func FallbackToMemoryGet(key string) (string, error) {
 }
 
 func Set(key string, value string) error {
-	Initialize()
-	if define.REDIS {
-		err := UpdateDataToRedis(instanceRedis, key, value)
-		if err != nil {
-			if define.IN_MEMORY_CACHE {
-				return FallbackToMemorySet(key, value)
-			}
-			return err
-		}
-		return nil
-	}
+	return SetWithTTL(context.Background(), key, value, 0)
+}
 
-	if define.IN_MEMORY_CACHE {
-		return FallbackToMemorySet(key, value)
-	}
-	return noAlivedBackend
+func SetWithTTL(ctx context.Context, key, value string, ttl time.Duration) error {
+	Initialize()
+	return instanceService.Set(ctx, key, value, ttl)
 }
 
 func FallbackToMemorySet(key string, value string) error {
@@ -83,21 +72,7 @@ func FallbackToMemorySet(key string, value string) error {
 
 func Del(key string) error {
 	Initialize()
-	if define.REDIS {
-		err := DelDataByKeyFromRedis(instanceRedis, key)
-		if err != nil {
-			if define.IN_MEMORY_CACHE {
-				return FallbackToMemoryDel(key)
-			}
-			return err
-		}
-		return nil
-	}
-
-	if define.IN_MEMORY_CACHE {
-		return FallbackToMemoryDel(key)
-	}
-	return noAlivedBackend
+	return instanceService.Delete(context.Background(), key)
 }
 
 func FallbackToMemoryDel(key string) error {
@@ -135,5 +110,12 @@ func FallbackToMemoryExpire(key string, expire time.Duration) error {
 }
 
 func IsEnable() bool {
-	return define.IN_MEMORY_CACHE || define.REDIS
+	Initialize()
+	return instanceService.Enabled()
+}
+
+// Close releases the cache backends initialized for this process.
+func Close() error {
+	Initialize()
+	return instanceService.Close()
 }

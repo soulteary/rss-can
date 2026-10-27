@@ -2,6 +2,7 @@ package network
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -55,8 +56,8 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}()
 
 	if cacher.IsEnable() && !disableCache {
-		cache, err := cacher.Get(url)
-		if err == nil && cache != "" {
+		cache, found, err := cacher.GetWithStatus(context.Background(), url)
+		if err == nil && found {
 			logger.Instance.Debugln("Get remote document from cache", url)
 			return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, cache)
 		}
@@ -86,15 +87,13 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}
 
 	if cacher.IsEnable() && !disableCache {
-		err = cacher.Set(url, buffer.String())
+		ttl := fn.ExpireBySecond(expire)
+		if expire <= 0 {
+			ttl = fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)
+		}
+		err = cacher.SetWithTTL(context.Background(), url, buffer.String(), ttl)
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
-		} else {
-			if expire > 0 {
-				cacher.Expire(url, fn.ExpireBySecond(expire))
-			} else {
-				cacher.Expire(url, fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION))
-			}
 		}
 	}
 	return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, buffer.String())

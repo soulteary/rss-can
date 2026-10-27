@@ -323,7 +323,7 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 		return parseCSRItems(data)
 	}
 	if cacher.IsEnable() && !config.DisableCache {
-		if cached, err := cacher.Get(key); err == nil && cached != "" {
+		if cached, found, err := cacher.GetWithStatus(context.Background(), key); err == nil && found {
 			return decode(cached)
 		}
 	}
@@ -356,14 +356,12 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 	}
 	result := decode(data)
 	if result.Code == define.ERROR_CODE_NULL && cacher.IsEnable() && !config.DisableCache {
-		if err := cacher.Set(key, data); err != nil {
+		expire := config.Expire
+		if expire <= 0 {
+			expire = define.IN_MEMORY_EXPIRATION
+		}
+		if err := cacher.SetWithTTL(context.Background(), key, data, fn.ExpireBySecond(expire)); err != nil {
 			logger.Instance.Warn("Unable to use cache")
-		} else {
-			expire := config.Expire
-			if expire <= 0 {
-				expire = define.IN_MEMORY_EXPIRATION
-			}
-			_ = cacher.Expire(key, fn.ExpireBySecond(expire))
 		}
 	}
 	return result

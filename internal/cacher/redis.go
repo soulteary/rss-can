@@ -13,8 +13,56 @@ import (
 
 const redisKitKeyPrefix = "rss-can:redis-kit:v1:"
 
-func redisCache(instance *redis.Client) *rediscache.RedisCache {
-	return rediscache.NewCache(instance, redisKitKeyPrefix)
+type redisBackend struct {
+	client *redis.Client
+	cache  *rediscache.RedisCache
+}
+
+func newRedisBackend(client *redis.Client) *redisBackend {
+	return &redisBackend{client: client, cache: rediscache.NewCache(client, redisKitKeyPrefix)}
+}
+
+func (b *redisBackend) Set(ctx context.Context, key, value string, ttl time.Duration) error {
+	if b.client == nil {
+		return errors.New("redis cache is not initialized")
+	}
+	return b.cache.Set(ctx, key, value, ttl)
+}
+
+func (b *redisBackend) Get(ctx context.Context, key string) (string, bool, error) {
+	if b.client == nil {
+		return "", false, errors.New("redis cache is not initialized")
+	}
+	var result string
+	err := b.cache.Get(ctx, key, &result)
+	if errors.Is(err, rediscache.ErrKeyNotFound) {
+		legacy, legacyErr := b.client.Get(ctx, key).Result()
+		if errors.Is(legacyErr, redis.Nil) {
+			return "", false, nil
+		}
+		if legacyErr != nil {
+			return "", false, legacyErr
+		}
+		return legacy, true, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return result, true, nil
+}
+
+func (b *redisBackend) Delete(ctx context.Context, key string) error {
+	if b.client == nil {
+		return errors.New("redis cache is not initialized")
+	}
+	if err := b.cache.Del(ctx, key); err != nil {
+		return err
+	}
+	return b.client.Del(ctx, key).Err()
+}
+
+func (b *redisBackend) Close() error {
+	return redisclient.Close(b.client)
 }
 
 func InitializeRedis(enabled bool) *redis.Client {
@@ -40,56 +88,25 @@ func Disconnect(instance *redis.Client) error {
 }
 
 func UpdateDataToRedis(instance *redis.Client, key string, value string) error {
-	if instance == nil {
-		return errors.New("redis cache is not initialized")
-	}
-	return redisCache(instance).Set(context.Background(), key, value, 0)
+	return newRedisBackend(instance).Set(context.Background(), key, value, 0)
 }
 
 func GetDataFromRedis(instance *redis.Client, key string) (string, error) {
-	if instance == nil {
-		return "", errors.New("redis cache is not initialized")
-	}
-
-	ctx := context.Background()
-	var result string
-	err := redisCache(instance).Get(ctx, key, &result)
-	if errors.Is(err, rediscache.ErrKeyNotFound) {
-		// Releases before redis-kit stored arbitrary response bodies as raw Redis
-		// strings. A separate namespace is required because a legacy body may
-		// itself be valid JSON and cannot be distinguished by decoding it.
-		legacy, legacyErr := instance.Get(ctx, key).Result()
-		if errors.Is(legacyErr, redis.Nil) {
-			return "", nil
-		}
-		if legacyErr != nil {
-			return "", legacyErr
-		}
-		return legacy, nil
-	}
-	if err != nil {
-		return "", err
-	}
-	return result, nil
+	value, _, err := newRedisBackend(instance).Get(context.Background(), key)
+	return value, err
 }
 
 func DelDataByKeyFromRedis(instance *redis.Client, key string) error {
-	if instance == nil {
-		return errors.New("redis cache is not initialized")
-	}
-	ctx := context.Background()
-	if err := redisCache(instance).Del(ctx, key); err != nil {
-		return err
-	}
-	return instance.Del(ctx, key).Err()
+	return newRedisBackend(instance).Delete(context.Background(), key)
 }
 
 func SetDataExpireByKeyFromRedis(instance *redis.Client, key string, expire time.Duration) error {
+	ctx := context.Background()
+	backend := newRedisBackend(instance)
 	if instance == nil {
 		return errors.New("redis cache is not initialized")
 	}
-	ctx := context.Background()
-	if err := redisCache(instance).Expire(ctx, key, expire); err != nil {
+	if err := backend.cache.Expire(ctx, key, expire); err != nil {
 		return err
 	}
 	return instance.Expire(ctx, key, expire).Err()

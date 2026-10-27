@@ -7,86 +7,90 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/soulteary/RSS-Can/internal/define"
+	rediscache "github.com/soulteary/redis-kit/cache"
+	redisclient "github.com/soulteary/redis-kit/client"
 )
+
+const redisKitKeyPrefix = "rss-can:redis-kit:v1:"
+
+func redisCache(instance *redis.Client) *rediscache.RedisCache {
+	return rediscache.NewCache(instance, redisKitKeyPrefix)
+}
 
 func InitializeRedis(enabled bool) *redis.Client {
 	if !enabled {
 		return nil
 	}
-	instance := redis.NewClient(&redis.Options{
-		Addr:       define.REDIS_SERVER,
-		Password:   define.REDIS_PASS,
-		DB:         define.REDIS_DB,
-		PoolSize:   100,
-		MaxRetries: 3,
+	// Keep client construction lazy: the cacher can fall back to memory when
+	// Redis is unavailable, so initialization must not require a successful PING.
+	return redis.NewClient(&redis.Options{
+		Addr:     define.REDIS_SERVER,
+		Password: define.REDIS_PASS,
+		DB:       define.REDIS_DB,
+		PoolSize: 100,
+		// Keep pipelines inside the configured connection budget, matching
+		// clients constructed by redis-kit.
+		PipelinePoolSize: -1,
+		MaxRetries:       3,
 	})
-	return instance
 }
 
-// Connect retains the configured client: go-redis reconnects its own pool.
-// Closing/replacing a client on Ping failure loses configuration and leaks pools.
-func Connect(instance *redis.Client) *redis.Client { return instance }
-
-func Disconnect(instance *redis.Client) (err error) {
-	return instance.Close()
+func Disconnect(instance *redis.Client) error {
+	return redisclient.Close(instance)
 }
 
-func UpdateDataToRedis(instance *redis.Client, key string, value string) (err error) {
-	var ctx = context.Background()
-
-	rdb := Connect(instance)
-	if rdb == nil {
+func UpdateDataToRedis(instance *redis.Client, key string, value string) error {
+	if instance == nil {
 		return errors.New("redis cache is not initialized")
 	}
-	err = rdb.Set(ctx, key, value, 0).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+	return redisCache(instance).Set(context.Background(), key, value, 0)
 }
 
-func GetDataFromRedis(instance *redis.Client, key string) (result string, err error) {
-	var ctx = context.Background()
-
-	rdb := Connect(instance)
-	if rdb == nil {
+func GetDataFromRedis(instance *redis.Client, key string) (string, error) {
+	if instance == nil {
 		return "", errors.New("redis cache is not initialized")
 	}
-	data, err := rdb.Get(ctx, key).Result()
-	// REDIS_KEY_NOT_EXIST
-	if err == redis.Nil {
-		return "", nil
-	} else if err != nil {
+
+	ctx := context.Background()
+	var result string
+	err := redisCache(instance).Get(ctx, key, &result)
+	if errors.Is(err, rediscache.ErrKeyNotFound) {
+		// Releases before redis-kit stored arbitrary response bodies as raw Redis
+		// strings. A separate namespace is required because a legacy body may
+		// itself be valid JSON and cannot be distinguished by decoding it.
+		legacy, legacyErr := instance.Get(ctx, key).Result()
+		if errors.Is(legacyErr, redis.Nil) {
+			return "", nil
+		}
+		if legacyErr != nil {
+			return "", legacyErr
+		}
+		return legacy, nil
+	}
+	if err != nil {
 		return "", err
-	} else {
-		return data, nil
 	}
+	return result, nil
 }
 
-func DelDataByKeyFromRedis(instance *redis.Client, key string) (err error) {
-	var ctx = context.Background()
-
-	rdb := Connect(instance)
-	if rdb == nil {
+func DelDataByKeyFromRedis(instance *redis.Client, key string) error {
+	if instance == nil {
 		return errors.New("redis cache is not initialized")
 	}
-	_, err = rdb.Del(ctx, key).Result()
-	if err != nil {
+	ctx := context.Background()
+	if err := redisCache(instance).Del(ctx, key); err != nil {
 		return err
 	}
-	return nil
+	return instance.Del(ctx, key).Err()
 }
 
-func SetDataExpireByKeyFromRedis(instance *redis.Client, key string, expire time.Duration) (err error) {
-	var ctx = context.Background()
-
-	rdb := Connect(instance)
-	if rdb == nil {
+func SetDataExpireByKeyFromRedis(instance *redis.Client, key string, expire time.Duration) error {
+	if instance == nil {
 		return errors.New("redis cache is not initialized")
 	}
-	_, err = rdb.Expire(ctx, key, expire).Result()
-	if err != nil {
+	ctx := context.Background()
+	if err := redisCache(instance).Expire(ctx, key, expire); err != nil {
 		return err
 	}
-	return nil
+	return instance.Expire(ctx, key, expire).Err()
 }

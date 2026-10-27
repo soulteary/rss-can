@@ -2,14 +2,15 @@ package server
 
 import (
 	"context"
-	"net/http"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
 
-	"github.com/gin-contrib/gzip"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
@@ -23,42 +24,37 @@ func GetFeedPath() string {
 func StartWebServer() {
 	rule.InitRules()
 
-	if !define.DEBUG_MODE {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	route := gin.Default()
+	timeout := fn.ExpireBySecond(define.SERVER_TIMEOUT)
+	route := fiber.New(fiber.Config{
+		ReadTimeout: timeout,
+		IdleTimeout: timeout,
+	})
 
 	if !define.DEBUG_MODE {
-		route.Use(gzip.Gzip(gzip.DefaultCompression))
+		route.Use(compress.New())
 	}
 
-	route.Use(Logger(logger.Instance), gin.Recovery())
-	route.GET(GetFeedPath()+"/:id/:type/", apiRSS())
-	route.GET(GetFeedPath(), listPage())
-	route.GET("/config/:type/:value/", adminOnly(), apiConfig())
+	route.Use(Logger(logger.Instance), recover.New())
+	route.Get(GetFeedPath()+"/:id/:type/", apiRSS())
+	route.Get(GetFeedPath(), listPage())
+	route.Get("/config/:type/:value/", adminOnly(), apiConfig())
 
-	route.GET("/inspector/:url/", adminOnly(), inspectorProxy())
-	route.GET("/inspector", adminOnly(), inspectorHome())
-	route.POST("/inspector", adminOnly(), inspectorPrepare())
-	route.GET("/_/1x1.gif", PixelImage())
+	route.Get("/inspector/:url/", adminOnly(), inspectorProxy())
+	route.Get("/inspector", adminOnly(), inspectorHome())
+	route.Post("/inspector", adminOnly(), inspectorPrepare())
+	route.Get("/_/1x1.gif", PixelImage())
 
-	route.GET("/_/health/", apiHealth())
-	route.StaticFS("/assets/", ServerAssets())
-	route.GET("/", welcomePage())
+	route.Get("/_/health/", apiHealth())
+	route.Use("/assets", static.New("/", static.Config{FS: ServerAssets()}))
+	route.Get("/", welcomePage())
 
-	srv := &http.Server{
-		Addr:              define.HTTP_HOST + ":" + strconv.Itoa(define.HTTP_PORT),
-		Handler:           route,
-		ReadHeaderTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT),
-		ReadTimeout:       fn.ExpireBySecond(define.SERVER_TIMEOUT),
-	}
+	addr := define.HTTP_HOST + ":" + strconv.Itoa(define.HTTP_PORT)
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := route.Listen(addr, fiber.ListenConfig{DisableStartupMessage: true}); err != nil {
 			logger.Instance.Fatalf("Program start error: %s\n", err)
 		}
 	}()
@@ -71,7 +67,7 @@ func StartWebServer() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := route.ShutdownWithContext(ctx); err != nil {
 		logger.Instance.Fatalf("Program was forced to close: %s\n", err)
 	}
 

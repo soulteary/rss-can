@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
@@ -27,9 +27,9 @@ var embedAssets embed.FS
 //go:embed templates
 var pageTemplates embed.FS
 
-func ServerAssets() http.FileSystem {
+func ServerAssets() fs.FS {
 	assets, _ := fs.Sub(embedAssets, "assets")
-	return http.FS(assets)
+	return assets
 }
 
 func GetPageByName(pageName string) (file []byte) {
@@ -48,20 +48,20 @@ func UpdateHomePage(content []byte) []byte {
 	return body
 }
 
-func welcomePage() gin.HandlerFunc {
+func welcomePage() fiber.Handler {
 	var homepage = UpdateHomePage(GetPageByName("home.html"))
-	return func(c *gin.Context) {
+	return func(c fiber.Ctx) error {
+		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
 		if define.DEBUG_MODE {
 			file := fn.GetFileContent("internal/server/templates/home.html")
 			if file != nil {
-				c.Data(http.StatusOK, "text/html", UpdateHomePage(file))
+				return c.Status(http.StatusOK).Send(UpdateHomePage(file))
 			} else {
-				c.Data(http.StatusOK, "text/html", homepage)
 				logger.Instance.Warnf("rendering template home failed")
+				return c.Status(http.StatusOK).Send(homepage)
 			}
-		} else {
-			c.Data(http.StatusOK, "text/html", homepage)
 		}
+		return c.Status(http.StatusOK).Send(homepage)
 	}
 }
 
@@ -116,74 +116,64 @@ func UpdateListPage(content []byte) []byte {
 	return body
 }
 
-func listPage() gin.HandlerFunc {
+func listPage() fiber.Handler {
 
-	return func(c *gin.Context) {
+	return func(c fiber.Ctx) error {
+		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
 		if define.DEBUG_MODE {
 			file := fn.GetFileContent("internal/server/templates/list.html")
 			if file != nil {
-				c.Data(http.StatusOK, "text/html", UpdateListPage(file))
+				return c.Status(http.StatusOK).Send(UpdateListPage(file))
 			} else {
-				c.Data(http.StatusOK, "text/html", UpdateListPage(GetPageByName("list.html")))
 				logger.Instance.Warnf("rendering template list failed")
+				return c.Status(http.StatusOK).Send(UpdateListPage(GetPageByName("list.html")))
 			}
-		} else {
-			c.Data(http.StatusOK, "text/html", UpdateListPage(GetPageByName("list.html")))
 		}
+		return c.Status(http.StatusOK).Send(UpdateListPage(GetPageByName("list.html")))
 	}
 }
 
-func inspectorHome() gin.HandlerFunc {
-	return func(c *gin.Context) {
+func inspectorHome() fiber.Handler {
+	return func(c fiber.Ctx) error {
 		file := GetPageByName("inspector.html")
-		c.Data(http.StatusOK, "text/html", file)
+		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+		return c.Status(http.StatusOK).Send(file)
 	}
 }
 
-func inspectorPrepare() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		url := c.PostForm("url")
+func inspectorPrepare() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		url := c.FormValue("url")
 		// Validate before allocating browser resources.
 		if network.PublicURL(url) != nil {
-			c.Redirect(http.StatusFound, "./inspector")
-			c.Abort()
-			return
+			return c.Redirect().Status(http.StatusFound).To("./inspector")
 		}
 
-		engine := c.DefaultPostForm("engine", define.DEFAULT_PARSE_MODE)
+		engine := c.FormValue("engine", define.DEFAULT_PARSE_MODE)
 		if engine != define.PARSE_MODE_SSR && engine != define.PARSE_MODE_CSR && engine != define.PARSE_MODE_MIX {
-			c.Redirect(http.StatusFound, "./inspector")
-			c.Abort()
-			return
+			return c.Redirect().Status(http.StatusFound).To("./inspector")
 		}
 
 		target := fmt.Sprintf("./inspector/%s/", fn.Base64Encode(url))
-		c.Redirect(http.StatusFound, target)
+		return c.Redirect().Status(http.StatusFound).To(target)
 	}
 }
 
-func inspectorProxy() gin.HandlerFunc {
-	type Params struct {
-		URL string `uri:"url" binding:"required"`
-	}
-
-	return func(c *gin.Context) {
-		var params Params
-		if err := c.ShouldBindUri(&params); err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"msg": err})
-			return
+func inspectorProxy() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		encodedURL := c.Params("url")
+		if encodedURL == "" {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "missing inspector URL"})
 		}
 
-		url := fn.Base64Decode(params.URL)
+		url := fn.Base64Decode(encodedURL)
 		// TODO set with config or parameters
 		if err := network.PublicURL(url); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"msg": "invalid inspector URL"})
-			return
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "invalid inspector URL"})
 		}
 		rawHtml, err := parser.ProxyPageByBrowser(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
 		if err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"msg": "inspector fetch failed"})
-			return
+			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": "inspector fetch failed"})
 		}
 		html := parser.ParseFullPageByGoQuery(rawHtml, func(document *goquery.Document) string {
 			document.Find("script").Remove()
@@ -197,7 +187,8 @@ func inspectorProxy() gin.HandlerFunc {
 		})
 		// Render fetched markup in an opaque origin: event handlers and frames
 		// must not inherit the management service's origin or credentials.
-		c.Header("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' http: https:; img-src data: http: https:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'")
-		c.Data(http.StatusOK, "text/html", []byte(html))
+		c.Set("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' http: https:; img-src data: http: https:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'")
+		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+		return c.Status(http.StatusOK).SendString(html)
 	}
 }

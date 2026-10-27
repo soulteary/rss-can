@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/rule"
@@ -29,38 +29,31 @@ func generateFeedResponse(config define.JavaScriptConfig, data define.BodyParsed
 	return mimetype, response
 }
 
-func apiRSS() gin.HandlerFunc {
-	type Params struct {
-		Type string `uri:"type" binding:"required"` // RSS Type
-		ID   string `uri:"id" binding:"required"`
-	}
-
-	return func(c *gin.Context) {
-		var rss Params
-		if err := c.ShouldBindUri(&rss); err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"msg": err})
-			return
+func apiRSS() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		id := c.Params("id")
+		rssType := c.Params("type")
+		if id == "" || rssType == "" {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "missing feed parameter"})
 		}
 
-		ruleFile, exist := rule.Lookup(rss.ID)
+		ruleFile, exist := rule.Lookup(id)
 		if !exist {
-			c.JSON(http.StatusNotFound, gin.H{"msg": "rule not found"})
-			return
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "rule not found"})
 		}
 
 		config, err := rule.GenerateConfigByRule(ruleFile)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"msg": "parse config failed"})
-			return
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "parse config failed"})
 		}
 
 		data := rule.GetWebsiteDataWithConfig(config)
 		if data.Code != define.ERROR_CODE_NULL {
-			c.JSON(http.StatusBadGateway, gin.H{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
-			return
+			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
 		}
 
-		mimetype, response := generateFeedResponse(config, data, strings.ToLower(rss.Type))
-		c.Data(http.StatusOK, mimetype, []byte(response))
+		mimetype, response := generateFeedResponse(config, data, strings.ToLower(rssType))
+		c.Set(fiber.HeaderContentType, mimetype)
+		return c.Status(http.StatusOK).SendString(response)
 	}
 }

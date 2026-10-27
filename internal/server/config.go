@@ -5,36 +5,29 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
-func apiConfig() gin.HandlerFunc {
-	type Params struct {
-		Type  string `uri:"type" binding:"required"`
-		Value string `uri:"value" binding:"required"`
-	}
-
-	return func(c *gin.Context) {
-		var config Params
-		if err := c.ShouldBindUri(&config); err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"msg": err})
-			return
+func apiConfig() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		configType := c.Params("type")
+		configValue := c.Params("value")
+		if configType == "" || configValue == "" {
+			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "missing config parameter"})
 		}
 
-		switch strings.ToLower(config.Type) {
+		switch strings.ToLower(configType) {
 		case "set-loglevel":
-			logger.SetLevel(config.Value)
-			c.JSON(http.StatusOK, gin.H{"msg": fmt.Sprintf("Update loglevel with %s", config.Value)})
-			return
+			logger.SetLevel(configValue)
+			return c.Status(http.StatusOK).JSON(fiber.Map{"msg": fmt.Sprintf("Update loglevel with %s", configValue)})
 		case "rules":
-			if strings.ToLower(config.Value) == "fresh" {
+			if strings.ToLower(configValue) == "fresh" {
 				rule.InitRules()
-				c.JSON(http.StatusOK, gin.H{"msg": "Rules refreshed"})
+				return c.Status(http.StatusOK).JSON(fiber.Map{"msg": "Rules refreshed"})
 			}
-			return
 		}
-
+		return c.SendStatus(http.StatusNotFound)
 	}
 }

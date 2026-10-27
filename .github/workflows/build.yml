@@ -21,7 +21,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  release_tooling:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test publication and recovery tooling
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+      - name: Check tag, notes and Docker toolchain before publication
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          TAG: ${{ github.ref_name }}
+        run: python3 scripts/release_preflight.py "$TAG"
+
   darwin:
+    needs: release_tooling
     runs-on: macos-latest
 
     steps:
@@ -111,6 +129,7 @@ jobs:
           if-no-files-found: error
 
   linux:
+    needs: release_tooling
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -149,9 +168,6 @@ jobs:
         run: |
           go mod tidy -diff
           go test -v ./...
-
-      - name: Verify release tooling
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Install cross-compiler for linux/arm64
         run: |
@@ -195,9 +211,39 @@ jobs:
             dist/checksums.txt
           if-no-files-found: error
 
+  verify_archives:
+    name: Verify archives before image publication
+    needs: [darwin, linux]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify checksums, payloads and exact source metadata
+        env:
+          TAG: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          source=$(git rev-parse HEAD)
+          test "$(git rev-parse "$SOURCE_SHA^{commit}")" = "$source"
+          test "$(git rev-list -n 1 "$TAG")" = "$source"
+          python3 scripts/verify_release_assets.py release-assets "$TAG" "$source"
+
   images:
     name: Publish image (${{ matrix.arch }})
-    needs: [darwin, linux]
+    needs: verify_archives
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
@@ -345,29 +391,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
           REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          notes="docs/releases/$TAG.md"
-          test -f "$notes"
-          if gh release view "$TAG" --repo "$REPOSITORY" --json isDraft --jq .isDraft > "$RUNNER_TEMP/is-draft"; then
-            test "$(cat "$RUNNER_TEMP/is-draft")" = true
-          else
-            gh release create "$TAG" --repo "$REPOSITORY" --verify-tag --draft --title "$TAG" --notes-file "$notes"
-          fi
-          gh release upload "$TAG" release-assets/* --repo "$REPOSITORY" --clobber
-          release_api=$(gh release view "$TAG" --repo "$REPOSITORY" --json apiUrl --jq .apiUrl)
-          gh api "$release_api" > "$RUNNER_TEMP/release.json"
-          python3 - <<'PY'
-          import hashlib,json,os,pathlib
-          release=json.load(open(os.environ['RUNNER_TEMP']+'/release.json'))
-          files={p.name:p for p in pathlib.Path('release-assets').iterdir() if p.is_file()}
-          assets={a['name']:a for a in release['assets']}
-          assert release['draft'] and set(files)==set(assets)
-          for name,path in files.items():
-              assert assets[name]['state']=='uploaded' and assets[name]['size']==path.stat().st_size
-              assert assets[name]['digest']=='sha256:'+hashlib.sha256(path.read_bytes()).hexdigest()
-          PY
-          gh release edit "$TAG" --repo "$REPOSITORY" --draft=false --latest --title "$TAG" --notes-file "$notes"
+        run: >-
+          python3 scripts/publish_release.py release-assets "$TAG" "$(git rev-parse HEAD)"
+          --repo "$REPOSITORY" --notes "docs/releases/$TAG.md"
 
   report_release:
     name: Dispatch verified release reports

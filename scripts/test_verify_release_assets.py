@@ -2,6 +2,8 @@ import hashlib
 import io
 import json
 import pathlib
+import os
+import subprocess
 import tarfile
 import tempfile
 import unittest
@@ -15,14 +17,16 @@ class VerifyReleaseTests(unittest.TestCase):
     tag = "v0.3.12"
     commit = "a" * 40
 
-    def fixture(self, directory, omit=None):
+    def fixture(self, directory, omit=None, binaries=None):
         files = {name: b"fixture" for name in ["rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
                  "docs/releases/v0.3.12.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
         files.update({f"third_party/licenses/{name}.txt": b"license" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown")})
         if omit:
             del files[omit]
         checksums = {}
-        for name, (_, _, checksum) in release.archive_names(self.tag).items():
+        for name, (system, arch, checksum) in release.archive_names(self.tag).items():
+            if binaries:
+                files["rssc"] = binaries[(system, arch)]
             path = directory / name
             if name.endswith(".zip"):
                 with zipfile.ZipFile(path, "w") as package:
@@ -72,6 +76,26 @@ class VerifyReleaseTests(unittest.TestCase):
             (root / next(iter(release.archive_names(self.tag)))).unlink()
             with self.assertRaisesRegex(ValueError, "asset set"):
                 release.verify(root, self.tag, self.commit, "go1.27.3")
+
+    def test_real_four_platform_archives_and_quoted_linker_metadata(self):
+        # Exercise go build -> archive -> checksum -> go version -m together.
+        # No network or external module is needed for this tiny binary.
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            (root / "main.go").write_text('package main\nvar Version, Commit string\nfunc main() {}\n')
+            go_version = subprocess.check_output(["go", "env", "GOVERSION"], text=True).strip()
+            binaries = {}
+            flags = f'-s -w -X "main.Version={self.tag}" -X "main.Commit={self.commit}"'
+            for system, arch in [("linux", "amd64"), ("linux", "arm64"), ("darwin", "amd64"), ("darwin", "arm64")]:
+                binary = root / "binary"
+                env = dict(os.environ, GOOS=system, GOARCH=arch, CGO_ENABLED="1", GO111MODULE="off")
+                subprocess.run(["go", "build", "-ldflags", flags, "-o", str(binary), str(root / "main.go")],
+                               env=env, check=True, capture_output=True)
+                binaries[(system, arch)] = binary.read_bytes()
+            assets = root / "assets"
+            assets.mkdir()
+            self.fixture(assets, binaries=binaries)
+            self.assertEqual(len(release.verify(assets, self.tag, self.commit, go_version)), 7)
 
     def test_binary_identity(self):
         metadata = f"/tmp/rssc: go1.27.3\n build CGO_ENABLED=1\n build GOOS=linux\n build GOARCH=amd64\n build -ldflags=\"-X x.Version={self.tag} -X x.Commit={self.commit}\"\n"

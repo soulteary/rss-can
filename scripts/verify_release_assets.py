@@ -22,6 +22,17 @@ def archive_names(tag):
     }
 
 
+def go_version_from_mod(path):
+    """Match setup-go's go-version-file selection of go/toolchain directives."""
+    versions = re.findall(r"^(?:go\s+|toolchain\s+go)([0-9]+\.[0-9]+(?:\.[0-9]+)?)(?:\s|$)", pathlib.Path(path).read_text(), re.MULTILINE)
+    if not versions:
+        raise ValueError(f"missing Go version in {path}")
+    version = max(versions, key=lambda v: tuple(int(n) for n in v.split('.')))
+    if len(version.split('.')) != 3:
+        raise ValueError("release Go version must pin the patch level")
+    return "go" + version
+
+
 def validate_metadata(metadata, system, arch, tag, commit, go_version):
     # go version -m quotes -ldflags using Go string escapes. Match token
     # boundaries after unescaping quotes, rather than accepting version prefixes.
@@ -98,6 +109,7 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("tag")
     parser.add_argument("commit")
-    parser.add_argument("--go-version", default="go1.27.3")
+    parser.add_argument("--go-version")
+    parser.add_argument("--go-mod", type=pathlib.Path, default=pathlib.Path("go.mod"))
     args = parser.parse_args()
-    verify(args.directory, args.tag, args.commit, args.go_version)
+    verify(args.directory, args.tag, args.commit, args.go_version or go_version_from_mod(args.go_mod))

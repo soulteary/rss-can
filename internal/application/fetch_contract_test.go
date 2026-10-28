@@ -45,7 +45,7 @@ func TestApplicationBrowserMainFailureCannotBecomeCachedSuccess(t *testing.T) {
 				}))
 				defer upstream.Close()
 				config := testConfig(t, "status", upstream.URL)
-				config.Server.Headless = browser
+				configureTestBrowser(&config, browser)
 				writeFetchRule(t, config, upstream.URL+"/page", mode, "")
 				app, err := New(t.Context(), config)
 				if err != nil {
@@ -105,7 +105,7 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 				}))
 				defer upstream.Close()
 				config := testConfig(t, "base", upstream.URL+"/news")
-				config.Server.Headless = browser
+				configureTestBrowser(&config, browser)
 				writeFetchRule(t, config, upstream.URL+"/news", mode, `,IdByRegexp:"post/([0-9]+)",ContentHook:{action:"readlink",URL:"a",object:"body"}`)
 				app, err := New(t.Context(), config)
 				if err != nil {
@@ -171,7 +171,7 @@ func TestApplicationRedirectDoesNotRebindCookieOrigin(t *testing.T) {
 			defer origin.Close()
 			target := strings.Replace(origin.URL, "127.0.0.1", "localhost", 1) + "/start"
 			config := testConfig(t, "cookie", target)
-			config.Server.Headless = browser
+			configureTestBrowser(&config, browser)
 			writeFetchRule(t, config, target, mode, `,Cookies:"origin=secret",DisableCache:true,ContentHook:{action:"readlink",URL:"a",object:"body"}`)
 			app, err := New(t.Context(), config)
 			if err != nil {

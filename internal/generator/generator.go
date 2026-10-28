@@ -3,10 +3,10 @@ package generator
 import (
 	"time"
 
-	"github.com/gorilla/feeds"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/feeds"
 )
 
 func GenerateFeedsByType(config define.JavaScriptConfig, data define.BodyParsed, rssType string) string {

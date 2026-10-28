@@ -1,5 +1,3 @@
-//go:build !v8go
-
 package jssdk
 
 import (

@@ -4,7 +4,7 @@
 
 - Use a single persistent Deno worker by default, with fresh request contexts and timeout recovery.
 - Build release binaries without CGO; include Deno 2.9.8 in Docker images and CI. Standalone installations require Deno on PATH or RSS_CAN_DENO.
-- Retain the previous execution backend through an explicit `-tags v8go` build.
+- Remove the legacy v8go backend and Go module dependency; Deno is the sole JavaScript runtime.
 
 ## v0.3.12 — 2026-10-27
 

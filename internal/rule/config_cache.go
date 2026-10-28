@@ -47,7 +47,7 @@ func (s *configStore) clear() {
 	s.generation++
 }
 
-func (s *configStore) load(ctx context.Context, rule define.RuleCache, ttl time.Duration, evaluate func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)) (define.JavaScriptConfig, error) {
+func (s *configStore) load(ctx context.Context, rule define.RuleCache, ttl time.Duration, evaluate func(context.Context, define.RuleCache) (define.JavaScriptConfig, error), budgets ...time.Duration) (define.JavaScriptConfig, error) {
 	if err := ctx.Err(); err != nil {
 		return define.JavaScriptConfig{}, err
 	}
@@ -66,7 +66,13 @@ func (s *configStore) load(ctx context.Context, rule define.RuleCache, ttl time.
 	delete(s.entries, key)
 	s.mu.Unlock()
 	telemetry.Default.Add("config_cache_misses_total", 1)
-	value, err, shared := s.group.Do(ctx, key, fn.ExpireBySecond(define.SERVER_TIMEOUT), func(work context.Context) (define.JavaScriptConfig, error) {
+	var timeout time.Duration
+	if len(budgets) > 0 {
+		timeout = budgets[0]
+	} else {
+		timeout = fn.ExpireBySecond(define.SERVER_TIMEOUT)
+	}
+	value, err, shared := s.group.Do(ctx, key, timeout, func(work context.Context) (define.JavaScriptConfig, error) {
 		// A previous flight may have populated the cache between lookup and join.
 		s.mu.Lock()
 		entry, ok := s.entries[key]

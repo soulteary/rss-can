@@ -5,6 +5,8 @@ import (
 	"context"
 	"sync"
 	"time"
+
+	"github.com/soulteary/RSS-Can/internal/workscope"
 )
 
 type call[T any] struct {
@@ -36,7 +38,7 @@ func (g *Group[T]) Do(ctx context.Context, key string, timeout time.Duration, fn
 		workCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
 		c = &call[T]{done: make(chan struct{}), cancel: cancel}
 		g.calls[key] = c
-		go func() {
+		workscope.Go(workCtx, func() {
 			defer cancel()
 			value, err := fn(workCtx)
 			g.mu.Lock()
@@ -46,7 +48,7 @@ func (g *Group[T]) Do(ctx context.Context, key string, timeout time.Duration, fn
 			}
 			close(c.done)
 			g.mu.Unlock()
-		}()
+		})
 	}
 	c.waiters++
 	g.mu.Unlock()

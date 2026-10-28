@@ -9,6 +9,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/parser"
 )
@@ -29,6 +30,9 @@ func ParseConfigFromJSON(str string, rule define.RuleCache) (define.JavaScriptCo
 	if _, err := config.CompileIDRegexp(); err != nil {
 		return config, err
 	}
+	if config.PagerLimit > limits.MaxPages {
+		return config, fmt.Errorf("PagerLimit exceeds maximum %d", limits.MaxPages)
+	}
 	if config.PagerLimit < 0 {
 		return config, fmt.Errorf("PagerLimit must not be negative")
 	}
@@ -45,7 +49,7 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 }
 
 func GetWebsiteDataWithConfigContext(ctx context.Context, config define.JavaScriptConfig) (result define.BodyParsed) {
-	proxy, err := network.NormalizeProxy(network.OptionsForConfig(config).Proxy)
+	proxy, err := network.NormalizeProxy(network.OptionsForConfigContext(ctx, config).Proxy)
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_INIT_NETWORK_FAILED, err.Error(), time.Now(), nil)
 	}

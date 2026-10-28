@@ -15,9 +15,10 @@ var counters = []string{
 	"feed_requests_total", "feed_successes_total", "feed_failures_total", "feed_timeouts_total",
 	"fetch_requests_total", "fetch_failures_total", "fetch_shared_total",
 	"cache_hits_total", "cache_misses_total", "cache_errors_total", "cache_fallbacks_total",
+	"cache_memory_evictions_total", "cache_memory_rejections_total",
 	"js_requests_total", "js_failures_total", "js_cancellations_total", "js_starts_total",
 	"config_cache_hits_total", "config_cache_misses_total", "config_shared_total",
-	"browser_requests_total", "browser_failures_total",
+	"browser_requests_total", "browser_failures_total", "browser_shared_total",
 }
 var gauges = []string{"js_queued", "js_active", "browser_queued", "browser_active"}
 var histograms = []string{"feed_duration_seconds", "fetch_duration_seconds", "js_queue_seconds", "js_execution_seconds", "browser_queue_seconds", "browser_duration_seconds"}

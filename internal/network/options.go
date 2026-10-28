@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,6 +25,19 @@ func OptionsForConfig(config define.JavaScriptConfig) RequestOptions {
 		proxy = define.PROXY_SERVER
 	}
 	return RequestOptions{Cookies: config.Cookies, CookieURL: config.URL, Proxy: proxy}
+}
+
+// OptionsForConfigContext uses captured application settings, including an
+// explicitly empty default proxy; legacy unscoped callers keep global behavior.
+func OptionsForConfigContext(ctx context.Context, config define.JavaScriptConfig) RequestOptions {
+	if client := scopedClient(ctx); client != nil {
+		proxy := strings.TrimSpace(config.Proxy)
+		if proxy == "" {
+			proxy = client.config.Proxy
+		}
+		return RequestOptions{Cookies: config.Cookies, CookieURL: config.URL, Proxy: proxy}
+	}
+	return OptionsForConfig(config)
 }
 
 func requestOptions(options []RequestOptions) RequestOptions {

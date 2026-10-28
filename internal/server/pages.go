@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"fmt"
 	"io/fs"
@@ -41,21 +42,37 @@ func GetPageByName(pageName string) (file []byte) {
 	return file
 }
 
-func UpdateHomePage(content []byte) []byte {
+type pageView struct {
+	options   Options
+	snapshot  func() map[string]define.RuleCache
+	configure func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
+}
+
+func defaultPageView() pageView {
+	return pageView{options: DefaultOptions(), snapshot: rule.Snapshot, configure: rule.GenerateConfigByRuleContext}
+}
+func UpdateHomePage(content []byte) []byte { return defaultPageView().updateHomePage(content) }
+func welcomePage() fiber.Handler           { return defaultPageView().welcomePage() }
+func UpdateListPage(content []byte) []byte {
+	return defaultPageView().updateListPage(context.Background(), content)
+}
+func listPage() fiber.Handler { return defaultPageView().listPage() }
+
+func (v pageView) updateHomePage(content []byte) []byte {
 	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
-	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_LIST_PAGE%}`), []byte(GetFeedPath()))
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_LIST_PAGE%}`), []byte(v.options.FeedPath))
 	return body
 }
 
-func welcomePage() fiber.Handler {
-	var homepage = UpdateHomePage(GetPageByName("home.html"))
+func (v pageView) welcomePage() fiber.Handler {
+	var homepage = v.updateHomePage(GetPageByName("home.html"))
 	return func(c fiber.Ctx) error {
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
-		if define.DEBUG_MODE {
+		if v.options.Debug {
 			file := fn.GetFileContent("internal/server/templates/home.html")
 			if file != nil {
-				return c.Status(http.StatusOK).Send(UpdateHomePage(file))
+				return c.Status(http.StatusOK).Send(v.updateHomePage(file))
 			} else {
 				logger.Instance.Warnf("rendering template home failed")
 				return c.Status(http.StatusOK).Send(homepage)
@@ -65,20 +82,20 @@ func welcomePage() fiber.Handler {
 	}
 }
 
-func UpdateListPage(content []byte) []byte {
+func (v pageView) updateListPage(ctx context.Context, content []byte) []byte {
 	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
 
-	baseLink := GetFeedPath()
+	baseLink := v.options.FeedPath
 
 	// TODO Pre-execute configuration for caching
 
 	id := 1
 	tpl := ""
 
-	filePathFix := strings.Replace(define.RULES_DIRECTORY, "./", "", -1) + "/"
+	filePathFix := strings.Replace(v.options.RuleDirectory, "./", "", -1) + "/"
 
-	rules := rule.Snapshot()
+	rules := v.snapshot()
 	rulesOrdered := []string{}
 	for dirName := range rules {
 		rulesOrdered = append(rulesOrdered, dirName)
@@ -91,7 +108,7 @@ func UpdateListPage(content []byte) []byte {
 			continue
 		}
 
-		config, err := rule.GenerateConfigByRule(RuleFile)
+		config, err := v.configure(ctx, RuleFile)
 		if err != nil {
 			logger.Instance.Errorf("Parsing rule file failed: %v", err)
 			continue
@@ -116,20 +133,20 @@ func UpdateListPage(content []byte) []byte {
 	return body
 }
 
-func listPage() fiber.Handler {
+func (v pageView) listPage() fiber.Handler {
 
 	return func(c fiber.Ctx) error {
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
-		if define.DEBUG_MODE {
+		if v.options.Debug {
 			file := fn.GetFileContent("internal/server/templates/list.html")
 			if file != nil {
-				return c.Status(http.StatusOK).Send(UpdateListPage(file))
+				return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), file))
 			} else {
 				logger.Instance.Warnf("rendering template list failed")
-				return c.Status(http.StatusOK).Send(UpdateListPage(GetPageByName("list.html")))
+				return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), GetPageByName("list.html")))
 			}
 		}
-		return c.Status(http.StatusOK).Send(UpdateListPage(GetPageByName("list.html")))
+		return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), GetPageByName("list.html")))
 	}
 }
 
@@ -159,7 +176,9 @@ func inspectorPrepare() fiber.Handler {
 	}
 }
 
-func inspectorProxy() fiber.Handler {
+func inspectorProxy() fiber.Handler { return inspectorProxyWithOptions(DefaultOptions()) }
+
+func inspectorProxyWithOptions(options Options) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		encodedURL := c.Params("url")
 		if encodedURL == "" {
@@ -171,7 +190,7 @@ func inspectorProxy() fiber.Handler {
 		if err := network.PublicURL(url); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "invalid inspector URL"})
 		}
-		rawHtml, err := parser.ProxyPageByBrowser(url, define.HEADLESS_SERVER, define.PROXY_SERVER, "")
+		rawHtml, err := parser.ProxyPageByBrowserWithTimeout(c.Context(), url, options.Headless, options.Proxy, "", options.BrowserTimeout)
 		if err != nil {
 			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": "inspector fetch failed"})
 		}

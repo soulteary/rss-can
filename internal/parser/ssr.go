@@ -9,6 +9,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/goquery"
 )
@@ -75,7 +76,7 @@ func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyPa
 
 func GetDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, options ...network.RequestOptions) (result define.BodyParsed) {
 	if len(options) == 0 {
-		options = []network.RequestOptions{network.OptionsForConfig(config)}
+		options = []network.RequestOptions{network.OptionsForConfigContext(ctx, config)}
 	}
 	doc := network.GetRemoteDocumentContext(ctx, config.URL, config.Charset, config.Expire, config.DisableCache, options...)
 	if doc.Code != define.ERROR_CODE_NULL {
@@ -109,7 +110,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 
 func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string, options ...network.RequestOptions) (result define.BodyParsed) {
 	if len(options) == 0 {
-		options = []network.RequestOptions{network.OptionsForConfig(config)}
+		options = []network.RequestOptions{network.OptionsForConfigContext(ctx, config)}
 	}
 	failure := func(err error) define.BodyParsed {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
@@ -120,6 +121,9 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	idRegexp, err := config.CompileIDRegexp()
 	if err != nil {
 		return failure(err)
+	}
+	if config.PagerLimit > limits.MaxPages {
+		return failure(fmt.Errorf("PagerLimit exceeds %d pages", limits.MaxPages))
 	}
 	if config.PagerLimit < 0 {
 		return failure(fmt.Errorf("PagerLimit must not be negative"))
@@ -136,7 +140,11 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		}
 	}
 
+	if len(doc.Body) > limits.MaxPageBytes {
+		return failure(fmt.Errorf("page exceeds %d bytes", limits.MaxPageBytes))
+	}
 	var items []define.InfoItem
+	retained := 0
 
 	if config.Pager != "" {
 		pageLinks := ParsePagerByGoQuery(doc, func(document *goquery.Document) []string {
@@ -154,6 +162,9 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		first := ParseDataAndConfigBySSRContext(ctx, firstConfig, doc, "", options...)
 		if first.Code != define.ERROR_CODE_NULL {
 			return first
+		}
+		for _, item := range first.Body {
+			retained += itemBytes(item)
 		}
 		items = append(items, first.Body...)
 		canonical := func(link string) string {
@@ -190,6 +201,15 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 			if ret.Code != define.ERROR_CODE_NULL {
 				return ret
 			}
+			if len(ret.Body) > limits.MaxItems-len(items) {
+				return failure(fmt.Errorf("feed exceeds %d items", limits.MaxItems))
+			}
+			for _, item := range ret.Body {
+				retained += itemBytes(item)
+			}
+			if retained > limits.MaxFeedBytes {
+				return failure(fmt.Errorf("feed content exceeds size limit"))
+			}
 			items = append(items, ret.Body...)
 		}
 		if err := ctx.Err(); err != nil {
@@ -201,9 +221,15 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	}
 
 	var selections []*goquery.Selection
+	itemLimitExceeded := false
+	contentLimitExceeded := false
 	result = ParsePageByGoQuery(doc, func(document *goquery.Document) (items []define.InfoItem) {
 		document.Find(config.ListContainer).EachWithBreak(func(i int, s *goquery.Selection) bool {
 			if ctx.Err() != nil {
+				return false
+			}
+			if len(items) >= limits.MaxItems {
+				itemLimitExceeded = true
 				return false
 			}
 			var item define.InfoItem
@@ -260,6 +286,11 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 				}
 			}
 
+			retained += itemBytes(item)
+			if retained > limits.MaxFeedBytes {
+				contentLimitExceeded = true
+				return false
+			}
 			selections = append(selections, s)
 			items = append(items, item)
 			return ctx.Err() == nil
@@ -268,6 +299,12 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	})
 	if err := ctx.Err(); err != nil {
 		return failure(err)
+	}
+	if contentLimitExceeded {
+		return failure(fmt.Errorf("feed content exceeds size limit"))
+	}
+	if itemLimitExceeded {
+		return failure(fmt.Errorf("feed exceeds %d items", limits.MaxItems))
 	}
 	if result.Code == define.ERROR_CODE_NULL {
 		if detailFailure := fillDetails(ctx, config, result.Body, selections, options); detailFailure != nil {
@@ -284,4 +321,8 @@ func ParseFullPageByGoQuery(html string, callback func(document *goquery.Documen
 	}
 	result = callback(document)
 	return result
+}
+
+func itemBytes(item define.InfoItem) int {
+	return len(item.ID) + len(item.Title) + len(item.Link) + len(item.Date) + len(item.Author) + len(item.Category) + len(item.Description) + len(item.Content)
 }

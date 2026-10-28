@@ -15,7 +15,10 @@ import (
 // access requires an explicitly configured bearer token; forwarded headers do
 // not establish trust. A configured token is required even on loopback.
 func adminOnly() fiber.Handler {
-	token := os.Getenv("RSS_ADMIN_TOKEN")
+	return adminOnlyWithToken(os.Getenv("RSS_ADMIN_TOKEN"))
+}
+
+func adminOnlyWithToken(token string) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		status := adminAccessStatus(adminRequest{
 			token:         token,

@@ -159,3 +159,5 @@ This project is licensed under the [MIT License](https://github.com/soulteary/RS
 启用文档缓存时，相同抓取任务会合并；`DisableCache` 仍保持独立抓取。`RSS_CONFIG_CACHE_TTL=30` 可开启 30 秒配置缓存，默认关闭以保留动态规则行为。日期转换仅在单次生成内复用。压测工具与结果见[HTTP 负载报告](docs/benchmarks/feed-load.md)；覆盖率口径、依赖和 CI 门禁见[测试说明](docs/testing.md)。
 
 当前源码新增规则快照一致性、全局 HTTP 抓取预算（16 个执行、64 个等待，满载返回 503）、Redis 操作超时与熔断，以及可注入的 FeedService。行为边界见[升级指南](docs/upgrading.md#architecture-hardening-in-source-builds)。
+
+进一步的源码构建改进包括：64 MiB 内存缓存预算、事务式规则重载、完整生成并发预算、页面/条目/输出大小限制、浏览器任务合并和应用实例独立关停。空规则集及无效规则现在会阻止启动或重载；具体限制见[升级指南](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle)。

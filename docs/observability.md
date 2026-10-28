@@ -54,3 +54,8 @@ cover pool admission and execution, including canceled waiters. With N workers,
 measure real-rule latency and RSS before tuning. SSR/mixed detail extraction is
 bounded at four entry workers per page and sixteen active fetches process-wide.
 See [upgrading](upgrading.md) for failure semantics and configuration scope.
+
+Capacity-related counters are `cache_memory_evictions_total` (LRU capacity
+removals), `cache_memory_rejections_total` (oversized memory writes) and
+`browser_shared_total` (callers joining an in-flight browser extraction). These
+remain process-wide counters without rule or URL labels.

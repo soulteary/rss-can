@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/goquery"
 )
@@ -21,6 +23,10 @@ var detailSlots = make(chan struct{}, 16)
 func fillDetails(ctx context.Context, config define.JavaScriptConfig, items []define.InfoItem, selections []*goquery.Selection, options []network.RequestOptions) *define.BodyParsed {
 	if len(items) == 0 || (config.DateTimeHook.Action != define.ConfigHookReadLink && config.CategoryHook.Action != define.ConfigHookReadLink && config.DescriptionHook.Action != define.ConfigHookReadLink && config.ContentHook.Action != define.ConfigHookReadLink) {
 		return nil
+	}
+	var retained atomic.Int64
+	for _, item := range items {
+		retained.Add(int64(itemBytes(item)))
 	}
 	work, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -75,6 +81,10 @@ func fillDetails(ctx context.Context, config define.JavaScriptConfig, items []de
 						return
 					}
 					if result.Body != "" || field.name != "Content" {
+						if retained.Add(int64(len(result.Body)-len(*field.value))) > limits.MaxFeedBytes {
+							fail(define.ERROR_CODE_PARSE_CONTENT_FAILED, "feed content exceeds size limit")
+							return
+						}
 						*field.value = result.Body
 					}
 				}

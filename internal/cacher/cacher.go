@@ -42,6 +42,9 @@ func Get(key string) (string, error) {
 }
 
 func GetWithStatus(ctx context.Context, key string) (string, bool, error) {
+	if cache := scopedCache(ctx); cache != nil {
+		return cache.service.Get(ctx, key)
+	}
 	Initialize()
 	return instanceService.Get(ctx, key)
 }
@@ -60,6 +63,9 @@ func Set(key string, value string) error {
 }
 
 func SetWithTTL(ctx context.Context, key, value string, ttl time.Duration) error {
+	if cache := scopedCache(ctx); cache != nil {
+		return cache.service.Set(ctx, key, value, ttl)
+	}
 	Initialize()
 	return instanceService.Set(ctx, key, value, ttl)
 }

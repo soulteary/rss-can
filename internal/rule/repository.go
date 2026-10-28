@@ -85,7 +85,13 @@ func (r *Repository) SnapshotMetadata() map[string]Metadata {
 	return result
 }
 func (r *Repository) Configure(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
-	return r.configurations.load(ctx, snapshot, r.cacheTTL, r.evaluate, r.timeout)
+	return r.configurations.load(ctx, snapshot, r.cacheTTL, func(work context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
+		config, err := r.evaluate(work, snapshot)
+		if err == nil {
+			err = ValidateConfig(config)
+		}
+		return config, err
+	}, r.timeout)
 }
 
 func (r *Repository) Reload(ctx context.Context) error {
@@ -220,6 +226,9 @@ func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluat
 		snapshot := define.RuleCache{Body: body, Time: time.Now(), Sign: fn.GetFileSHA1(body), File: file}
 		config, err := evaluate(ctx, snapshot)
 		if err != nil {
+			return nil, nil, fmt.Errorf("validate rule %s: %w", id, err)
+		}
+		if err := ValidateConfig(config); err != nil {
 			return nil, nil, fmt.Errorf("validate rule %s: %w", id, err)
 		}
 		if len(config.Name) > MaxMetadataNameBytes {

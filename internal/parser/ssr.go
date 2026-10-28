@@ -75,6 +75,12 @@ func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyPa
 }
 
 func GetDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, options ...network.RequestOptions) (result define.BodyParsed) {
+	if err := ctx.Err(); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+	}
+	if err := ValidateSSRConfig(config); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
+	}
 	if len(options) == 0 {
 		options = []network.RequestOptions{network.OptionsForConfigContext(ctx, config)}
 	}
@@ -116,6 +122,9 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
 	if err := ctx.Err(); err != nil {
+		return failure(err)
+	}
+	if err := validateSSRFields(config); err != nil {
 		return failure(err)
 	}
 	idRegexp, err := config.CompileIDRegexp()
@@ -233,11 +242,6 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 				return false
 			}
 			var item define.InfoItem
-			// title must exist in the config
-			if config.Title == "" {
-				return true
-			}
-
 			// TODO bind all hook action
 			title := jsBridge(config.Title, "text", s)
 			item.Title = title

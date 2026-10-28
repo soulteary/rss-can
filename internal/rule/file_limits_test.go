@@ -79,7 +79,7 @@ func TestRepositoryRejectsSpecialRulesWithoutLosingMetadata(t *testing.T) {
 
 func TestRepositoryRejectsFileCountTotalBytesAndDisplayName(t *testing.T) {
 	evaluator := func(context.Context, define.RuleCache) (define.JavaScriptConfig, error) {
-		return define.JavaScriptConfig{Name: "bounded"}, nil
+		return validRepositoryConfig("bounded"), nil
 	}
 	for _, which := range []string{"file", "count", "total", "name"} {
 		t.Run(which, func(t *testing.T) {
@@ -105,7 +105,7 @@ func TestRepositoryRejectsFileCountTotalBytesAndDisplayName(t *testing.T) {
 				}
 			case "name":
 				repo.evaluate = func(context.Context, define.RuleCache) (define.JavaScriptConfig, error) {
-					return define.JavaScriptConfig{Name: strings.Repeat("x", MaxMetadataNameBytes+1)}, nil
+					return validRepositoryConfig(strings.Repeat("x", MaxMetadataNameBytes+1)), nil
 				}
 			}
 			if err := repo.Reload(t.Context()); err == nil {

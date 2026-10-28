@@ -23,6 +23,9 @@ func ParseConfigFromJSON(str string, rule define.RuleCache) (define.JavaScriptCo
 	if rule.File != "" {
 		config.File = rule.File
 	}
+	if rule.Body != nil {
+		config.RuleSource = define.NewRuleSource(rule.Body)
+	}
 	if _, err := config.CompileIDRegexp(); err != nil {
 		return config, err
 	}

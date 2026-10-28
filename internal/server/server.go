@@ -22,12 +22,16 @@ func GetFeedPath() string {
 }
 
 func StartWebServer() {
+	StartWebServerWithFeedService(nil)
+}
+
+func StartWebServerWithFeedService(service FeedGenerator) {
 	rule.InitRules()
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	route := NewApp()
+	route := NewAppWithFeedService(service)
 
 	addr := define.HTTP_HOST + ":" + strconv.Itoa(define.HTTP_PORT)
 
@@ -54,6 +58,11 @@ func StartWebServer() {
 
 // NewApp builds production routes without binding a listening socket.
 func NewApp() *fiber.App {
+	return NewAppWithFeedService(nil)
+}
+
+// NewAppWithFeedService accepts the application service assembled at startup.
+func NewAppWithFeedService(service FeedGenerator) *fiber.App {
 	timeout := fn.ExpireBySecond(define.SERVER_TIMEOUT)
 	route := fiber.New(fiber.Config{
 		ReadTimeout: timeout,
@@ -65,7 +74,11 @@ func NewApp() *fiber.App {
 	}
 
 	route.Use(Logger(logger.Instance), recover.New())
-	route.Get(GetFeedPath()+"/:id/:type/", apiRSS())
+	if service == nil {
+		route.Get(GetFeedPath()+"/:id/:type/", apiRSS())
+	} else {
+		route.Get(GetFeedPath()+"/:id/:type/", apiRSSWithService(service))
+	}
 	route.Get(GetFeedPath(), listPage())
 	route.Get("/config/:type/:value/", adminOnly(), apiConfig())
 

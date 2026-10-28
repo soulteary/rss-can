@@ -17,6 +17,7 @@ func Lookup(id string) (define.RuleCache, bool) {
 	rulesMu.RLock()
 	defer rulesMu.RUnlock()
 	item, ok := rulesCache[id]
+	item.Body = append([]byte(nil), item.Body...)
 	return item, ok
 }
 
@@ -26,6 +27,7 @@ func Snapshot() map[string]define.RuleCache {
 	defer rulesMu.RUnlock()
 	result := make(map[string]define.RuleCache, len(rulesCache))
 	for id, item := range rulesCache {
+		item.Body = append([]byte(nil), item.Body...)
 		result[id] = item
 	}
 	return result

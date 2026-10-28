@@ -4,6 +4,8 @@ import (
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/cmd"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/feedservice"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/server"
@@ -33,5 +35,6 @@ func main() {
 
 	logger.Instance.Infof("version: %v commit: %v build: %v", version.Version, version.Commit, version.BuildDate)
 
-	server.StartWebServer()
+	feeds := feedservice.NewDefault(fn.ExpireBySecond(define.SERVER_TIMEOUT))
+	server.StartWebServerWithFeedService(feeds)
 }

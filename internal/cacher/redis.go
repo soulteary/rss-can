@@ -102,7 +102,10 @@ func DelDataByKeyFromRedis(instance *redis.Client, key string) error {
 }
 
 func SetDataExpireByKeyFromRedis(instance *redis.Client, key string, expire time.Duration) error {
-	ctx := context.Background()
+	return setDataExpireByKeyFromRedisContext(context.Background(), instance, key, expire)
+}
+
+func setDataExpireByKeyFromRedisContext(ctx context.Context, instance *redis.Client, key string, expire time.Duration) error {
 	backend := newRedisBackend(instance)
 	if instance == nil {
 		return errors.New("redis cache is not initialized")

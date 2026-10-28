@@ -13,6 +13,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/goquery"
 )
 
 func TestSSRPropagatesUpstreamFailures(t *testing.T) {
@@ -163,5 +164,55 @@ func TestSSRDetailHookHonorsDeadline(t *testing.T) {
 	case <-canceled:
 	case <-time.After(time.Second):
 		t.Fatal("upstream request not canceled")
+	}
+}
+
+func TestSSRExtractsMetadataPropertiesAndDetailHooks(t *testing.T) {
+	logger.Initialize()
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<html><body><p class="date">2026-10-28</p><p class="category">News</p><p class="description">Summary</p><p class="content">Full article</p></body></html>`)
+	}))
+	defer upstream.Close()
+	html := `<article data-id="entry"><h2>Title</h2><a href="/detail">read</a><b>Author</b></article>`
+	hook := func(selector string) define.ConfigHook {
+		return define.ConfigHook{Action: define.ConfigHookReadLink, URL: "a", Object: selector}
+	}
+	config := define.JavaScriptConfig{URL: upstream.URL, ListContainer: "article", Title: "h2", Link: "a", Author: "b", DisableCache: true, IdByProp: define.PROP_ID{Prop: "data-id"}, DateTimeHook: hook(".date"), CategoryHook: hook(".category"), DescriptionHook: hook(".description"), ContentHook: hook(".content")}
+	got := ParseDataAndConfigBySSR(config, define.RemoteBodySanitized{}, html)
+	if got.Code != 0 || len(got.Body) != 1 {
+		t.Fatalf("%#v", got)
+	}
+	item := got.Body[0]
+	if item.ID != "entry" || item.Title != "Title" || item.Author != "Author" || item.Date != "2026-10-28" || item.Category != "News" || item.Description != "Summary" || item.Content != "Full article" {
+		t.Fatalf("metadata: %#v", item)
+	}
+	config.DateTime = ".override-date"
+	config.Category = ".override-category"
+	config.Description = ".override-description"
+	config.ContentHook = define.ConfigHook{}
+	config.Content = ".override-content"
+	got = ParseDataAndConfigBySSR(config, define.RemoteBodySanitized{}, strings.Replace(html, "</article>", `<i class="override-date">static date</i><i class="override-category">static category</i><i class="override-description">static description</i><i class="override-content">static content</i></article>`, 1))
+	item = got.Body[0]
+	if item.Date != "static date" || item.Category != "static category" || item.Description != "static description" || item.Content != "static content" {
+		t.Fatalf("overrides: %#v", item)
+	}
+}
+func TestSSRSelectionMethodsAndFullPage(t *testing.T) {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(`<article><a href="/item"> Text <b>Bold</b></a></article>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope := doc.Find("article")
+	for _, tc := range []struct{ field, method, want string }{{"a", "text", "Text Bold"}, {"a", "href", "/item"}, {"a", "html", "Text <b>Bold</b>"}, {".missing", "href", ""}, {"固定值", "text", "固定值"}} {
+		if got := strings.TrimSpace(jsBridge(tc.field, tc.method, scope)); got != tc.want {
+			t.Fatalf("%+v => %q", tc, got)
+		}
+	}
+	got := ParseFullPageByGoQuery(`<html><body><script>bad()</script><h2>ok</h2></body></html>`, func(d *goquery.Document) string { d.Find("script").Remove(); html, _ := d.Html(); return html })
+	if strings.Contains(got, "bad()") || !strings.Contains(got, "ok") {
+		t.Fatal(got)
+	}
+	if got := ParseDataAndConfigBySSR(define.JavaScriptConfig{PagerLimit: -1}, define.RemoteBodySanitized{}, "body"); got.Code == 0 {
+		t.Fatal("negative budget accepted")
 	}
 }

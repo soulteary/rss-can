@@ -229,6 +229,43 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 		}
 		assertClean(t)
 	})
+	t.Run("cookies stay inside one browser context", func(t *testing.T) {
+		for _, cookies := range []string{"session=isolated; other=value", ""} {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			err := withBrowserPage(ctx, address, "", upstream.URL, cookies, false, func(pageCtx context.Context) error {
+				if err := chromedp.Do(pageCtx, chromedp.Navigate(upstream.URL)); err != nil {
+					return err
+				}
+				value, err := chromedp.Run(pageCtx, chromedp.Evaluate[string]("document.cookie"))
+				if err != nil {
+					return err
+				}
+				if (cookies != "") != strings.Contains(value, "session=isolated") {
+					return fmt.Errorf("cookie context leaked: %q", value)
+				}
+				return nil
+			})
+			cancel()
+			if err != nil {
+				t.Fatal(err)
+			}
+			assertClean(t)
+		}
+	})
+	t.Run("inspector blocks private navigation inside browser", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		count := requests.Load()
+		err := withBrowserPage(ctx, address, "", "https://example.org", "", true, func(pageCtx context.Context) error { return chromedp.Do(pageCtx, chromedp.Navigate(upstream.URL)) })
+		if err == nil {
+			t.Fatal("private inspector navigation succeeded")
+		}
+		if requests.Load() != count {
+			t.Fatal("private subresource reached upstream")
+		}
+		assertClean(t)
+	})
+
 	t.Run("cleanup after navigation timeout", func(t *testing.T) {
 		broken := config
 		broken.DisableCache = true

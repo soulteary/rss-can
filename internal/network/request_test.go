@@ -7,11 +7,14 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 func TestTruncatedUpstreamResponseIsAnError(t *testing.T) {
@@ -102,5 +105,93 @@ func TestOversizedDocumentRejected(t *testing.T) {
 	got := GetRemoteDocument(server.URL, "utf-8", 1, true)
 	if got.Code == define.ERROR_CODE_NULL || got.Body != "" || !strings.Contains(got.Status, "10 MiB") {
 		t.Fatalf("oversized document accepted: code=%v status=%q size=%d", got.Code, got.Status, len(got.Body))
+	}
+}
+
+func TestDocumentSuccessCacheMarkdownAndMetrics(t *testing.T) {
+	logger.Initialize()
+	previousRedis, previousMemory := define.REDIS, define.IN_MEMORY_CACHE
+	define.REDIS, define.IN_MEMORY_CACHE = false, true
+	defer func() { define.REDIS, define.IN_MEMORY_CACHE = previousRedis, previousMemory }()
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		fmt.Fprint(w, `<html><body><article><h2>Hello</h2><p>World</p></article></body></html>`)
+	}))
+	defer server.Close()
+	before := telemetry.Default.Value("fetch_requests_total")
+	first := GetRemoteDocument(server.URL, "utf-8", 1, false)
+	second := GetRemoteDocument(server.URL, "utf-8", 1, false)
+	if first.Code != 0 || first.Body != second.Body || requests.Load() != 1 {
+		t.Fatalf("cache failed: %#v %#v", first, second)
+	}
+	if got := GetRemoteDocumentAsMarkdown(server.URL, "article", "utf-8", 1, false); !strings.Contains(got, "Hello") || !strings.Contains(got, "World") {
+		t.Fatal(got)
+	}
+	if got := GetRemoteDocumentAsMarkdown(server.URL, "", "utf-8", 1, false); !strings.Contains(got, "World") {
+		t.Fatal(got)
+	}
+	if got := GetRemoteDocumentAsMarkdown(server.URL, ".missing", "utf-8", 1, false); got != "" {
+		t.Fatal(got)
+	}
+	if telemetry.Default.Value("fetch_requests_total") != before+1 {
+		t.Fatal("cache hit counted as upstream fetch")
+	}
+	responseCode, _, response := HttpGet(server.URL, "custom-agent")
+	if responseCode != 0 {
+		t.Fatal(responseCode)
+	}
+	response.Body.Close()
+	GetRemoteDocument(server.URL, "utf-8", 2, false)
+	GetRemoteDocument(server.URL, "", 1, false)
+	if requests.Load() != 4 {
+		t.Fatal("charset/expiry cache namespaces collided")
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if got := GetRemoteDocumentContext(ctx, server.URL, "utf-8", 1, true); got.Code == 0 {
+		t.Fatal("canceled request succeeded")
+	}
+	if got := GetRemoteDocumentAsMarkdown("://invalid", "", "utf-8", 1, true); got != "" {
+		t.Fatal(got)
+	}
+}
+
+func TestConcurrentCacheMissesShareFetch(t *testing.T) {
+	logger.Initialize()
+	redis, memory := define.REDIS, define.IN_MEMORY_CACHE
+	define.REDIS, define.IN_MEMORY_CACHE = false, true
+	defer func() { define.REDIS, define.IN_MEMORY_CACHE = redis, memory }()
+	var requests atomic.Int32
+	entered, release := make(chan struct{}), make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			close(entered)
+		}
+		<-release
+		fmt.Fprint(w, "shared")
+	}))
+	defer server.Close()
+	const n = 16
+	var wg sync.WaitGroup
+	for range n {
+		wg.Go(func() {
+			if got := GetRemoteDocument(server.URL, "utf-8", 1, false); got.Code != 0 || got.Body != "shared" {
+				t.Errorf("%#v", got)
+			}
+		})
+	}
+	<-entered
+	time.Sleep(30 * time.Millisecond)
+	close(release)
+	wg.Wait()
+	if requests.Load() != 1 {
+		t.Fatalf("upstream fetched %d times", requests.Load())
+	}
+	// DisableCache must still issue an independent request each time.
+	GetRemoteDocument(server.URL, "utf-8", 1, true)
+	GetRemoteDocument(server.URL, "utf-8", 1, true)
+	if requests.Load() != 3 {
+		t.Fatal("DisableCache unexpectedly shared or cached work")
 	}
 }

@@ -120,13 +120,13 @@ See [dependency maintenance](DEPENDENCIES.md) for pinned versions, upgrade const
 
 ### Running regression tests
 
-Tests require Redis. Browser integration tests use an installed Chrome / Chromium without downloading a browser:
+Tests require Redis. Browser integration tests connect to the Chrome / Chromium debugging endpoint specified by `RSS_TEST_BROWSER_URL`; they do not download or launch a browser:
 
 ```bash
-RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
+RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_URL=http://127.0.0.1:9222 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
 ```
 
-Set `RSS_TEST_CHROME` to override the browser executable. Browser integration tests skip when no browser is installed unless `RSS_TEST_BROWSER_REQUIRED=1` is set. Use `RSS_SERVER` to select the test Redis address. Cache connection settings are fixed after process startup; restart to apply changes.
+Set `RSS_TEST_BROWSER_URL` to an isolated Chrome/Chromium debugging endpoint. Without it, live browser integration is skipped unless `RSS_TEST_BROWSER_REQUIRED=1` is set. Tests do not launch Chrome or consume `RSS_TEST_CHROME`. Redis uses `RSS_SERVER`; cache connection settings are fixed after initialization.
 
 ## Milestone
 
@@ -152,3 +152,9 @@ Set `RSS_TEST_CHROME` to override the browser executable. Browser integration te
 This project is licensed under the [MIT License](https://github.com/soulteary/RSS-Can/blob/main/LICENSE)
 
 The rapid evolution of the project is inseparable from the following excellent open source software, you can click this link to know who they are : [Credits](./CREDITS.md)
+
+### Monitoring and load verification
+
+`/_/health/` remains a liveness check. `/_/ready/` checks JS execution and cache readiness, allowing a working memory fallback when Redis is down. `/_/metrics/` exports Prometheus counters, gauges and histograms for fetch failures, cache reads, JS queueing and browser occupancy under management access restrictions. See [observability](docs/observability.md) for definitions and queries.
+
+Cache-enabled document requests share in-flight work; `DisableCache` retains independent fetches. Set `RSS_CONFIG_CACHE_TTL=30` to opt into configuration caching, disabled by default for dynamic rules. Date conversions are reused only within a feed. See [HTTP load measurements](docs/benchmarks/feed-load.md) and [testing and coverage budgets](docs/testing.md).

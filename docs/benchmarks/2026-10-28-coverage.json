@@ -1,0 +1,334 @@
+{
+  "baseline": {
+    "packages": {
+      "internal/cmd": {
+        "covered": 133,
+        "statements": 133,
+        "percent": 100.0
+      },
+      "internal/define": {
+        "covered": 10,
+        "statements": 19,
+        "percent": 52.63
+      },
+      "internal/generator": {
+        "covered": 32,
+        "statements": 40,
+        "percent": 80.0
+      },
+      "internal/fn": {
+        "covered": 125,
+        "statements": 127,
+        "percent": 98.43
+      },
+      "internal/jssdk": {
+        "covered": 111,
+        "statements": 134,
+        "percent": 82.84
+      },
+      "github.com/soulteary/RSS-Can": {
+        "covered": 0,
+        "statements": 14,
+        "percent": 0.0
+      },
+      "internal/parser": {
+        "covered": 202,
+        "statements": 401,
+        "percent": 50.37
+      },
+      "scripts/bench-jssdk": {
+        "covered": 0,
+        "statements": 99,
+        "percent": 0.0
+      },
+      "internal/logger": {
+        "covered": 24,
+        "statements": 24,
+        "percent": 100.0
+      },
+      "internal/network": {
+        "covered": 56,
+        "statements": 107,
+        "percent": 52.34
+      },
+      "internal/rule": {
+        "covered": 46,
+        "statements": 106,
+        "percent": 43.4
+      },
+      "internal/cacher": {
+        "covered": 112,
+        "statements": 136,
+        "percent": 82.35
+      },
+      "internal/server": {
+        "covered": 117,
+        "statements": 244,
+        "percent": 47.95
+      }
+    },
+    "runtime_percent": 65.81,
+    "all_percent": 61.11,
+    "test_events": {
+      "pass": 152,
+      "skip": 1
+    },
+    "top_level_tests": {
+      "pass": 115,
+      "skip": 1
+    }
+  },
+  "baseline-browser": {
+    "packages": {
+      "github.com/soulteary/RSS-Can": {
+        "covered": 0,
+        "statements": 14,
+        "percent": 0.0
+      },
+      "internal/cmd": {
+        "covered": 133,
+        "statements": 133,
+        "percent": 100.0
+      },
+      "internal/fn": {
+        "covered": 125,
+        "statements": 127,
+        "percent": 98.43
+      },
+      "scripts/bench-jssdk": {
+        "covered": 0,
+        "statements": 99,
+        "percent": 0.0
+      },
+      "internal/generator": {
+        "covered": 32,
+        "statements": 40,
+        "percent": 80.0
+      },
+      "internal/logger": {
+        "covered": 24,
+        "statements": 24,
+        "percent": 100.0
+      },
+      "internal/network": {
+        "covered": 56,
+        "statements": 107,
+        "percent": 52.34
+      },
+      "internal/define": {
+        "covered": 10,
+        "statements": 19,
+        "percent": 52.63
+      },
+      "internal/jssdk": {
+        "covered": 111,
+        "statements": 134,
+        "percent": 82.84
+      },
+      "internal/rule": {
+        "covered": 46,
+        "statements": 106,
+        "percent": 43.4
+      },
+      "internal/server": {
+        "covered": 117,
+        "statements": 244,
+        "percent": 47.95
+      },
+      "internal/cacher": {
+        "covered": 112,
+        "statements": 136,
+        "percent": 82.35
+      },
+      "internal/parser": {
+        "covered": 245,
+        "statements": 401,
+        "percent": 61.1
+      }
+    },
+    "runtime_percent": 68.73,
+    "all_percent": 63.83,
+    "test_events": {
+      "pass": 159
+    },
+    "top_level_tests": {
+      "pass": 116
+    }
+  },
+  "after-default": {
+    "packages": {
+      "github.com/soulteary/RSS-Can": {
+        "covered": 0,
+        "statements": 14,
+        "percent": 0.0
+      },
+      "internal/cmd": {
+        "covered": 133,
+        "statements": 133,
+        "percent": 100.0
+      },
+      "internal/define": {
+        "covered": 19,
+        "statements": 19,
+        "percent": 100.0
+      },
+      "internal/fn": {
+        "covered": 125,
+        "statements": 127,
+        "percent": 98.43
+      },
+      "internal/coalesce": {
+        "covered": 34,
+        "statements": 35,
+        "percent": 97.14
+      },
+      "scripts/bench-jssdk": {
+        "covered": 0,
+        "statements": 99,
+        "percent": 0.0
+      },
+      "internal/generator": {
+        "covered": 40,
+        "statements": 45,
+        "percent": 88.89
+      },
+      "internal/logger": {
+        "covered": 24,
+        "statements": 24,
+        "percent": 100.0
+      },
+      "internal/network": {
+        "covered": 100,
+        "statements": 125,
+        "percent": 80.0
+      },
+      "internal/jssdk": {
+        "covered": 128,
+        "statements": 151,
+        "percent": 84.77
+      },
+      "internal/parser": {
+        "covered": 256,
+        "statements": 415,
+        "percent": 61.69
+      },
+      "internal/rule": {
+        "covered": 154,
+        "statements": 162,
+        "percent": 95.06
+      },
+      "internal/telemetry": {
+        "covered": 48,
+        "statements": 48,
+        "percent": 100.0
+      },
+      "internal/server": {
+        "covered": 242,
+        "statements": 288,
+        "percent": 84.03
+      },
+      "internal/cacher": {
+        "covered": 137,
+        "statements": 159,
+        "percent": 86.16
+      }
+    },
+    "runtime_percent": 83.19,
+    "all_percent": 78.09,
+    "test_events": {
+      "pass": 184,
+      "skip": 1
+    },
+    "top_level_tests": {
+      "pass": 143,
+      "skip": 1
+    }
+  },
+  "after": {
+    "packages": {
+      "github.com/soulteary/RSS-Can": {
+        "covered": 0,
+        "statements": 14,
+        "percent": 0.0
+      },
+      "internal/cmd": {
+        "covered": 133,
+        "statements": 133,
+        "percent": 100.0
+      },
+      "internal/define": {
+        "covered": 19,
+        "statements": 19,
+        "percent": 100.0
+      },
+      "internal/coalesce": {
+        "covered": 34,
+        "statements": 35,
+        "percent": 97.14
+      },
+      "internal/generator": {
+        "covered": 40,
+        "statements": 45,
+        "percent": 88.89
+      },
+      "scripts/bench-jssdk": {
+        "covered": 0,
+        "statements": 99,
+        "percent": 0.0
+      },
+      "internal/fn": {
+        "covered": 125,
+        "statements": 127,
+        "percent": 98.43
+      },
+      "internal/logger": {
+        "covered": 24,
+        "statements": 24,
+        "percent": 100.0
+      },
+      "internal/network": {
+        "covered": 100,
+        "statements": 125,
+        "percent": 80.0
+      },
+      "internal/jssdk": {
+        "covered": 128,
+        "statements": 151,
+        "percent": 84.77
+      },
+      "internal/rule": {
+        "covered": 154,
+        "statements": 162,
+        "percent": 95.06
+      },
+      "internal/cacher": {
+        "covered": 137,
+        "statements": 159,
+        "percent": 86.16
+      },
+      "internal/telemetry": {
+        "covered": 48,
+        "statements": 48,
+        "percent": 100.0
+      },
+      "internal/server": {
+        "covered": 242,
+        "statements": 288,
+        "percent": 84.03
+      },
+      "internal/parser": {
+        "covered": 323,
+        "statements": 415,
+        "percent": 77.83
+      }
+    },
+    "runtime_percent": 87.06,
+    "all_percent": 81.72,
+    "test_events": {
+      "pass": 193
+    },
+    "top_level_tests": {
+      "pass": 144
+    }
+  }
+}

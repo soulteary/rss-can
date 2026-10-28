@@ -40,6 +40,10 @@ func GenerateConfigByRule(rule define.RuleCache) (config define.JavaScriptConfig
 }
 
 func GenerateConfigByRuleContext(ctx context.Context, rule define.RuleCache) (config define.JavaScriptConfig, err error) {
+	return configurations.load(ctx, rule, configCacheTTL(), evaluateConfig)
+}
+
+func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.JavaScriptConfig, err error) {
 	app := jssdk.GenerateGetConfigWithRule(rule.Body)
 	jsConfig, err := jssdk.RunCodeContext(ctx, jssdk.TPL_SSR_JS, app, rule.File)
 	if err != nil {

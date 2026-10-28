@@ -26,6 +26,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 // Bound browser work, including connection, navigation and script evaluation.
@@ -103,11 +104,29 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 
 // withBrowserPage owns an isolated browser context and its connection. It never
 // closes the shared remote browser. Cleanup also runs after errors or timeouts.
-func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cookies string, publicOnly bool, action func(context.Context) error) error {
+func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cookies string, publicOnly bool, action func(context.Context) error) (err error) {
+	telemetry.Default.Add("browser_requests_total", 1)
+	began := time.Now()
+	telemetry.Default.Add("browser_queued", 1)
+	defer func() {
+		if err != nil {
+			telemetry.Default.Add("browser_failures_total", 1)
+		}
+	}()
 	select {
 	case browserSlots <- struct{}{}:
-		defer func() { <-browserSlots }()
+		telemetry.Default.Add("browser_queued", -1)
+		telemetry.Default.Observe("browser_queue_seconds", time.Since(began))
+		telemetry.Default.Add("browser_active", 1)
+		began = time.Now()
+		defer func() {
+			<-browserSlots
+			telemetry.Default.Add("browser_active", -1)
+			telemetry.Default.Observe("browser_duration_seconds", time.Since(began))
+		}()
 	case <-ctx.Done():
+		telemetry.Default.Add("browser_queued", -1)
+		telemetry.Default.Observe("browser_queue_seconds", time.Since(began))
 		return ctx.Err()
 	}
 

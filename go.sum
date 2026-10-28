@@ -44,8 +44,8 @@ github.com/soulteary/feeds v1.3.0 h1:flHq3sbYbvQUSmT8Ha0d5o0ScO0ruo+7ON5pBsYztwQ
 github.com/soulteary/feeds v1.3.0/go.mod h1:W9r9bn+fqNiEAbfTCoZ6DTAe0Xe4xJAdP7umQ6AB/14=
 github.com/soulteary/goquery v1.14.0 h1:UhRxlbM7QXnyzNtQew5512XG5jjbbQDmNnMIL5O4M74=
 github.com/soulteary/goquery v1.14.0/go.mod h1:MHmEwtzzZR23aR0hN/pDBsj4ulKP4/zBq8ldqNoaMMM=
-github.com/soulteary/html-to-markdown/v2 v2.0.0 h1:60t4eqNP7PgzpGXB8u3uoK/nY3mqT4/a/ykEbZg9auY=
-github.com/soulteary/html-to-markdown/v2 v2.0.0/go.mod h1:6lDLgxRjrUsaTJ7YLrV1gOZhiOuxyXcn0L7+Ip6OHQQ=
+github.com/soulteary/html-to-markdown/v2 v2.0.1 h1:EJfx87aPtBRqicgtjlKCY+lktcKl7NKioQlZRVpryBg=
+github.com/soulteary/html-to-markdown/v2 v2.0.1/go.mod h1:6lDLgxRjrUsaTJ7YLrV1gOZhiOuxyXcn0L7+Ip6OHQQ=
 github.com/soulteary/redis-kit v1.8.0 h1:8nILkb49Q3eLWcuFE+DfyNqX9kFeyuHKoCDvngXgK+k=
 github.com/soulteary/redis-kit v1.8.0/go.mod h1:k/lvXA9ecjKhSvNJrGlQ7K0ijp727OYfecG1Mxadv5A=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=

@@ -7,6 +7,10 @@ This document records the local comparison used when replacing
 `github.com/soulteary/html-to-markdown/v2` v2.0.0. It is a reproducible baseline
 for dependency reviews, not a performance guarantee for every HTML document.
 
+RSS Can subsequently upgraded the fork to v2.0.1. The tables below remain the
+original v2.0.0 migration baseline. Version 2.0.1 adds DOM traversal and text
+buffer optimizations; it was not substituted into these historical results.
+
 ## Test environment
 
 - CPU: Apple M5

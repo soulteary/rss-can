@@ -33,11 +33,11 @@ def go_version_from_mod(path):
     return "go" + version
 
 
-def validate_metadata(metadata, system, arch, tag, commit, go_version):
+def validate_metadata(metadata, system, arch, tag, commit, go_version, cgo_enabled="0"):
     # go version -m quotes -ldflags using Go string escapes. Match token
     # boundaries after unescaping quotes, rather than accepting version prefixes.
     metadata = metadata.replace(r'\"', '"')
-    expected = [f"GOOS={system}", f"GOARCH={arch}", "CGO_ENABLED=1",
+    expected = [f"GOOS={system}", f"GOARCH={arch}", f"CGO_ENABLED={cgo_enabled}",
                 f"Version={tag}", f"Commit={commit}"]
     for value in expected:
         if not re.search(re.escape(value) + r"(?=[\s\"']|$)", metadata):
@@ -46,15 +46,15 @@ def validate_metadata(metadata, system, arch, tag, commit, go_version):
         raise ValueError(f"binary was not built with {go_version}")
 
 
-def inspect_binary(binary, system, arch, tag, commit, go_version):
+def inspect_binary(binary, system, arch, tag, commit, go_version, cgo_enabled="0"):
     with tempfile.TemporaryDirectory() as directory:
         path = pathlib.Path(directory) / "rssc"
         path.write_bytes(binary)
         metadata = subprocess.check_output(["go", "version", "-m", str(path)], text=True)
-        validate_metadata(metadata, system, arch, tag, commit, go_version)
+        validate_metadata(metadata, system, arch, tag, commit, go_version, cgo_enabled)
 
 
-def verify(directory, tag, commit, go_version):
+def verify(directory, tag, commit, go_version, cgo_enabled="0"):
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("expected the full source commit SHA")
     directory = pathlib.Path(directory)
@@ -80,6 +80,8 @@ def verify(directory, tag, commit, go_version):
                 raise ValueError(f"checksum mismatch: {name}")
     required = {"rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
                 f"docs/releases/{tag}.md", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"}
+    if cgo_enabled == "0":
+        required |= {"third_party/licenses/deno.txt", "docs/deno-prototype.md"}
     required |= {f"third_party/licenses/{name}.txt" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown")}
     for name, (system, arch, _) in archives.items():
         path = directory / name
@@ -99,7 +101,7 @@ def verify(directory, tag, commit, go_version):
         missing = required - set(names)
         if missing or not any(entry.startswith("rules/") and entry.endswith(".js") for entry in names):
             raise ValueError(f"archive missing runtime files in {name}: {missing}")
-        inspect_binary(binary, system, arch, tag, commit, go_version)
+        inspect_binary(binary, system, arch, tag, commit, go_version, cgo_enabled)
         print(f"Verified {name}: {system}/{arch}, {tag}, {commit}")
     return expected
 
@@ -109,7 +111,8 @@ if __name__ == "__main__":
     parser.add_argument("directory", type=pathlib.Path)
     parser.add_argument("tag")
     parser.add_argument("commit")
+    parser.add_argument("--cgo-enabled", choices=("0", "1"), default="0", help="use 1 for historical v8go releases")
     parser.add_argument("--go-version")
     parser.add_argument("--go-mod", type=pathlib.Path, default=pathlib.Path("go.mod"))
     args = parser.parse_args()
-    verify(args.directory, args.tag, args.commit, args.go_version or go_version_from_mod(args.go_mod))
+    verify(args.directory, args.tag, args.commit, args.go_version or go_version_from_mod(args.go_mod), args.cgo_enabled)

@@ -70,6 +70,11 @@ jobs:
           redis-version: "6.0"
           auto-start: "true"
 
+      - name: Set up Deno runtime
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.8
+
       - name: Tests
         run: |
           go mod tidy -diff
@@ -103,7 +108,7 @@ jobs:
           args: release --clean --skip=publish --config build/darwin-amd64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CGO_ENABLED: 1
+          CGO_ENABLED: 0
 
       - name: Upload assets (macos-amd64)
         if: success() && startsWith(github.ref, 'refs/tags/')
@@ -124,7 +129,7 @@ jobs:
           args: release --clean --skip=publish --config build/darwin-arm64.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CGO_ENABLED: 1
+          CGO_ENABLED: 0
 
       - name: Upload assets (macos-arm64)
         if: success() && startsWith(github.ref, 'refs/tags/')
@@ -171,19 +176,15 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Deno runtime
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.8
+
       - name: Tests
         run: |
           go mod tidy -diff
           go test -v ./...
-
-      - name: Install cross-compiler for linux/arm64
-        run: |
-          set -euo pipefail
-          if [ -f /etc/apt/apt-mirrors.txt ]; then
-            printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
-          fi
-          sudo apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 update
-          sudo apt-get -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 -o Acquire::Retries=2 install -y binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Validate GoReleaser configuration
         uses: goreleaser/goreleaser-action@v7

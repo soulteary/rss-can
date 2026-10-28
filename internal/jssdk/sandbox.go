@@ -1,3 +1,5 @@
+//go:build v8go
+
 package jssdk
 
 import (
@@ -62,3 +64,9 @@ func RunCode(base string, export string, originFile string) (string, error) {
 	}
 	return fmt.Sprint(result), nil
 }
+
+// CloseRuntime is a no-op for v8go: each RunCode already disposes its isolate.
+func CloseRuntime() {}
+
+// InitializeRuntime requires no external process for the optional v8go backend.
+func InitializeRuntime() error { return nil }

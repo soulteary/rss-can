@@ -1,3 +1,4 @@
+FROM denoland/deno:bin-2.9.8 AS Deno
 FROM arm64v8/ubuntu:22.04 as Builder
 WORKDIR /app
 COPY rssc ./
@@ -6,10 +7,12 @@ RUN upx -9 -o rssc.minify rssc && mv rssc.minify rssc
 COPY ./rules ./rules
 
 FROM arm64v8/ubuntu:22.04
+COPY --from=Deno /deno /usr/local/bin/deno
+COPY third_party/licenses/deno.txt /usr/share/licenses/rss-can/deno.txt
 COPY --from=Builder /app/rssc  /bin/rssc
 COPY --from=Builder /app/rules /rules
 ENV TZ=Asia/Shanghai
-RUN apt-get update && apt-get install -y tzdata ca-certificates && \
+RUN apt-get update && apt-get install -y tzdata ca-certificates libstdc++6 && \
     cp /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
     apt-get autoremove -y
 EXPOSE 8080

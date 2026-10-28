@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/andybalholm/cascadia"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/cascadia"
 )
 
 func TestUpstreamSelectorsPreserveUnicodeRules(t *testing.T) {

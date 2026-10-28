@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
@@ -19,6 +18,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/parser"
 	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/version"
+	"github.com/soulteary/goquery"
 )
 
 //go:embed assets

@@ -4,8 +4,8 @@ RSS Can uses the following open source projects. Go modules are resolved from
 upstream releases through `go.mod` and verified with `go.sum`; the historical
 source copies under `pkg/` are no longer used or maintained here.
 
-- [goquery](https://github.com/PuerkitoBio/goquery), by PuerkitoBio: HTML traversal for SSR parsing, v1.13.0, BSD-3-Clause.
-- [cascadia](https://github.com/soulteary/cascadia), forked from Andy Balholm's cascadia: CSS selectors, v1.0.0, BSD-2-Clause.
+- [goquery](https://github.com/soulteary/goquery), forked from PuerkitoBio's goquery: HTML traversal for SSR parsing, v1.14.0, BSD-3-Clause.
+- [cascadia](https://github.com/soulteary/cascadia), forked from Andy Balholm's cascadia: application CSS selectors, v1.0.0, BSD-2-Clause. HTML-to-Markdown retains upstream cascadia v1.3.4 as a transitive dependency.
 - [v8go](https://github.com/rogchap/v8go), by rogchap and contributors: JavaScript execution, v0.9.0, BSD-3-Clause.
 - [gorilla/feeds](https://github.com/gorilla/feeds), by the Gorilla Web Toolkit team: RSS, Atom and JSON Feed generation, v1.2.0, BSD-2-Clause.
 - [Gin](https://github.com/gin-gonic/gin), by the Gin team: HTTP service, v1.12.0, MIT.

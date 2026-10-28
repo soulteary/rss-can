@@ -112,6 +112,6 @@ be cached now that local `replace` directives are gone.
 
 Current source builds use Deno 2.9.8 as a single persistent worker. Docker and CI
 pin that version. Standalone installations must supply Deno on PATH or through
-RSS_CAN_DENO. Release Go binaries use CGO_ENABLED=0; v8go v0.9.0 is retained only
-for explicit `-tags v8go` builds and benchmark comparisons. Historical dependency
+RSS_CAN_DENO. Release Go binaries use CGO_ENABLED=0. The legacy v8go backend
+and module dependency have been removed. Historical dependency
 notes above describe earlier releases. See docs/deno-prototype.md for setup.

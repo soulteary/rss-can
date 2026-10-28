@@ -35,7 +35,7 @@ Download the binary from the github [release page](https://github.com/soulteary/
 
 Source builds now use a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. Updated Docker builds include it; standalone archives require it separately. Published v0.3.12 binaries/images retain their original runtime.
 
-The service checks Deno before starting. See [runtime setup](docs/deno-prototype.md) for lifecycle and the optional `-tags v8go` rollback build.
+The service checks Deno before starting. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
 
 ### Docker
 

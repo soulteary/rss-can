@@ -15,7 +15,7 @@ import sys
 import time
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--v8', required=True)
+parser.add_argument('--v8', help='optional preserved historical v8go benchmark binary')
 parser.add_argument('--deno', required=True)
 parser.add_argument('--deno-once', help='optional preserved per-call Deno benchmark binary')
 parser.add_argument('--n', type=int, default=210)
@@ -55,7 +55,9 @@ def run(binary, workload, n, monitor=False):
 
 for round_number in range(args.rounds):
     # Alternate backend order to reduce systematic ordering bias.
-    backends = [('v8go', args.v8), ('deno', args.deno)]
+    backends = [('deno', args.deno)]
+    if args.v8:
+        backends.insert(0, ('v8go', args.v8))
     if args.deno_once:
         backends.append(('deno-per-call', args.deno_once))
     if round_number % 2:
@@ -71,7 +73,9 @@ for round_number in range(args.rounds):
     records.append(record)
 
 if sys.platform == 'darwin':
-    memory_backends = [('v8go', args.v8), ('deno', args.deno)]
+    memory_backends = [('deno', args.deno)]
+    if args.v8:
+        memory_backends.insert(0, ('v8go', args.v8))
     if args.deno_once:
         memory_backends.append(('deno-per-call', args.deno_once))
     for name, binary in memory_backends:

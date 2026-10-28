@@ -7,7 +7,6 @@ source copies under `pkg/` are no longer used or maintained here.
 - [goquery](https://github.com/soulteary/goquery), forked from PuerkitoBio's goquery: HTML traversal for SSR parsing, v1.14.0, BSD-3-Clause.
 - [cascadia](https://github.com/soulteary/cascadia), forked from Andy Balholm's cascadia: application CSS selectors, v1.0.0, BSD-2-Clause.
 - [Deno](https://github.com/denoland/deno): default JavaScript worker runtime, v2.9.8, MIT (includes V8 and upstream notices).
-- [v8go](https://github.com/rogchap/v8go), by rogchap and contributors: optional legacy JavaScript execution (`-tags v8go`), v0.9.0, BSD-3-Clause.
 - [feeds](https://github.com/soulteary/feeds), forked from gorilla/feeds: RSS, Atom and JSON Feed generation, v1.3.0, BSD-2-Clause.
 - [Gin](https://github.com/gin-gonic/gin), by the Gin team: HTTP service, v1.12.0, MIT.
 - [gin-contrib/gzip](https://github.com/gin-contrib/gzip): response compression, v1.2.8, MIT.

@@ -1,6 +1,6 @@
 // bench-jssdk measures the production RunCode boundary, including IPC.
 // For a persistent worker, warmup excludes one-time startup.
-// Default builds use Deno; -tags v8go selects the legacy backend.
+// Builds use the persistent Deno backend.
 package main
 
 import (

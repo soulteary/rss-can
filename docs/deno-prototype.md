@@ -15,10 +15,8 @@ Docker images include Deno 2.9.8. Standalone archives require a separately
 installed Deno (or RSS_CAN_DENO pointing to its executable). The service checks
 runtime startup/execution before serving traffic and fails immediately if unavailable.
 
-The legacy v8go backend remains available for rollback and benchmark comparisons:
-`go build -tags v8go -o rssc-v8go .` (requires CGO and native V8 libraries).
-Low-level V8 context helpers are available only with that tag. v8go remains an
-optional module dependency; normal builds do not link it.
+Deno is the sole execution backend. The legacy v8go backend, its low-level
+context helpers, and its Go module dependency have been removed.
 
 Deno is resolved from PATH, or from `RSS_CAN_DENO`, when the worker starts.
 There is no automatic fallback when Deno is missing or fails.
@@ -44,7 +42,7 @@ reuse an existing Context or its modified global/prototype objects.
 Startup has a separate 10-second deadline. After acquiring the execution slot
 and receiving ready, `JS_EXECUTE_TIMEOUT` covers protocol write/read, both
 scripts, and result conversion. Queue waiting and startup do not consume this
-execution timeout. v8go still applies a separate timeout to each script.
+execution timeout.
 
 A timeout kills and reaps the process, closes its pipes, and joins its pending
 exchange before releasing the slot. The next request (including one already
@@ -54,7 +52,7 @@ process exit is reaped in the background; communication errors or mismatched
 IDs discard the process, and the next request starts a fresh one.
 
 `jssdk.CloseRuntime()` drains the active execution and releases the worker; the
-main program calls it on normal shutdown. It is a no-op in the v8go build.
+main program calls it on normal shutdown.
 Drain application requests first: a later RunCode can start the worker again.
 If the Go process exits without normal cleanup, closing stdin lets the idle
 runner exit; normal shutdown explicitly kills and joins the child.
@@ -73,7 +71,6 @@ base/export timeouts, and existing date helpers. All seven repository rules
 must match the committed v8go canonical-config hashes:
 
 ```sh
-go test -tags v8go -count=1 -v ./internal/jssdk
 CGO_ENABLED=0 go test -count=1 -v ./internal/jssdk
 ```
 

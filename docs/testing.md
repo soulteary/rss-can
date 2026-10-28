@@ -114,3 +114,13 @@ cover per-mode minimum configuration, preserved literal/CSR contracts,
 transactional semantic rejection and invalid dynamic output. Application tests
 combine category/date output, invalid-date HTTP failure and retention of the
 last valid rule after a rejected reload.
+
+Cross-mode regressions now compare the same local page through SSR, native CSR
+and MIX for absolute links, captured IDs, literal author/category and readlink
+content. Required Chrome cases verify native hook metadata, preserved custom
+GetData/GetText/GetLink APIs, explicit field prefixes, delayed data readiness,
+explicit empty markers, timeout/cancellation and cache-key isolation. CSR
+postprocessing tests cover custom ID/content preservation, static/self hook
+links, invalid selector-context hooks, independent decode and bounded detail
+failures. Application-level Chrome tests check final JSON Feed output and empty
+responses rather than only internal parser values.

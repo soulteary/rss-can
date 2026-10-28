@@ -270,4 +270,50 @@ The contract is checked before initial publication, on reload and on dynamic
 configuration evaluation. Invalid initial rules fail startup; invalid reloads
 preserve previous source/display metadata; invalid dynamic configurations fail
 feed generation rather than becoming successful empty subscriptions. A valid
-selector matching no entries is still an allowed empty feed.
+selector matching no entries is still an allowed empty SSR feed; browser modes
+need the readiness policy described below to distinguish empty from not-yet-loaded.
+
+## Shared field expressions, CSR enrichment and browser readiness
+
+SSR/MIX and the native CSR SDK now interpret extraction fields consistently:
+
+- `literal:固定 作者` forces a literal value, including whitespace or CSS-like
+  punctuation; `css:h2` forces a selector. The prefixes apply to Title, Author,
+  Category, DateTime, Description, Link and readlink-hook URL expressions.
+- Unprefixed known HTML tag names and CSS-looking strings retain selector
+  behavior; other bare text is literal. Bare words are matched against complete
+  tag names rather than substrings, so `Yahoo` is now a literal. Whitespace is
+  selector-looking for legacy descendant selectors: use `literal:` for phrases.
+- ListContainer, ReadySelector, Pager and hook Object remain plain selectors,
+  without expression prefixes. Explicit invalid/empty `css:` expressions fail
+  configuration validation. Required SSR/MIX title expressions cannot resolve
+  to an empty literal. Optional `literal:` fields can intentionally be empty.
+
+Custom SDK scripts keep the selector semantics of `GetText` and `GetLink`;
+field-expression handling is used by the native extraction path. A native CSR
+parser with matched entries but missing/empty Title or Link expressions now
+reports an error instead of returning an empty success. A custom `GetData`
+override may still define its own fields and output.
+
+CSR output now passes through common Go-side enrichment. Relative links resolve
+against the configured page URL. IdByRegexp uses the original item link and
+fills only an absent ID. Native readlink hooks capture their per-item links in
+the browser, then use the same ordered/cancelable detail workers, scoped
+Cookie/proxy options and content budgets as SSR. Failures do not return partial
+feeds. Each caller enriches its own decoded copy after shared raw extraction.
+
+Custom output keeps its explicit ID and nonempty fields. For a custom item with
+no captured DOM context, an empty hook URL can use the item link and a literal
+hook URL can name a static target. A selector hook without captured DOM context
+fails explicitly rather than being silently ignored. The browser cache namespace
+is now v5 so older payloads without native enrichment metadata are not reused.
+
+`ReadySelector` is a browser-only CSR/MIX setting. When omitted, it continues to
+wait for ListContainer, preserving existing dynamic-page behavior. When a page
+has a separate trustworthy loaded/empty marker, set ReadySelector to that CSS
+selector (for example `#loaded` or `body` when document readiness is sufficient).
+After that marker is ready, zero matching entries are a successful empty feed.
+Do not use `body` for pages whose data is still loading after document readiness:
+choose a marker that also represents their final empty state. Missing markers,
+timeouts and cancellation remain failures, never automatic empty success. SSR
+rejects ReadySelector because it does not execute the browser readiness phase.

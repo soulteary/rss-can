@@ -3,6 +3,9 @@ package jssdk
 import (
 	_ "embed"
 	"fmt"
+	"strconv"
+
+	"github.com/soulteary/RSS-Can/internal/define"
 )
 
 //go:embed js/jquery.min.js
@@ -10,6 +13,11 @@ var FILE_SHIM_CSR string
 
 //go:embed js/sdk.js
 var FILE_SDK string
+
+//go:embed js/field.js
+var FILE_FIELD_JS string
+
+var fieldExpressionJS = fmt.Sprintf("const RSS_CAN_FIELD_TAGS = new Set(%s.split(' '));\n%s", strconv.Quote(define.FieldDOMTags), FILE_FIELD_JS)
 
 //go:embed js/ssr.js
 var FILE_SHIM_SSR string
@@ -33,14 +41,14 @@ var TPL_DATE_JS = func() string {
 
 // combine sdk and ssr shim for SSR
 var TPL_SSR_JS = func() string {
-	return fmt.Sprintf("%s\n%s", FILE_SHIM_SSR, FILE_SDK)
+	return fmt.Sprintf("%s\n%s\n%s", FILE_SHIM_SSR, fieldExpressionJS, FILE_SDK)
 }()
 
 // combine sdk and csr shim for CSR
 var TPL_CSR_JS = func() string {
 	// Keep the SDK's jQuery in its injection scope and restore any page-owned
 	// jQuery/$ globals before running the rule.
-	return fmt.Sprintf("%s\nvar jQuery = window.jQuery.noConflict(true); var $ = jQuery;\n%s", FILE_SHIM_CSR, FILE_SDK)
+	return fmt.Sprintf("%s\nvar jQuery = window.jQuery.noConflict(true); var $ = jQuery;\n%s\n%s", FILE_SHIM_CSR, fieldExpressionJS, FILE_SDK)
 }()
 
 // MIX mode

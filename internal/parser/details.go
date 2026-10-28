@@ -21,6 +21,14 @@ const detailWorkers = 4
 var detailSlots = make(chan struct{}, 16)
 
 func fillDetails(ctx context.Context, config define.JavaScriptConfig, items []define.InfoItem, selections []*goquery.Selection, options []network.RequestOptions) *define.BodyParsed {
+	return fillDetailsWithLinks(ctx, config, items, options, func(i int, _ string, hook define.ConfigHook) string {
+		return jsBridge(hook.URL, "href", selections[i])
+	}, false)
+}
+
+// fillDetailsWithLinks keeps the same worker and process-wide limits for SSR
+// DOM selections and CSR hook links captured inside the browser.
+func fillDetailsWithLinks(ctx context.Context, config define.JavaScriptConfig, items []define.InfoItem, options []network.RequestOptions, rawLink func(int, string, define.ConfigHook) string, preserveExisting bool) *define.BodyParsed {
 	if len(items) == 0 || (config.DateTimeHook.Action != define.ConfigHookReadLink && config.CategoryHook.Action != define.ConfigHookReadLink && config.DescriptionHook.Action != define.ConfigHookReadLink && config.ContentHook.Action != define.ConfigHookReadLink) {
 		return nil
 	}
@@ -60,10 +68,10 @@ func fillDetails(ctx context.Context, config define.JavaScriptConfig, items []de
 					{"Content", config.ContentHook, "", &item.Content},
 				}
 				for _, field := range hooks {
-					if field.hook.Action != define.ConfigHookReadLink || field.override != "" {
+					if field.hook.Action != define.ConfigHookReadLink || field.override != "" || (preserveExisting && *field.value != "") {
 						continue
 					}
-					raw := jsBridge(field.hook.URL, "href", selections[i])
+					raw := rawLink(i, field.name, field.hook)
 					link, err := fn.LinkResolveRelative(raw, config.URL)
 					if raw == "" || err != nil {
 						fail(define.ERROR_CODE_PARSE_CONTENT_FAILED, fmt.Sprintf("entry %d %s detail link is missing or invalid", i+1, field.name))

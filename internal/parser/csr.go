@@ -18,6 +18,7 @@ import (
 	cdpnetwork "github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/security"
+	"github.com/chromedp/cdproto/target"
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/remote"
 	"github.com/soulteary/RSS-Can/internal/cacher"
@@ -157,7 +158,11 @@ func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cooki
 	if err := chromedp.Do(rootCtx); err != nil {
 		return err
 	}
-	pageCtx, pageCancel := chromedp.NewContext(rootCtx, chromedp.WithNewBrowserContext())
+	pageCtx, pageCancel := chromedp.NewContext(rootCtx, chromedp.WithNewBrowserContext(func(params *target.CreateBrowserContextParams) {
+		if !publicOnly {
+			params.ProxyServer = proxyAddr
+		}
+	}))
 	defer pageCancel()
 	if err := chromedp.Do(pageCtx); err != nil {
 		return err
@@ -327,10 +332,15 @@ func parseCSRItems(data string) define.BodyParsed {
 func browserCacheKey(config define.JavaScriptConfig, useMixParser bool) string {
 	// Separate browser JSON/HTML from SSR HTML, and isolate rules, cookies and
 	// parser settings. Include the rule bytes so edits cannot reuse old results.
+	// Include the effective global proxy when a rule does not override it.
+	config.Proxy = network.OptionsForConfig(config).Proxy
+	if normalized, err := network.NormalizeProxy(config.Proxy); err == nil {
+		config.Proxy = normalized
+	}
 	encoded, _ := json.Marshal(config)
 	rule := fn.GetFileContent(config.File)
 	sum := sha256.Sum256(append(encoded, rule...))
-	return fmt.Sprintf("browser:v2:%t:%x", useMixParser, sum)
+	return fmt.Sprintf("browser:v3:%t:%x", useMixParser, sum)
 }
 
 func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
@@ -341,6 +351,15 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	if err := ctx.Err(); err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}
+	if proxyAddr == "" {
+		proxyAddr = network.OptionsForConfig(config).Proxy
+	}
+	normalizedProxy, err := network.NormalizeProxy(proxyAddr)
+	if err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_INIT_NETWORK_FAILED, err.Error(), time.Now(), nil)
+	}
+	config.Proxy = normalizedProxy
+	proxyAddr = normalizedProxy
 	key := browserCacheKey(config, useMixParser)
 	decode := func(data string) define.BodyParsed {
 		if useMixParser {
@@ -360,7 +379,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	ctx, cancel := context.WithTimeout(ctx, fn.ExpireBySecond(timeout))
 	defer cancel()
 	var data string
-	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
+	err = withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
 		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(config.ListContainer))); err != nil {
 			return err
 		}

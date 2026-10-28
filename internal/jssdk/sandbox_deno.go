@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"sync"
 	"time"
@@ -21,7 +22,7 @@ import (
 //go:embed deno_runner.js
 var denoRunner string
 
-var defaultDenoWorker denoWorker
+var defaultDenoPool denoPool
 
 type denoProcess struct {
 	cmd    *exec.Cmd
@@ -54,10 +55,7 @@ type denoResponse struct {
 
 func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 	telemetry.Default.Add("js_starts_total", 1)
-	binary := os.Getenv("RSS_CAN_DENO")
-	if binary == "" {
-		binary = "deno"
-	}
+	binary := denoExecutable()
 	cmd := exec.Command(binary, "run", "--no-prompt", "--no-config", "--no-lock", "data:application/javascript;base64,"+base64.StdEncoding.EncodeToString([]byte(denoRunner)))
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -149,6 +147,15 @@ func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (
 }
 
 func (w *denoWorker) runContext(ctx context.Context, base, source, filename string, timeout time.Duration) (value string, err error) {
+	return runDeno(ctx, base, source, filename, timeout, func(ctx context.Context) (*denoWorker, func(), error) {
+		if err := w.acquire(ctx); err != nil {
+			return nil, nil, err
+		}
+		return w, func() { <-w.slot }, nil
+	})
+}
+
+func runDeno(ctx context.Context, base, source, filename string, timeout time.Duration, acquire func(context.Context) (*denoWorker, func(), error)) (value string, err error) {
 	telemetry.Default.Add("js_requests_total", 1)
 	defer func() {
 		if err != nil {
@@ -160,19 +167,24 @@ func (w *denoWorker) runContext(ctx context.Context, base, source, filename stri
 	}()
 	began := time.Now()
 	telemetry.Default.Add("js_queued", 1)
-	err = w.acquire(ctx)
+	w, release, acquireErr := acquire(ctx)
+	err = acquireErr
 	telemetry.Default.Add("js_queued", -1)
 	telemetry.Default.Observe("js_queue_seconds", time.Since(began))
 	if err != nil {
 		return "", err
 	}
+	defer release()
 	telemetry.Default.Add("js_active", 1)
 	began = time.Now()
 	defer func() {
 		telemetry.Default.Add("js_active", -1)
 		telemetry.Default.Observe("js_execution_seconds", time.Since(began))
 	}()
-	defer func() { <-w.slot }()
+	return w.executeContext(ctx, base, source, filename, timeout)
+}
+
+func (w *denoWorker) executeContext(ctx context.Context, base, source, filename string, timeout time.Duration) (string, error) {
 	if w.process != nil {
 		select {
 		case <-w.process.done:
@@ -242,22 +254,37 @@ func (w *denoWorker) runContext(ctx context.Context, base, source, filename stri
 	}
 }
 
-// RunCode serializes calls through one lazy, persistent Deno process. Each
-// request uses a fresh JS context. A failed process is replaced on the next call.
+// RunCode uses the bounded persistent Deno pool. Each request receives a fresh
+// JS context. A failed process is replaced on its next call.
 func RunCode(base, source, originFile string) (string, error) {
 	return RunCodeContext(context.Background(), base, source, originFile)
 }
 
 func RunCodeContext(ctx context.Context, base, source, originFile string) (string, error) {
-	return defaultDenoWorker.runContext(ctx, base, source, originFile, time.Duration(define.JS_EXECUTE_TIMEOUT)*time.Millisecond)
+	return defaultDenoPool.runContext(ctx, base, source, originFile, time.Duration(define.JS_EXECUTE_TIMEOUT)*time.Millisecond)
 }
 
-// CloseRuntime releases the worker after active execution finishes. A later
+// CloseRuntime releases all workers after active calls finish. A later
 // RunCode call may start it again; callers should drain requests before shutdown.
-func CloseRuntime() { defaultDenoWorker.close() }
+func CloseRuntime() { defaultDenoPool.close() }
 
-// InitializeRuntime starts the worker and checks execution before serving traffic.
+// InitializeRuntime validates every worker before serving traffic.
 func InitializeRuntime() error {
-	_, err := RunCode("", "0", "runtime-init.js")
-	return err
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return defaultDenoPool.initialize(ctx)
+}
+
+// An explicit override wins, followed by a sibling binary for portable archives.
+func denoExecutable() string {
+	if configured := os.Getenv("RSS_CAN_DENO"); configured != "" {
+		return configured
+	}
+	if executable, err := os.Executable(); err == nil {
+		sibling := filepath.Join(filepath.Dir(executable), "deno")
+		if info, err := os.Stat(sibling); err == nil && !info.IsDir() && info.Mode()&0111 != 0 {
+			return sibling
+		}
+	}
+	return "deno"
 }

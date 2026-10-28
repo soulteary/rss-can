@@ -19,7 +19,7 @@ class VerifyReleaseTests(unittest.TestCase):
 
     def fixture(self, directory, omit=None, binaries=None):
         files = {name: b"fixture" for name in ["rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
-                 "docs/releases/v0.3.12.md", "docs/deno-prototype.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
+                 "docs/releases/v0.3.12.md", "docs/deno-prototype.md", "docs/upgrading.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
         files.update({f"third_party/licenses/{name}.txt": b"license" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown", "deno")})
         if omit:
             del files[omit]
@@ -61,7 +61,7 @@ class VerifyReleaseTests(unittest.TestCase):
 
     @patch.object(release, "inspect_binary")
     def test_missing_rules_or_license(self, inspect):
-        for missing in ["rules/example/feed.js", "third_party/licenses/feeds.txt", "third_party/licenses/deno.txt", "docs/deno-prototype.md"]:
+        for missing in ["rules/example/feed.js", "third_party/licenses/feeds.txt", "third_party/licenses/deno.txt", "docs/deno-prototype.md", "docs/upgrading.md"]:
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temporary:
                 root = pathlib.Path(temporary)
                 self.fixture(root, omit=missing)

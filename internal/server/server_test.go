@@ -330,3 +330,26 @@ func TestFeedConfiguredServerTimeout(t *testing.T) {
 		t.Fatal("upstream kept running after configured timeout")
 	}
 }
+
+func TestFeedRejectsFailedDetailInsteadOfReturningPartialContent(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			fmt.Fprint(w, `<article><h2>Title</h2><a href="/detail">read</a></article>`)
+			return
+		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}))
+	defer upstream.Close()
+	file, body := installTestRule(t, upstream.URL)
+	body = strings.Replace(body, "DisableCache:true", `DisableCache:true,ContentHook:{action:"readlink",URL:"a",object:"body"}`, 1)
+	if err := os.WriteFile(file, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rule.InitRules()
+	app := fiber.New()
+	app.Get("/feed/:id/:type/", apiRSS())
+	status, response := testResponse(t, app, httptest.NewRequest("GET", "/feed/example/rss/", nil))
+	if status != http.StatusBadGateway || strings.Contains(response, "<rss") {
+		t.Fatalf("partial feed accepted: %d %s", status, response)
+	}
+}

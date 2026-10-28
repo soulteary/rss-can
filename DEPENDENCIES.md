@@ -1,117 +1,70 @@
 # Dependency maintenance
 
-Reviewed on 2026-10-27 with Go 1.27.3.
+The current dependency graph is defined by `go.mod` and `go.sum`; release
+builds use Go 1.27.3, CGO disabled, and Deno 2.9.8. Historical migration evidence
+is preserved in Git history and `docs/benchmarks/`, rather than mixed with the
+current installation requirements.
 
-## Go modules
+## Runtime and deployment
 
-The application now uses upstream modules instead of the five historical local
-source copies. Merely increasing their `require` versions previously left the
-old implementations active because of `replace` directives. The copies and their
-nested manifests have been removed; Go's module checksum verification now covers
-all five dependencies. The corresponding upstream license notices are preserved
-in `third_party/licenses/`.
+Deno is the sole JavaScript backend. `.deno-version` records the runtime pin;
+`scripts/check_runtime_versions.py` checks Docker, CI and installation docs
+against it before platform builds. Update all pins together and run the worker,
+sandbox and rule configuration regressions. Standalone installations supply
+Deno through `RSS_CAN_DENO`, a sibling executable or PATH. Docker includes it.
+See [upgrading](docs/upgrading.md) and [runtime lifecycle](docs/deno-prototype.md).
 
-This upgrade replaces goquery v1.13.0 with the performance-focused
-`github.com/soulteary/goquery` v1.14.0 fork and cascadia v1.3.5 with
-`github.com/soulteary/cascadia` v1.0.0, Redis from v8.11.5 to
-`github.com/redis/go-redis/v9` v9.23.0, HTML conversion to the
-`github.com/soulteary/html-to-markdown/v2` v2.0.1 fork, and Sonic from v1.15.4
-to v1.15.5. Feed generation uses the `github.com/soulteary/feeds` v1.3.0 fork,
-and cache2go commit `518229cd8021` is now the actual
-upstream implementations rather than older local copies bearing those version
-labels. Redis address/password/database environment variables and cache APIs
-retain their existing names.
+Browser automation uses chromedp and cdproto with a separately supplied
+Chrome/Chromium debugging endpoint. Changes must preserve isolated contexts,
+cookies, per-context proxies, inspector destination restrictions and cleanup.
+The source-built container uses a Debian slim runtime with certificates,
+timezone data and libstdc++6 for Deno.
 
-The feeds fork keeps the existing keyed-struct API but includes intentional wire
-format corrections. Atom honors an explicit feed ID and emits item `published`
-timestamps; RSS/Atom namespace serialization and author handling can therefore
-differ from gorilla/feeds v1.2.0. See `docs/feeds-performance.md` for the common-
-path performance comparison and compatibility limits.
+## Go dependencies and maintained forks
 
-Application imports use the forks' module paths directly. The goquery fork uses
-the cascadia fork as its selector engine. The HTML-to-Markdown fork depends only
-on `golang.org/x/net`, removing its former DOM helper and upstream cascadia
-transitive dependencies.
+Application imports use module paths directly; there are no historical local
+`replace` copies. `go.sum` verifies downloaded module contents. The project uses
+maintained forks of goquery, cascadia, feeds and html-to-markdown, plus cache-kit
+and redis-kit. Fork upgrades require compatibility tests and increase the set
+of upstream releases that the maintainer must track.
 
-The upstream feeds implementation emits JSON Feed 1.1, including the `authors`
-array and the legacy `author` field. RSS and Atom entry IDs, content and links
-are covered by regression tests. Markdown conversion has focused tests for
-headings, Unicode text, emphasis, links, images, ordered lists and code.
+- goquery/cascadia: selectors and SSR extraction. See [performance notes](docs/goquery-performance.md).
+- feeds: RSS, Atom and JSON Feed output, including IDs, authors, timestamps and namespaces. See [compatibility/performance notes](docs/feeds-performance.md).
+- html-to-markdown: Unicode, headings, emphasis, links, images, lists and code. See [performance notes](docs/html-to-markdown-performance.md).
+- cache-kit/redis-kit and go-redis: TTLs, misses versus empty values, cancellation, fallback and connection lifecycle.
+- Fiber: routes, status codes, timeouts and management authorization.
 
-Browser automation now uses chromedp v0.21.0 and generated cdproto v0.157.8.
-The migration removes Rod and its pinned fetchup/got/goob/gson/leakless dependency
-chain. Remote Chrome discovery, isolated browser contexts, request filtering,
-cookies and deadline-bounded WebSocket connections remain covered by parser tests.
+Preserve third-party notices under `third_party/licenses/`. Do not interpret a
+module-level vulnerability database match as proof of an application-reachable
+vulnerability; examine imported packages and reachable symbols with a fresh scan.
 
-- Gin, gzip, Zap, chromedp, v8go and the selected `golang.org/x/*` versions were already
-  at their latest stable releases when checked. v8go includes native V8 libraries;
-  changing to another fork is a separate runtime/build migration, not a version bump.
+## Embedded JavaScript and UI
 
-Dependabot's 12 open alerts observed before this upgrade were all associated
-with `golang.org/x/net` v0.22.0 in three deleted nested manifests. The application
-already selected v0.61.0. Removing those manifests eliminates the stale dependency
-sources; alert closure still depends on GitHub rescanning a pushed commit.
+The SDK embeds jQuery 4.0.0 and Moment 2.31.0. Package provenance and script
+checksums are recorded in `internal/jssdk/js/dependencies.json`; adjacent LICENSE
+files must accompany archives and images. Browser jQuery uses private aliases
+and must not replace a target page's globals. Go statement coverage does not
+measure the embedded JavaScript; keep sandbox and real-browser tests.
 
-## Embedded browser libraries
+Compiled Tailwind/daisyUI assets and the element picker require separate visual
+verification when updated. Do not replace generated assets without their build
+and compatibility checks.
 
-jQuery is upgraded from 1.12.4 to 4.0.0 and Moment from 2.29.4 to 2.31.0. Assets
-were extracted from the exact npm registry release packages after SHA-512 package
-integrity verification. Source URLs and script checksums are recorded in
-`internal/jssdk/js/dependencies.json`; license text is stored beside each script.
+## Upgrade validation
 
-jQuery runs inside the SDK injection scope and calls `noConflict(true)` before
-rule execution. Both `$` and `jQuery` remain available as private aliases for
-rule compatibility. Browser integration tests verify extraction and repeated
-injection without replacing a target page's existing `$` or `jQuery` globals.
-
-The compiled Tailwind/daisyUI stylesheets and element-picker remain unchanged.
-Updating those UI libraries requires a separate template/CSS migration and visual
-verification; no newer release was substituted without that work.
-
-## Validation
-
-Use a remote-debuggable Chrome/Chromium endpoint and a test Redis instance:
+Use the toolchain from `go.mod`, pinned Deno, isolated Redis and an isolated
+Chrome debugging endpoint. See [testing](docs/testing.md) for coverage budgets.
 
 ```sh
+python3 scripts/check_runtime_versions.py
+python3 -m unittest discover -s scripts -p 'test_*.py'
 RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_URL=http://127.0.0.1:9222 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
 go vet ./...
 go mod verify
-go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...
-go build -o /tmp/rssc .
+go mod tidy -diff
+CGO_ENABLED=0 go build -o /tmp/rssc .
 ```
 
-`RSS_TEST_BROWSER_URL` may be an HTTP discovery endpoint or a complete browser
-WebSocket debugger URL. Redis client compatibility is also tested against Redis 6, matching the existing macOS CI
-configuration. Browser integration tests must execute, rather than skip, during
-upgrade verification.
-
-`govulncheck` can report GO-2026-5932 at module level because `x/crypto` contains
-retired OpenPGP packages. The application uses SHA-3 through the HTTP validator,
-not OpenPGP. Distinguish module-level database matches from imported packages and
-reachable vulnerable symbols; do not label all database records as live findings.
-
-## Source-built container
-
-`docker/Dockerfile` now uses the published `golang:1.27.3-bookworm` builder and
-`debian:bookworm-slim` runtime. The previous `1.27.3-bullseye` builder tag cannot
-be pulled. Runtime certificates, timezone data and `libstdc++6` are explicit CGO
-requirements. UPX is no longer needed; Go strips debug metadata at build time.
-Module manifests are copied before application source so module downloads can
-be cached now that local `replace` directives are gone.
-
-## Verification results for this upgrade
-
-- Full `go test -race ./... -count=1` passed with Chrome integration tests required and Redis 8 available.
-- Cache tests passed separately against Redis 6.
-- `go vet ./...`, `go mod verify` and `go mod tidy -diff` passed.
-- `govulncheck` reported zero reachable vulnerabilities and zero vulnerabilities in imported packages; the unused OpenPGP module-level advisory remains unchanged.
-- macOS ARM64 and AMD64 builds passed. Linux AMD64 also compiled successfully under QEMU and the resulting binary executed its help command.
-- The source-built Linux ARM64 Docker image built successfully; its health endpoint and dynamic rule list both returned HTTP 200.
-
-## Default JavaScript runtime switch
-
-Current source builds use Deno 2.9.8 as a single persistent worker. Docker and CI
-pin that version. Standalone installations must supply Deno on PATH or through
-RSS_CAN_DENO. Release Go binaries use CGO_ENABLED=0. The legacy v8go backend
-and module dependency have been removed. Historical dependency
-notes above describe earlier releases. See docs/deno-prototype.md for setup.
+Run a current vulnerability scan during dependency upgrades, then verify actual
+release archives and source-built images using `RELEASING.md`. Results from a
+previous revision are not validation of a new dependency graph.

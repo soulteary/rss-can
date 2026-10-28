@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Reject incomplete feeds when configured detail links, upstream requests or selectors fail; keep inline metadata overrides and empty-element content fallback.
+- Apply rule cookies/proxies to SSR listings, pagination and details, scope cookies to the original host, and isolate document caches by request options.
+- Apply proxies to isolated remote Chrome contexts and include the effective global proxy in browser cache identity.
+- Add ordered, cancelable detail extraction (4 per page, 16 process-wide) and an opt-in Deno worker pool (`RSS_JS_WORKERS`, default 1, maximum 16).
+- Resolve a portable sibling Deno executable, package a bilingual upgrade guide, remove obsolete Rod help, and check runtime pins in release tooling.
+- Derive mutable startup configuration from existing default constants to avoid conflicting defaults.
+
 - Use a single persistent Deno worker by default, with fresh request contexts and timeout recovery.
 - Build release binaries without CGO; include Deno 2.9.8 in Docker images and CI. Standalone installations require Deno on PATH or RSS_CAN_DENO.
 - Remove the legacy v8go backend and Go module dependency; Deno is the sole JavaScript runtime.

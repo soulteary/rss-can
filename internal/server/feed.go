@@ -78,6 +78,7 @@ func apiRSS() fiber.Handler {
 			return timedOut()
 		}
 		if data.Code != define.ERROR_CODE_NULL {
+			logger.Instance.Errorf("Feed parsing failed (rule %s): %s", id, data.Status)
 			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
 		}
 		response, err := generator.GenerateFeedsByTypeContext(ctx, config, data, rssType)

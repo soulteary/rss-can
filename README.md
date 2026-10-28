@@ -35,7 +35,7 @@ Download the binary from the github [release page](https://github.com/soulteary/
 
 Source builds now use a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. Updated Docker builds include it; standalone archives require it separately. Published v0.3.12 binaries/images retain their original runtime.
 
-The service checks Deno before starting. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
+The service checks every Deno worker before starting. `RSS_JS_WORKERS` defaults to `1` and accepts `1–16` (restart to change). Runtime lookup uses `RSS_CAN_DENO`, a `deno` executable beside `rssc`, then PATH. See the [upgrade guide](docs/upgrading.md) for installation, proxy/cookie behavior and concurrency limits. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
 
 ### Feed generation limits
 
@@ -94,8 +94,6 @@ Usage of rssc:
     	set Redis db, env: RSS_REDIS_DB
   -redis-pass RSS_REDIS_PASSWD
     	set Redis password, env: RSS_REDIS_PASSWD
-  -rod string
-    	Set the default value of options used by rod.
   -rule RSS_RULE
     	set Rule directory, env: RSS_RULE (default "./rules")
   -timeout-headless RSS_HEADLESS_EXEC_TIMEOUT

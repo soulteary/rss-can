@@ -106,3 +106,36 @@ its link/selector or upstream access instead of accepting truncated content.
 
 先备份规则和部署配置，检查运行时启动、就绪接口及实际使用的订阅。对需要登录、代理、
 详情提取的规则单独验证。升级后出现 502 时查看日志定位详情 hook，修正规则或上游访问。
+
+## Architecture hardening in source builds
+
+Rule evaluation, CSR injection and browser cache identity now share an immutable
+copy of the loaded rule. Editing a rule file does not change an in-flight
+request or the currently loaded rule; reload rules through the management
+endpoint to publish the new source. Direct Go parser callers supplying only a
+file path capture its contents once when entering the browser parser.
+
+Upstream HTTP fetching now admits at most 16 active requests and 64 waiting
+requests per process. Waiting respects the feed deadline. Response bodies retain
+their slot until consumed or closed. Cached documents bypass admission, shared
+fetches consume one slot, and `DisableCache` does not bypass the limit. A full
+queue returns HTTP 503 from feed endpoints; upstream failures remain 502 and
+expired feed deadlines remain 504. Browser task limits remain separate. These
+are fixed process-wide defaults, not a per-origin fairness policy or a total
+process-memory limit.
+
+Redis cache operations have a 100 ms budget bounded by the caller's remaining
+context. A failed operation opens a one-second circuit; afterward one request
+probes Redis while other requests continue using the configured memory
+fallback. Caller cancellation does not trip the circuit. The memory backend is
+an outage cache, not a normally prewarmed second level: successful primary
+writes and deletes invalidate the corresponding local fallback value. Readiness
+still probes Redis independently. No normal-period dual-write guarantee is
+introduced.
+
+Feed generation is now orchestrated by `internal/feedservice`. Startup creates
+and injects the service; HTTP retains format/content-type validation, error
+status mapping and request metrics. The service owns a single generation
+deadline and accepts rule lookup, configuration, fetching and serialization
+functions as dependencies. Legacy module globals remain behind the production
+adapters for incremental migration.

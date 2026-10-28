@@ -34,7 +34,7 @@ go test -race ./internal/coalesce ./internal/telemetry ./internal/define ./inter
 - 95%: cmd, coalesce, define, fn, logger, telemetry.
 - 90%: rule.
 - 85%: generator.
-- 80%: cacher, jssdk.
+- 80%: cacher, feedservice, jssdk.
 - 75%: network, server.
 - 70%: parser.
 
@@ -77,3 +77,13 @@ their own sizes. Production may opt into a larger pool as described in
 `RSS_CAN_DENO`, explicitly set `RSS_REDIS=false RSS_MEMORY=true`, and check
 `/_/ready/` with HTTP environment proxies bypassed. Also verify a missing explicit
 runtime override fails startup and SIGTERM exits cleanly.
+
+Architecture regressions additionally cover immutable rule snapshots across
+file edits/deletion, bounded fetch admission and canceled waiters, Redis circuit
+recovery and stale fallback invalidation, and FeedService stage ordering,
+short-circuit errors, cancellation and HTTP status mapping. FeedService unit
+tests use injected dependencies and do not require Deno, Redis or Chrome:
+
+```sh
+go test -race ./internal/feedservice
+```

@@ -52,6 +52,7 @@ func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.J
 	}
 
 	config, err = ParseConfigFromJSON(jsConfig, rule)
+	config.RuleSource = define.NewRuleSource(rule.Body)
 	if err != nil {
 		logger.Instance.Errorf("Parsing rule file failed: %v", err)
 	}

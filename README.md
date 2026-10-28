@@ -156,3 +156,5 @@ The rapid evolution of the project is inseparable from the following excellent o
 `/_/health/` remains a liveness check. `/_/ready/` checks JS execution and cache readiness, allowing a working memory fallback when Redis is down. `/_/metrics/` exports Prometheus counters, gauges and histograms for fetch failures, cache reads, JS queueing and browser occupancy under management access restrictions. See [observability](docs/observability.md) for definitions and queries.
 
 Cache-enabled document requests share in-flight work; `DisableCache` retains independent fetches. Set `RSS_CONFIG_CACHE_TTL=30` to opt into configuration caching, disabled by default for dynamic rules. Date conversions are reused only within a feed. See [HTTP load measurements](docs/benchmarks/feed-load.md) and [testing and coverage budgets](docs/testing.md).
+
+Source builds now share immutable rule snapshots, bound upstream HTTP work (16 active and 64 waiting; overload returns 503), bound Redis operations with circuit recovery, and inject a FeedService. See the [upgrade guide](docs/upgrading.md#architecture-hardening-in-source-builds) for behavior and limits.

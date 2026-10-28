@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -70,6 +71,18 @@ func HttpGetContext(ctx context.Context, targetURL string, userAgent string, opt
 		req.Header.Set("User-Agent", define.USER_AGENT)
 	}
 
+	release, err := upstreamBudget.acquire(ctx)
+	if err != nil {
+		if transport != nil {
+			transport.CloseIdleConnections()
+		}
+		failureCode := define.ERROR_CODE_NETWORK
+		if errors.Is(err, ErrFetchOverloaded) {
+			failureCode = define.ERROR_CODE_OVERLOADED
+		}
+		code, status = MixCodeStatus(failureCode, define.ERROR_STATUS_NETWORK, err)
+		return code, status, nil
+	}
 	response, err = client.Do(req)
 	if transport != nil {
 		if response != nil {
@@ -82,9 +95,11 @@ func HttpGetContext(ctx context.Context, targetURL string, userAgent string, opt
 		if response != nil {
 			_ = response.Body.Close()
 		}
+		release()
 		code, status = MixCodeStatus(define.ERROR_CODE_NETWORK, define.ERROR_STATUS_NETWORK, err)
 		return code, status, response
 	}
+	response.Body = &budgetBody{ReadCloser: response.Body, release: release}
 
 	return define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, response
 }

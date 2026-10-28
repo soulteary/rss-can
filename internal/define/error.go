@@ -18,4 +18,5 @@ const (
 	ERROR_CODE_API_NOT_READY         ErrorCode = 3
 	ERROR_CODE_DECODE_CAHRSET_FAILED ErrorCode = 4
 	ERROR_CODE_PARSE_CONTENT_FAILED  ErrorCode = 5
+	ERROR_CODE_OVERLOADED            ErrorCode = 6
 )

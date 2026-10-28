@@ -5,7 +5,7 @@ import collections
 import pathlib
 import sys
 
-MINIMUMS = {'cacher': 80, 'cmd': 95, 'coalesce': 95, 'define': 95, 'fn': 95,
+MINIMUMS = {'cacher': 80, 'cmd': 95, 'coalesce': 95, 'define': 95, 'feedservice': 80, 'fn': 95,
             'generator': 85, 'jssdk': 80, 'logger': 95, 'network': 75,
             'parser': 70, 'rule': 90, 'server': 75, 'telemetry': 95}
 

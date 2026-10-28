@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -9,10 +10,9 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/feedservice"
 	"github.com/soulteary/RSS-Can/internal/fn"
-	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/logger"
-	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
@@ -29,7 +29,15 @@ func feedMIME(rssType string) (string, bool) {
 	}
 }
 
+type FeedGenerator interface {
+	Generate(context.Context, string, string) (string, error)
+}
+
 func apiRSS() fiber.Handler {
+	return apiRSSWithService(feedservice.NewDefault(fn.ExpireBySecond(define.SERVER_TIMEOUT)))
+}
+
+func apiRSSWithService(service FeedGenerator) fiber.Handler {
 	return func(c fiber.Ctx) (err error) {
 		began := time.Now()
 		telemetry.Default.Add("feed_requests_total", 1)
@@ -53,42 +61,32 @@ func apiRSS() fiber.Handler {
 		if !supported {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "unsupported feed type"})
 		}
-		ruleFile, exist := rule.Lookup(id)
-		if !exist {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "rule not found"})
+		response, err := service.Generate(c.Context(), id, rssType)
+		if err != nil {
+			logger.Instance.Errorf("Feed generation failed (rule %s): %v", id, err)
+			var failure *feedservice.Error
+			if !errors.As(err, &failure) {
+				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "generate feed failed"})
+			}
+			status, message := http.StatusInternalServerError, "generate feed failed"
+			switch failure.Stage {
+			case feedservice.InvalidFormat:
+				status, message = http.StatusBadRequest, "unsupported feed type"
+			case feedservice.MissingRule:
+				status, message = http.StatusNotFound, "rule not found"
+			case feedservice.Configuration:
+				message = "parse config failed"
+			case feedservice.Fetch:
+				status, message = http.StatusBadGateway, fmt.Sprintf("get website data failed, code:%v", failure.Code)
+				if failure.Code == define.ERROR_CODE_OVERLOADED {
+					status, message = http.StatusServiceUnavailable, "upstream fetch queue is full"
+				}
+			case feedservice.Timeout:
+				status, message = http.StatusGatewayTimeout, "feed generation timed out"
+			}
+			return c.Status(status).JSON(fiber.Map{"msg": message})
 		}
 
-		// One budget for JS queueing/execution, cache operations, browser/HTTP
-		// requests, pagination, detail hooks and feed serialization.
-		ctx, cancel := context.WithTimeout(c.Context(), fn.ExpireBySecond(define.SERVER_TIMEOUT))
-		defer cancel()
-		timedOut := func() error {
-			return c.Status(http.StatusGatewayTimeout).JSON(fiber.Map{"msg": "feed generation timed out"})
-		}
-		config, err := rule.GenerateConfigByRuleContext(ctx, ruleFile)
-		if ctx.Err() != nil {
-			return timedOut()
-		}
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "parse config failed"})
-		}
-
-		data := rule.GetWebsiteDataWithConfigContext(ctx, config)
-		if ctx.Err() != nil {
-			return timedOut()
-		}
-		if data.Code != define.ERROR_CODE_NULL {
-			logger.Instance.Errorf("Feed parsing failed (rule %s): %s", id, data.Status)
-			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
-		}
-		response, err := generator.GenerateFeedsByTypeContext(ctx, config, data, rssType)
-		if ctx.Err() != nil {
-			return timedOut()
-		}
-		if err != nil {
-			logger.Instance.Errorf("Generate feed failed: %v", err)
-			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "generate feed failed"})
-		}
 		c.Set(fiber.HeaderContentType, mimetype)
 		return c.Status(http.StatusOK).SendString(response)
 	}

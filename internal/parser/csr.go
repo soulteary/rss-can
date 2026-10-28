@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -313,6 +314,8 @@ func deadline(ctx context.Context) time.Time {
 	return d
 }
 
+// GetCSRInjectCode is a compatibility helper for callers loading a standalone
+// file. Feed generation uses csrInjectCode with its captured configuration source.
 func GetCSRInjectCode(file string) string {
 	jsRule := fn.GetFileContent(file)
 	if jsRule == nil {
@@ -338,9 +341,29 @@ func browserCacheKey(config define.JavaScriptConfig, useMixParser bool) string {
 		config.Proxy = normalized
 	}
 	encoded, _ := json.Marshal(config)
-	rule := fn.GetFileContent(config.File)
-	sum := sha256.Sum256(append(encoded, rule...))
-	return fmt.Sprintf("browser:v3:%t:%x", useMixParser, sum)
+	ruleHash := config.RuleSource.Hash()
+	sum := sha256.Sum256(append(encoded, ruleHash[:]...))
+	return fmt.Sprintf("browser:v4:%t:%x", useMixParser, sum)
+}
+
+// Direct parser callers may supply only File. Capture it once, before cache
+// lookup and browser work; production configurations already carry their source.
+func captureBrowserRule(config define.JavaScriptConfig) (define.JavaScriptConfig, error) {
+	if !config.RuleSource.Present() && config.File != "" {
+		body, err := os.ReadFile(config.File)
+		if err != nil {
+			return config, fmt.Errorf("cannot read rule %s: %w", config.File, err)
+		}
+		config.RuleSource = define.NewRuleSource(body)
+	}
+	return config, nil
+}
+
+func csrInjectCode(config define.JavaScriptConfig) string {
+	if !config.RuleSource.Present() {
+		return ""
+	}
+	return jssdk.GenerateCSRInjectParser([]byte(config.RuleSource.Text()))
 }
 
 func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
@@ -350,6 +373,11 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
 	if err := ctx.Err(); err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+	}
+	var err error
+	config, err = captureBrowserRule(config)
+	if err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
 	if proxyAddr == "" {
 		proxyAddr = network.OptionsForConfig(config).Proxy
@@ -388,7 +416,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 			data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+jssdk.TPL_MIX_JS+")()"))
 			return err
 		}
-		injectCode := GetCSRInjectCode(config.File)
+		injectCode := csrInjectCode(config)
 		if injectCode == "" {
 			return fmt.Errorf("cannot read rule %s", config.File)
 		}

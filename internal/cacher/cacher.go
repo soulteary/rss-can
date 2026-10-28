@@ -84,7 +84,9 @@ func FallbackToMemoryDel(key string) error {
 func Expire(key string, expire time.Duration) error {
 	Initialize()
 	if define.REDIS {
-		err := SetDataExpireByKeyFromRedis(instanceRedis, key, expire)
+		err := instanceService.primaryCall(context.Background(), func(ctx context.Context) error {
+			return setDataExpireByKeyFromRedisContext(ctx, instanceRedis, key, expire)
+		})
 		if err != nil {
 			if define.IN_MEMORY_CACHE {
 				return FallbackToMemoryExpire(key, expire)

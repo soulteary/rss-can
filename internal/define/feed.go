@@ -1,10 +1,27 @@
 package define
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"regexp"
 	"strings"
 )
+
+// RuleSource is an immutable copy of the script used to evaluate a configuration.
+// Private string storage prevents callers from changing a published rule's bytes.
+type RuleSource struct {
+	body string
+	hash [sha256.Size]byte
+	set  bool
+}
+
+func NewRuleSource(body []byte) RuleSource {
+	return RuleSource{body: string(body), hash: sha256.Sum256(body), set: true}
+}
+
+func (s RuleSource) Present() bool           { return s.set }
+func (s RuleSource) Text() string            { return s.body }
+func (s RuleSource) Hash() [sha256.Size]byte { return s.hash }
 
 const (
 	FEED_TYPE_RSS  = "rss"
@@ -46,19 +63,20 @@ type PROP_ID struct {
 }
 
 type JavaScriptConfig struct {
-	Name         string  `json:"name"`
-	URL          string  `json:"URL"`
-	Mode         string  `json:"Mode"`
-	File         string  //private field
-	Charset      string  `json:"Charset"`
-	Expire       int     `json:"Expire"`
-	Headless     string  `json:"Headless"`
-	Timeout      int     `json:"Timeout"`
-	Proxy        string  `json:"Proxy"`
-	DisableCache bool    `json:"DisableCache"`
-	IdByRegexp   string  `json:"IdByRegexp"`
-	IdByProp     PROP_ID `json:"IdByProp"`
-	Cookies      string  `json:"Cookies"`
+	RuleSource   RuleSource `json:"-"`
+	Name         string     `json:"name"`
+	URL          string     `json:"URL"`
+	Mode         string     `json:"Mode"`
+	File         string     //private field
+	Charset      string     `json:"Charset"`
+	Expire       int        `json:"Expire"`
+	Headless     string     `json:"Headless"`
+	Timeout      int        `json:"Timeout"`
+	Proxy        string     `json:"Proxy"`
+	DisableCache bool       `json:"DisableCache"`
+	IdByRegexp   string     `json:"IdByRegexp"`
+	IdByProp     PROP_ID    `json:"IdByProp"`
+	Cookies      string     `json:"Cookies"`
 
 	ListContainer string `json:"ListContainer"`
 	Title         string `json:"Title"`

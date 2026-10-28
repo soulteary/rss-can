@@ -11,13 +11,18 @@ nested manifests have been removed; Go's module checksum verification now covers
 all five dependencies. The corresponding upstream license notices are preserved
 in `third_party/licenses/`.
 
-This upgrade moves goquery to v1.13.0, cascadia to v1.3.5, Redis from v8.11.5 to
+This upgrade moves goquery to v1.13.0, replaces cascadia v1.3.5 with the
+performance-focused `github.com/soulteary/cascadia` v1.0.0 fork, Redis from v8.11.5 to
 `github.com/redis/go-redis/v9` v9.23.0, HTML conversion from the local v1 copy to
 `github.com/JohannesKaufmann/html-to-markdown/v2` v2.5.2, and Sonic from v1.15.4
 to v1.15.5. Feeds v1.2.0 and cache2go commit `518229cd8021` are now the actual
 upstream implementations rather than older local copies bearing those version
 labels. Redis address/password/database environment variables and cache APIs
 retain their existing names.
+
+The cascadia fork is selected with a module-level `replace` directive because
+goquery imports the original module path internally. This ensures both direct
+and transitive cascadia users resolve to the same fork implementation.
 
 The upstream feeds implementation emits JSON Feed 1.1, including the `authors`
 array and the legacy `author` field. RSS and Atom entry IDs, content and links

@@ -11,7 +11,7 @@ require (
 	github.com/soulteary/cascadia v1.0.0
 	github.com/soulteary/feeds v1.3.0
 	github.com/soulteary/goquery v1.14.0
-	github.com/soulteary/html-to-markdown/v2 v2.0.0
+	github.com/soulteary/html-to-markdown/v2 v2.0.1
 	github.com/soulteary/redis-kit v1.8.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.62.0

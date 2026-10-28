@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
@@ -46,7 +47,7 @@ func testConfig(t *testing.T, name, target string) Config {
 }
 func response(t *testing.T, app *App, path string) (int, string) {
 	t.Helper()
-	res, err := app.Routes().Test(httptest.NewRequest("GET", path, nil))
+	res, err := app.Routes().Test(httptest.NewRequest("GET", path, nil), fiber.TestConfig{Timeout: app.config.Server.Timeout + time.Second, FailOnTimeout: true})
 	if err != nil {
 		t.Fatal(err)
 	}

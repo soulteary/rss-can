@@ -45,7 +45,7 @@ func TestApplicationBrowserMainFailureCannotBecomeCachedSuccess(t *testing.T) {
 				}))
 				defer upstream.Close()
 				config := testConfig(t, "status", upstream.URL)
-				config.Server.Headless = browser
+				configureTestBrowser(&config, browser)
 				writeFetchRule(t, config, upstream.URL+"/page", mode, "")
 				app, err := New(t.Context(), config)
 				if err != nil {
@@ -81,7 +81,15 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 						return
 					}
 					if r.URL.Path == prefix+"post/42" {
-						fmt.Fprint(w, `<html><body>Detail from final base</body></html>`)
+						http.Redirect(w, r, "/detail/42/", http.StatusFound)
+						return
+					}
+					if r.URL.Path == "/detail/42/" {
+						base := ""
+						if withBase {
+							base = `<base href="/assets/">`
+						}
+						fmt.Fprintf(w, `<html><head>%s</head><body>Detail from final base <a href="next">next</a><img src="pic.png"></body></html>`, base)
 						return
 					}
 					if r.URL.Path != "/news/" {
@@ -97,7 +105,7 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 				}))
 				defer upstream.Close()
 				config := testConfig(t, "base", upstream.URL+"/news")
-				config.Server.Headless = browser
+				configureTestBrowser(&config, browser)
 				writeFetchRule(t, config, upstream.URL+"/news", mode, `,IdByRegexp:"post/([0-9]+)",ContentHook:{action:"readlink",URL:"a",object:"body"}`)
 				app, err := New(t.Context(), config)
 				if err != nil {
@@ -116,6 +124,15 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 					item := feed.Items[0]
 					if item.URL != upstream.URL+prefix+"post/42" || item.ID != "42" || !strings.Contains(item.Content, "Detail from final base") {
 						t.Fatalf("base metadata lost: %s", body)
+					}
+					detailBase := upstream.URL + "/detail/42/"
+					if withBase {
+						detailBase = upstream.URL + "/assets/"
+					}
+					for _, reference := range []string{"next", "pic.png"} {
+						if !strings.Contains(item.Content, detailBase+reference) {
+							t.Fatalf("detail URL base lost for %s: %s", reference, body)
+						}
 					}
 				}
 				assertFeed()
@@ -154,7 +171,7 @@ func TestApplicationRedirectDoesNotRebindCookieOrigin(t *testing.T) {
 			defer origin.Close()
 			target := strings.Replace(origin.URL, "127.0.0.1", "localhost", 1) + "/start"
 			config := testConfig(t, "cookie", target)
-			config.Server.Headless = browser
+			configureTestBrowser(&config, browser)
 			writeFetchRule(t, config, target, mode, `,Cookies:"origin=secret",DisableCache:true,ContentHook:{action:"readlink",URL:"a",object:"body"}`)
 			app, err := New(t.Context(), config)
 			if err != nil {

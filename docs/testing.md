@@ -135,3 +135,17 @@ decoded-size boundaries with escaped JSON. Inspector tests cover resource/wire/
 gzip/page budgets, bounded queue admission, canceled body closure and error
 propagation after captured HTML, using controlled transports without external
 network targets.
+
+Browser-control boundary regressions verify discovery byte limits for declared,
+streamed and misleading lengths, exact-size acceptance, endpoint URL bounds and
+canceled reads. Browser admission tests exercise active/queued capacity,
+overload error propagation, cancellation, idempotent release and Inspector HTTP
+503 responses. Detail-content regressions verify URL resolution through detail
+redirects, HTML bases and offline source-cache hits; the application tests assert
+actual links and images in SSR, CSR and MIX feed output.
+
+Application browser-contract fixtures use an explicit 5-second browser budget
+inside an 8-second application deadline; their Fiber test client waits for that
+application deadline plus one second rather than Fiber's implicit 1-second cap.
+The explicit-readiness empty-feed fixture delays its marker by 1.1 seconds to
+exercise this distinction. Timeout-policy tests retain their own short budgets.

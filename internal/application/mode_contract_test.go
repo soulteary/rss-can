@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func modeBrowser(t *testing.T) string {
@@ -22,6 +23,16 @@ func modeBrowser(t *testing.T) string {
 		t.Skip("requires isolated Chrome")
 	}
 	return endpoint
+}
+
+// Browser contract tests exercise process startup/navigation rather than timeout
+// policy. Keep their bounded budgets above Fiber's default one-second test cap
+// so parallel race/coverage instrumentation does not decide their outcome.
+func configureTestBrowser(config *Config, endpoint string) {
+	config.Server.Headless = endpoint
+	config.BrowserTimeout = 5 * time.Second
+	config.Server.Timeout = 8 * time.Second
+	config.Server.ShutdownTimeout = 9 * time.Second
 }
 
 type modeFeed struct {
@@ -49,7 +60,7 @@ func TestApplicationModesShareFieldAndEnrichmentContracts(t *testing.T) {
 	for _, mode := range []string{"ssr", "csr", "mix"} {
 		t.Run(mode, func(t *testing.T) {
 			config := testConfig(t, "modes", upstream.URL)
-			config.Server.Headless = browser
+			configureTestBrowser(&config, browser)
 			ready := ""
 			if mode != "ssr" {
 				ready = `,ReadySelector:"#ready"`
@@ -84,13 +95,13 @@ func TestApplicationModesShareFieldAndEnrichmentContracts(t *testing.T) {
 func TestApplicationBrowserExplicitReadinessAllowsEmptyFeed(t *testing.T) {
 	browser := modeBrowser(t)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, `<html><body><main id="ready">No entries</main></body></html>`)
+		fmt.Fprint(w, `<html><body><main>No entries</main><script>setTimeout(()=>document.querySelector("main").id="ready",1100)</script></body></html>`)
 	}))
 	defer upstream.Close()
 	for _, mode := range []string{"csr", "mix"} {
 		t.Run(mode, func(t *testing.T) {
 			config := testConfig(t, "empty", upstream.URL)
-			config.Server.Headless = browser
+			configureTestBrowser(&config, browser)
 			source := fmt.Sprintf(`potted.SetScope("article").SetConfig({Name:"empty",URL:%q,Mode:%q,Title:"h2",Link:"a",ReadySelector:"#ready",DisableCache:true});`, upstream.URL, mode)
 			if err := os.WriteFile(filepath.Join(config.Server.RuleDirectory, "site", "feed.js"), []byte(source), 0600); err != nil {
 				t.Fatal(err)
@@ -122,7 +133,7 @@ func TestApplicationCustomCSRPreservesExplicitOutput(t *testing.T) {
 	}))
 	defer upstream.Close()
 	config := testConfig(t, "custom", upstream.URL)
-	config.Server.Headless = browser
+	configureTestBrowser(&config, browser)
 	source := fmt.Sprintf(`potted.SetScope("article").SetConfig({Name:"custom",URL:%q,Mode:"csr",IdByRegexp:"/post/([0-9]+)",ContentHook:{action:"readlink",URL:"css:a",object:"body"},DisableCache:true});potted.GetData=function(){this.value=JSON.stringify([{id:"custom-id",title:"Custom",link:"/post/42",content:"Own content",author:"Own author",category:"Own category"}]);return this;};`, upstream.URL)
 	if err := os.WriteFile(filepath.Join(config.Server.RuleDirectory, "site", "feed.js"), []byte(source), 0600); err != nil {
 		t.Fatal(err)

@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
@@ -14,7 +13,6 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/fetch"
 	cdpnetwork "github.com/chromedp/cdproto/network"
 	"github.com/chromedp/cdproto/page"
 	"github.com/chromedp/cdproto/security"
@@ -180,114 +178,14 @@ func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cooki
 	if _, err := cdp.Call(pageCtx, chromedp.FromContext(pageCtx).Target, page.AddScriptToEvaluateOnNewDocument, page.AddScriptToEvaluateOnNewDocumentParams{Source: jssdk.CSR_NO_OP_ALERT}); err != nil {
 		return err
 	}
-	if err := configureBrowserRequests(pageCtx, publicOnly); err != nil {
+	interception, err := configureBrowserRequestsWithBudget(pageCtx, publicOnly)
+	if err != nil {
 		return err
 	}
 	if err := setBrowserCookies(pageCtx, targetURL, cookies); err != nil {
 		return err
 	}
-	return action(pageCtx)
-}
-
-func configureBrowserRequests(ctx context.Context, publicOnly bool) error {
-	patterns := []*fetch.RequestPattern{
-		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeImage},
-		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeMedia},
-		{URLPattern: "*", ResourceType: cdpnetwork.ResourceTypeFont},
-	}
-	if publicOnly {
-		patterns = []*fetch.RequestPattern{{URLPattern: "*"}}
-		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.Enable, cdpnetwork.EnableParams{}); err != nil {
-			return err
-		}
-		blocked := []*cdpnetwork.BlockPattern{
-			{URLPattern: "ws://*:*/*", Block: true},
-			{URLPattern: "wss://*:*/*", Block: true},
-			{URLPattern: "file://*/*", Block: true},
-			{URLPattern: "ftp://*:*/*", Block: true},
-		}
-		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.SetBlockedURLs, cdpnetwork.SetBlockedURLsParams{URLPatterns: blocked}); err != nil {
-			return err
-		}
-		if _, err := cdp.Call(ctx, chromedp.FromContext(ctx).Target, cdpnetwork.SetBypassServiceWorker, cdpnetwork.SetBypassServiceWorkerParams{Bypass: true}); err != nil {
-			return err
-		}
-	}
-	client := network.PublicHTTPClient(time.Until(deadline(ctx)))
-	executor := chromedp.FromContext(ctx).Target
-	events := cdp.Events(ctx, executor, fetch.RequestPaused)
-	go func() {
-		for paused, err := range events {
-			if err != nil {
-				return
-			}
-			paused := paused
-			go func() {
-				handlePausedRequest(ctx, &paused, publicOnly, client)
-			}()
-		}
-	}()
-	if _, err := cdp.Call(ctx, executor, fetch.Enable, fetch.EnableParams{Patterns: patterns}); err != nil {
-		return err
-	}
-	return nil
-}
-
-func handlePausedRequest(ctx context.Context, paused *fetch.EventRequestPaused, publicOnly bool, client *http.Client) {
-	executor := chromedp.FromContext(ctx).Target
-	fail := func() {
-		_, _ = cdp.Call(ctx, executor, fetch.FailRequest, fetch.FailRequestParams{RequestID: paused.RequestID, ErrorReason: cdpnetwork.ErrorReasonBlockedByClient})
-	}
-	if paused.ResourceType == cdpnetwork.ResourceTypeImage || paused.ResourceType == cdpnetwork.ResourceTypeMedia || paused.ResourceType == cdpnetwork.ResourceTypeFont {
-		fail()
-		return
-	}
-	if !publicOnly {
-		_, _ = cdp.Call(ctx, executor, fetch.ContinueRequest, fetch.ContinueRequestParams{RequestID: paused.RequestID})
-		return
-	}
-	if err := network.PublicURL(paused.Request.URL); err != nil {
-		fail()
-		return
-	}
-	postData := make([][]byte, 0, len(paused.Request.PostDataEntries))
-	for _, entry := range paused.Request.PostDataEntries {
-		postData = append(postData, entry.Bytes)
-	}
-	req, err := http.NewRequestWithContext(ctx, paused.Request.Method, paused.Request.URL, bytes.NewReader(bytes.Join(postData, nil)))
-	if err != nil {
-		fail()
-		return
-	}
-	for name, value := range paused.Request.Headers {
-		if text, ok := value.(string); ok && !strings.EqualFold(name, "host") {
-			req.Header.Set(name, text)
-		}
-	}
-	response, err := client.Do(req)
-	if err != nil {
-		fail()
-		return
-	}
-	defer response.Body.Close()
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		fail()
-		return
-	}
-	headers := make([]*fetch.HeaderEntry, 0, len(response.Header))
-	for name, values := range response.Header {
-		for _, value := range values {
-			headers = append(headers, &fetch.HeaderEntry{Name: name, Value: value})
-		}
-	}
-	_, _ = cdp.Call(ctx, executor, fetch.FulfillRequest, fetch.FulfillRequestParams{
-		RequestID:       paused.RequestID,
-		ResponseCode:    int64(response.StatusCode),
-		ResponseHeaders: headers,
-		Body:            body,
-		ResponsePhrase:  strings.TrimSpace(strings.TrimPrefix(response.Status, strconv.Itoa(response.StatusCode))),
-	})
+	return interception.result(action(pageCtx), publicOnly)
 }
 
 func setBrowserCookies(ctx context.Context, targetURL, cookies string) error {
@@ -387,7 +285,7 @@ func browserCacheKeyContext(ctx context.Context, config define.JavaScriptConfig,
 	encoded, _ := json.Marshal(config)
 	ruleHash := config.RuleSource.Hash()
 	sum := sha256.Sum256(append(encoded, ruleHash[:]...))
-	return fmt.Sprintf("browser:v5:%t:%x", useMixParser, sum)
+	return fmt.Sprintf("browser:v6:%t:%x", useMixParser, sum)
 }
 
 // Direct parser callers may supply only File. Capture it once, before cache
@@ -443,10 +341,15 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	proxyAddr = normalizedProxy
 	key := browserCacheKeyContext(ctx, config, useMixParser)
 	decode := func(data string) define.BodyParsed {
-		if useMixParser {
-			return ParseDataAndConfigBySSRContext(ctx, config, define.RemoteBodySanitized{}, data)
+		document, err := decodeBrowserDocument(data)
+		if err != nil {
+			return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 		}
-		return processCSRItemsContext(ctx, config, data)
+		if useMixParser {
+			doc := define.RemoteBodySanitized{Body: document.Body, FinalURL: document.FinalURL, BaseURL: document.BaseURL, HTTPStatus: document.HTTPStatus}
+			return ParseDataAndConfigBySSRContext(ctx, config, doc, "")
+		}
+		return processCSRItemsContext(ctx, config, document.Body, document.BaseURL)
 	}
 	timeout := define.HEADLESS_EXCUTE_TIMEOUT
 	if config.Timeout > 0 {
@@ -454,9 +357,25 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	}
 	sharedTimeout := fn.ExpireBySecond(timeout)
 	cacheEnabled := cacher.IsEnabledContext(ctx) && !config.DisableCache
+	validatePayload := func(encoded string) error {
+		document, err := decodeBrowserDocument(encoded)
+		if err != nil {
+			return err
+		}
+		if useMixParser {
+			if document.Body == "" {
+				return fmt.Errorf("empty browser HTML document")
+			}
+			return nil
+		}
+		if parsed := parseCSRItems(document.Body); parsed.Code != define.ERROR_CODE_NULL {
+			return fmt.Errorf("%s", parsed.Status)
+		}
+		return nil
+	}
 	data, err := browserData(ctx, key, cacheEnabled, sharedTimeout, config.Expire, func(work context.Context) (string, error) {
 		return fetchBrowserData(work, config, container, proxyAddr, useMixParser)
-	})
+	}, validatePayload)
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}
@@ -465,11 +384,29 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 
 // browserData shares only captured page data. Each caller decodes using its own
 // context, so a departing caller cannot cancel the other callers' detail work.
-func browserData(ctx context.Context, key string, cacheEnabled bool, timeout time.Duration, expire int, fetchData func(context.Context) (string, error)) (string, error) {
+func browserData(ctx context.Context, key string, cacheEnabled bool, timeout time.Duration, expire int, fetchData func(context.Context) (string, error), validators ...func(string) error) (string, error) {
+	maxBytes := limits.MaxPageBytes
+	if len(validators) > 0 {
+		maxBytes = limits.MaxDocumentCacheBytes
+	}
+	validate := func(data string) error {
+		if len(data) > maxBytes {
+			return fmt.Errorf("browser result exceeds size limit")
+		}
+		for _, validator := range validators {
+			if err := validator(data); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 	load := func(work context.Context) (string, error) {
 		if cacheEnabled {
-			if cached, found, err := cacher.GetWithinLimit(work, key, limits.MaxPageBytes); err == nil && found {
-				return cached, nil
+			if cached, found, err := cacher.GetWithinLimit(work, key, maxBytes); err == nil && found {
+				if validate(cached) == nil {
+					return cached, nil
+				}
+				_ = cacher.DeleteWithContext(work, key)
 			}
 		}
 		if err := work.Err(); err != nil {
@@ -479,8 +416,8 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 		if err != nil {
 			return "", err
 		}
-		if len(data) > limits.MaxPageBytes {
-			return "", fmt.Errorf("browser result exceeds size limit")
+		if err := validate(data); err != nil {
+			return "", err
 		}
 		if err := work.Err(); err != nil {
 			return "", err
@@ -509,9 +446,24 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 }
 
 func fetchBrowserData(ctx context.Context, config define.JavaScriptConfig, container, proxyAddr string, useMixParser bool) (string, error) {
-	var data string
+	var document browserDocument
 	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
-		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(browserReadySelector(config)))); err != nil {
+		responses, stop, err := startMainDocumentResponses(pageCtx)
+		if err != nil {
+			return err
+		}
+		defer stop()
+		response, err := chromedp.Run(pageCtx, chromedp.NavigateResponse(config.URL))
+		if err != nil {
+			return err
+		}
+		if response == nil || response.Status != http.StatusOK {
+			if response == nil {
+				return fmt.Errorf("browser navigation returned no HTTP document")
+			}
+			return fmt.Errorf("browser document returned HTTP %d", response.Status)
+		}
+		if err := chromedp.Do(pageCtx, chromedp.WaitReady(chromedp.CSS(browserReadySelector(config)))); err != nil {
 			return err
 		}
 		expression := "(" + jssdk.TPL_MIX_JS + ")()"
@@ -522,19 +474,39 @@ func fetchBrowserData(ctx context.Context, config define.JavaScriptConfig, conta
 			}
 			expression = "(" + injectCode + ")()"
 		}
-		var err error
-		data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string](boundedBrowserExpression(expression)))
-		return err
+		before, err := responses.currentDocument(pageCtx)
+		if err != nil {
+			return err
+		}
+		if before.Status != http.StatusOK {
+			return fmt.Errorf("browser document returned HTTP %d", before.Status)
+		}
+		document, err = chromedp.Run(pageCtx, chromedp.Evaluate[browserDocument](browserDocumentExpression(expression)))
+		if err != nil {
+			return err
+		}
+		after, err := responses.currentDocument(pageCtx)
+		if err != nil {
+			return err
+		}
+		if before.Loader != after.Loader {
+			return fmt.Errorf("main document navigated during extraction")
+		}
+		document.HTTPStatus = after.Status
+		if err := document.validate(); err != nil {
+			return err
+		}
+		if !useMixParser {
+			if parsed := parseCSRItems(document.Body); parsed.Code != define.ERROR_CODE_NULL {
+				return fmt.Errorf("%s", parsed.Status)
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		return "", err
 	}
-	if !useMixParser {
-		if parsed := parseCSRItems(data); parsed.Code != define.ERROR_CODE_NULL {
-			return "", fmt.Errorf("%s", parsed.Status)
-		}
-	}
-	return data, nil
+	return encodeBrowserDocument(document)
 }
 
 // Check the serialized value inside Chrome before CDP transfers it to Go.

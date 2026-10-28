@@ -3,10 +3,13 @@ package define
 import "time"
 
 type RemoteBodySanitized struct {
-	Code   ErrorCode `json:"code"`
-	Status string    `json:"status"`
-	Date   time.Time `json:"date"`
-	Body   string    `json:"data,omitempty"`
+	FinalURL   string    `json:"final_url,omitempty"`
+	BaseURL    string    `json:"base_url,omitempty"`
+	HTTPStatus int       `json:"http_status,omitempty"`
+	Code       ErrorCode `json:"code"`
+	Status     string    `json:"status"`
+	Date       time.Time `json:"date"`
+	Body       string    `json:"data,omitempty"`
 }
 
 func MixupRemoteBodySanitized(code ErrorCode, status string, date time.Time, data string) (result RemoteBodySanitized) {

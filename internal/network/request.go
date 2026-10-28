@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -145,7 +146,7 @@ func GetRemoteDocumentContext(ctx context.Context, url string, charset string, e
 
 func documentKey(url, charset string, expire int, options ...RequestOptions) string {
 	opts := requestOptions(options)
-	return fmt.Sprintf("document:v2:%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d\x00%s\x00%s\x00%s", url, charset, expire, opts.CookieURL, opts.Cookies, opts.Proxy))))
+	return fmt.Sprintf("document:v3:%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d\x00%s\x00%s\x00%s", url, charset, expire, opts.CookieURL, opts.Cookies, opts.Proxy))))
 }
 
 func getRemoteDocument(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) (result define.RemoteBodySanitized) {
@@ -167,10 +168,14 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 	}()
 
 	if cacher.IsEnabledContext(ctx) && !disableCache {
-		cache, found, err := cacher.GetWithinLimit(ctx, key, MaxDocumentBytes)
+		cache, found, err := cacher.GetWithinLimit(ctx, key, limits.MaxDocumentCacheBytes)
 		if err == nil && found {
-			logger.Instance.Debugln("Get remote document from cache", url)
-			return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, cache)
+			var cached define.RemoteBodySanitized
+			if json.Unmarshal([]byte(cache), &cached) == nil && validCachedDocument(cached) {
+				logger.Instance.Debugln("Get remote document from cache", url)
+				return cached
+			}
+			_ = cacher.DeleteWithContext(ctx, key)
 		}
 	}
 
@@ -214,17 +219,27 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
 	}
 
+	result = define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, buffer.String())
+	result.FinalURL = url
+	if res.Request != nil && res.Request.URL != nil {
+		result.FinalURL = res.Request.URL.String()
+	}
+	result.HTTPStatus = res.StatusCode
 	if cacher.IsEnabledContext(ctx) && !disableCache {
 		ttl := fn.ExpireBySecond(expire)
 		if expire <= 0 {
 			ttl = configForContext(ctx).DefaultTTL
 		}
-		err = cacher.SetWithTTL(ctx, key, buffer.String(), ttl)
+		encoded, encodeErr := json.Marshal(result)
+		if encodeErr != nil || len(encoded) > limits.MaxDocumentCacheBytes || !validCachedDocument(result) {
+			return result
+		}
+		err = cacher.SetWithTTL(ctx, key, string(encoded), ttl)
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		}
 	}
-	return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, buffer.String())
+	return result
 }
 
 func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, expire int, disableCache bool) string {
@@ -269,4 +284,15 @@ func GetRemoteMarkdownContext(ctx context.Context, url, selector, charset string
 		return fail(err.Error())
 	}
 	return doc
+}
+
+func validDocumentURL(raw string) bool {
+	if len(raw) > limits.MaxDocumentURLBytes {
+		return false
+	}
+	parsed, err := url.Parse(raw)
+	return err == nil && parsed.Hostname() != "" && (parsed.Scheme == "http" || parsed.Scheme == "https")
+}
+func validCachedDocument(document define.RemoteBodySanitized) bool {
+	return document.Code == define.ERROR_CODE_NULL && document.HTTPStatus == http.StatusOK && len(document.Body) <= MaxDocumentBytes && validDocumentURL(document.FinalURL) && (document.BaseURL == "" || validDocumentURL(document.BaseURL))
 }

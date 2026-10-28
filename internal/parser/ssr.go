@@ -12,6 +12,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/goquery"
+	"golang.org/x/net/html"
 )
 
 func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document *goquery.Document) []define.InfoItem) define.BodyParsed {
@@ -146,6 +147,24 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	if len(doc.Body) > limits.MaxPageBytes {
 		return failure(fmt.Errorf("page exceeds %d bytes", limits.MaxPageBytes))
 	}
+	// Resolve references from the fetched document, not its pre-redirect URL.
+	// Request options were captured above and keep the original cookie origin.
+	requestURL := config.URL
+	finalURL := requestURL
+	if validPageBase(userDoc.FinalURL) {
+		finalURL = userDoc.FinalURL
+	}
+	baseURL := finalURL
+	if validPageBase(userDoc.BaseURL) {
+		baseURL = userDoc.BaseURL
+	} else {
+		baseURL = documentBaseFromHTML(finalURL, doc.Body)
+	}
+	config.URL = baseURL
+	// Preserve the resolved base on the recursive current-page pass so a
+	// relative <base> is not applied twice.
+	doc.FinalURL = finalURL
+	doc.BaseURL = baseURL
 	var items []define.InfoItem
 	retained := 0
 
@@ -181,7 +200,8 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 			}
 			return u.String()
 		}
-		seen := map[string]bool{canonical(config.URL): true}
+		// A document base is a resolution context, not necessarily a fetched page.
+		seen := map[string]bool{canonical(finalURL): true, canonical(requestURL): true}
 		pages := 1
 
 		for _, link := range pageLinks {
@@ -323,4 +343,50 @@ func ParseFullPageByGoQuery(html string, callback func(document *goquery.Documen
 
 func itemBytes(item define.InfoItem) int {
 	return len(item.ID) + len(item.Title) + len(item.Link) + len(item.Date) + len(item.Author) + len(item.Category) + len(item.Description) + len(item.Content)
+}
+
+func validPageBase(raw string) bool {
+	if len(raw) > limits.MaxDocumentURLBytes {
+		return false
+	}
+	parsed, err := url.Parse(raw)
+	return err == nil && parsed.Hostname() != "" && (parsed.Scheme == "http" || parsed.Scheme == "https")
+}
+
+// Tokenization avoids building an additional full DOM just to find its base.
+func documentBaseFromHTML(finalURL, body string) string {
+	tokenizer := html.NewTokenizer(strings.NewReader(body))
+	templateDepth := 0
+	for {
+		tokenType := tokenizer.Next()
+		if tokenType == html.ErrorToken {
+			return finalURL
+		}
+		if tokenType == html.EndTagToken {
+			if tokenizer.Token().Data == "template" && templateDepth > 0 {
+				templateDepth--
+			}
+			continue
+		}
+		if tokenType != html.StartTagToken && tokenType != html.SelfClosingTagToken {
+			continue
+		}
+		token := tokenizer.Token()
+		if token.Data == "template" {
+			templateDepth++
+			continue
+		}
+		if templateDepth > 0 || token.Data != "base" {
+			continue
+		}
+		for _, attribute := range token.Attr {
+			if attribute.Key == "href" {
+				resolved, err := fn.LinkResolveRelative(strings.TrimSpace(attribute.Val), finalURL)
+				if err == nil && validPageBase(resolved) {
+					return resolved
+				}
+				return finalURL
+			}
+		}
+	}
 }

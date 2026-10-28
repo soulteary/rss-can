@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -45,8 +46,13 @@ func TestCachedDocumentOversizeRefetchesAndReplaces(t *testing.T) {
 	if calls.Load() != 1 {
 		t.Fatalf("fresh fetches=%d", calls.Load())
 	}
-	if value, found, err := cacher.GetWithStatus(ctx, key); err != nil || !found || value != "<p>fresh</p>" {
+	if value, found, err := cacher.GetWithStatus(ctx, key); err != nil || !found {
 		t.Fatalf("replacement %q %v %v", value, found, err)
+	} else {
+		var record define.RemoteBodySanitized
+		if json.Unmarshal([]byte(value), &record) != nil || record.Body != "<p>fresh</p>" || record.FinalURL != upstream.URL {
+			t.Fatalf("replacement record %s", value)
+		}
 	}
 }
 func TestCachedDocumentOversizeDoesNotHideUpstreamFailure(t *testing.T) {
@@ -70,7 +76,7 @@ func TestCachedDocumentBoundaryAndCancellation(t *testing.T) {
 	url := "https://unused.invalid"
 	key := seededDocumentKey(url, ua)
 	valid := strings.Repeat("x", MaxDocumentBytes)
-	if err := cacher.SetWithTTL(ctx, key, valid, time.Minute); err != nil {
+	if err := cacher.SetWithTTL(ctx, key, cachedDocumentValue(t, url, valid), time.Minute); err != nil {
 		t.Fatal(err)
 	}
 	got := GetRemoteDocumentContext(ctx, url, "", 60, false)
@@ -83,4 +89,16 @@ func TestCachedDocumentBoundaryAndCancellation(t *testing.T) {
 	if got.Code == define.ERROR_CODE_NULL || got.Body != "" {
 		t.Fatal("canceled caller got a successful cache document")
 	}
+}
+
+func cachedDocumentValue(t *testing.T, url, body string) string {
+	t.Helper()
+	record := define.MixupRemoteBodySanitized(0, define.ERROR_STATUS_NULL, time.Now(), body)
+	record.FinalURL = url
+	record.HTTPStatus = 200
+	encoded, err := json.Marshal(record)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(encoded)
 }

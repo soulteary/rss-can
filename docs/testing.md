@@ -124,3 +124,14 @@ postprocessing tests cover custom ID/content preservation, static/self hook
 links, invalid selector-context hooks, independent decode and bounded detail
 failures. Application-level Chrome tests check final JSON Feed output and empty
 responses rather than only internal parser values.
+
+Fetch-result contract tests now exercise real Chrome main-document 404/503 and
+redirect/client-navigation failures while confirming failed subresources do not
+poison a successful main response. Application tests check that rejected main
+documents are not cached, redirect/HTML-base link and detail resolution survives
+offline cache hits in all three modes, and Cookie origin is preserved across
+cross-host redirects. Network/cache tests cover provenance validation and exact
+decoded-size boundaries with escaped JSON. Inspector tests cover resource/wire/
+gzip/page budgets, bounded queue admission, canceled body closure and error
+propagation after captured HTML, using controlled transports without external
+network targets.

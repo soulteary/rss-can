@@ -37,14 +37,22 @@ func TestCSRCacheDecodesJSONAndSeparatesModes(t *testing.T) {
 	memoryCacheForTest(t)
 	config := define.JavaScriptConfig{URL: "https://example.org/" + t.Name(), ListContainer: "article", Title: "h2", Link: "a"}
 	jsonData := `[{"title":"Cached title","link":"https://example.org/item","date":""}]`
-	if err := cacher.Set(browserCacheKey(config, false), jsonData); err != nil {
+	jsonRecord, err := encodeBrowserDocument(browserDocument{Version: 1, Body: jsonData, FinalURL: config.URL, BaseURL: config.URL, HTTPStatus: 200})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cacher.Set(browserCacheKey(config, false), jsonRecord); err != nil {
 		t.Fatal(err)
 	}
 	cached := ParsePageByBrowser(config, "unreachable-browser", "", false)
 	if cached.Code != 0 || len(cached.Body) != 1 || cached.Body[0].Title != "Cached title" {
 		t.Fatalf("JSON cache parsed as HTML: %#v", cached)
 	}
-	if err := cacher.Set(browserCacheKey(config, true), `<article><h2>Mixed title</h2><a href="/item">Read</a></article>`); err != nil {
+	mixedRecord, err := encodeBrowserDocument(browserDocument{Version: 1, Body: `<article><h2>Mixed title</h2><a href="/item">Read</a></article>`, FinalURL: config.URL, BaseURL: config.URL, HTTPStatus: 200})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := cacher.Set(browserCacheKey(config, true), mixedRecord); err != nil {
 		t.Fatal(err)
 	}
 	mixed := ParsePageByBrowser(config, "unreachable-browser", "", true)

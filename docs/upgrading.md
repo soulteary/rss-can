@@ -317,3 +317,40 @@ Do not use `body` for pages whose data is still loading after document readiness
 choose a marker that also represents their final empty state. Missing markers,
 timeouts and cancellation remain failures, never automatic empty success. SSR
 rejects ReadySelector because it does not execute the browser readiness phase.
+
+## Main-document status, final URLs and Inspector response budgets
+
+Browser feeds now apply the same HTTP success policy as SSR: the final top-level
+main document must return 200. A rendered 404/503 page is rejected before raw
+extraction enters the cache, including when ReadySelector would otherwise allow
+an empty feed. HTTP redirects and client navigation while waiting for readiness
+are correlated to the current main frame/loader; a failed script, image or
+iframe alone does not turn a successful main document into an upstream failure.
+A navigation that changes the document during extraction is rejected rather
+than combining content and metadata from different documents.
+
+Fetched documents retain final URL and status across cache hits. Relative item,
+pagination and detail links use the actual document base, including the first
+`base` element with an href. An invalid/non-HTTP(S) base falls back to the final
+HTTP(S) URL; an invalid first base does not activate later base elements.
+The configured original URL remains the Cookie authorization origin. Redirects
+or document bases do not grant its credentials to a different host.
+
+Document cache keys now use v3 and browser extraction keys use v6. Their
+versioned records include provenance; obsolete, malformed, unsuccessful or
+oversized records are treated as misses and refetched. Decoded HTML/CSR data is
+still capped at 10 MiB. Encoded records allow bounded JSON escaping/metadata
+headroom (61 MiB, with URL metadata capped at 64 KiB); this does not increase the
+decoded page budget. A memory backend may decline a large encoded record under
+its separate per-entry budget while the fresh feed still succeeds.
+
+Inspector intercepted responses now have a 10 MiB per-resource limit on both
+wire and decoded data, a shared 32 MiB decoded response budget per page, and at
+most eight active plus 32 queued interception tasks. Declared oversize responses
+are rejected early; streaming/gzip responses are also bounded while reading.
+Response bodies close on success, rejection and cancellation. Requests beyond
+admission/size budgets fail explicitly and make the Inspector page operation
+fail rather than returning a successful partial capture. Deliberately blocked
+images/media/fonts do not count as budget errors for native feed extraction.
+These limits cover Go-side interception buffers; they are not an operating-system
+memory limit on the remote Chrome process.

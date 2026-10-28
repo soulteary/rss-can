@@ -93,12 +93,18 @@ func decodeCSRWire(ctx context.Context, data string) ([]csrWireItem, error) {
 // processCSRItemsContext applies transport-independent item processing after
 // shared raw extraction. Every waiter owns its own decoded items and detail
 // work, so a canceled caller cannot cancel another caller's enrichment.
-func processCSRItemsContext(ctx context.Context, config define.JavaScriptConfig, data string) define.BodyParsed {
+func processCSRItemsContext(ctx context.Context, config define.JavaScriptConfig, data string, documentBase ...string) define.BodyParsed {
 	fail := func(err error) define.BodyParsed {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
 	if err := ctx.Err(); err != nil {
 		return fail(err)
+	}
+	// Credentials remain anchored to the originally configured source, even if
+	// redirects or a document base move extraction to another origin.
+	options := []network.RequestOptions{network.OptionsForConfigContext(ctx, config)}
+	if len(documentBase) > 0 && documentBase[0] != "" {
+		config.URL = documentBase[0]
 	}
 	wire, err := decodeCSRWire(ctx, data)
 	if err != nil {
@@ -133,7 +139,6 @@ func processCSRItemsContext(ctx context.Context, config define.JavaScriptConfig,
 	if !limits.ItemsWithinBudget(items) {
 		return fail(fmt.Errorf("feed exceeds item or content size limit"))
 	}
-	options := []network.RequestOptions{network.OptionsForConfigContext(ctx, config)}
 	result := fillDetailsWithLinks(ctx, config, items, options, func(i int, field string, hook define.ConfigHook) string {
 		item := wire[i]
 		if item.Native || item.Hooks != nil {

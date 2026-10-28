@@ -37,6 +37,8 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		rssFeed.Title = config.Name
 	}
 
+	// Relative dates are evaluated once per feed, never cached across requests.
+	dates := make(map[string]time.Time)
 	for _, data := range data.Body {
 		if err := ctx.Err(); err != nil {
 			return "", err
@@ -49,9 +51,14 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		}
 
 		if data.Date != "" {
-			timeUnix, err := jssdk.ConvertStrToUnixContext(ctx, data.Date)
-			if err != nil {
-				return "", fmt.Errorf("convert entry date: %w", err)
+			timeUnix, ok := dates[data.Date]
+			if !ok {
+				var err error
+				timeUnix, err = jssdk.ConvertStrToUnixContext(ctx, data.Date)
+				if err != nil {
+					return "", fmt.Errorf("convert entry date: %w", err)
+				}
+				dates[data.Date] = timeUnix
 			}
 			feedItem.Created = timeUnix
 		}

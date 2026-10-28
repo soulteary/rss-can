@@ -3,6 +3,7 @@ package cacher
 import (
 	"context"
 	"errors"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 	"time"
 )
 
@@ -38,7 +39,16 @@ func (s *Service) Enabled() bool {
 	return s.primaryEnabled() || s.fallbackEnabled()
 }
 
-func (s *Service) Get(ctx context.Context, key string) (string, bool, error) {
+func (s *Service) Get(ctx context.Context, key string) (value string, found bool, err error) {
+	defer func() {
+		if err != nil {
+			telemetry.Default.Add("cache_errors_total", 1)
+		} else if found {
+			telemetry.Default.Add("cache_hits_total", 1)
+		} else {
+			telemetry.Default.Add("cache_misses_total", 1)
+		}
+	}()
 	if s.primaryEnabled() {
 		value, found, err := s.primary.Get(ctx, key)
 		if err == nil {
@@ -49,6 +59,10 @@ func (s *Service) Get(ctx context.Context, key string) (string, bool, error) {
 		}
 	}
 	if s.fallbackEnabled() {
+		if s.primaryEnabled() {
+			telemetry.Default.Add("cache_fallbacks_total", 1)
+			telemetry.Default.Add("cache_errors_total", 1)
+		}
 		return s.fallback.Get(ctx, key)
 	}
 	return "", false, noAlivedBackend

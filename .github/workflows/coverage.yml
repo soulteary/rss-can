@@ -48,6 +48,28 @@ jobs:
         with:
           deno-version: v2.9.8
 
+      - name: Start isolated Chrome for required browser regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          profile="$RUNNER_TEMP/rss-can-chrome"
+          "$chrome_bin" --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check --remote-debugging-port=0 --user-data-dir="$profile" about:blank > "$RUNNER_TEMP/rss-can-chrome.log" 2>&1 &
+          chrome_pid=$!
+          echo "RSS_TEST_CHROME_PID=$chrome_pid" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 100); do
+            if test -f "$profile/DevToolsActivePort"; then
+              port="$(head -n 1 "$profile/DevToolsActivePort")"
+              echo "RSS_TEST_BROWSER_URL=http://127.0.0.1:$port" >> "$GITHUB_ENV"
+              echo "RSS_TEST_BROWSER_REQUIRED=1" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            kill -0 "$chrome_pid"
+            sleep 0.1
+          done
+          cat "$RUNNER_TEMP/rss-can-chrome.log"
+          exit 1
+
       - name: Run coverage
         if: "!(github.event_name == 'pull_request')"
         run: go test ./... -coverprofile=coverage.out -covermode=atomic
@@ -105,5 +127,15 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
           retention-days: 14
+      - name: Enforce runtime coverage budgets
+        run: python3 scripts/check_coverage.py coverage.out
+
+      - name: Stop isolated Chrome
+        if: always()
+        shell: bash
+        run: |
+          if test -n "${RSS_TEST_CHROME_PID:-}"; then
+            kill "$RSS_TEST_CHROME_PID" || true
+          fi
     permissions:
       contents: read

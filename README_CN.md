@@ -120,13 +120,13 @@ Usage of rssc:
 
 ### 运行回归测试
 
-测试需要可用的 Redis；浏览器集成测试使用本机安装的 Chrome / Chromium，不会自动下载浏览器：
+测试需要可用的 Redis；浏览器集成测试连接由 `RSS_TEST_BROWSER_URL` 指定的 Chrome / Chromium 调试端点，不会自动下载或启动浏览器：
 
 ```bash
-RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
+RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_URL=http://127.0.0.1:9222 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count=1
 ```
 
-可通过 `RSS_TEST_CHROME` 指定浏览器二进制路径。未安装浏览器时，默认跳过浏览器集成测试；设置 `RSS_TEST_BROWSER_REQUIRED=1` 则将缺少浏览器视为失败。Redis 地址可通过 `RSS_SERVER` 指定。缓存连接配置在进程启动后固定，修改后需要重启。
+未设置浏览器端点时，默认跳过浏览器集成测试；设置 `RSS_TEST_BROWSER_REQUIRED=1` 则将缺少浏览器视为失败。Redis 地址可通过 `RSS_SERVER` 指定。缓存连接配置在进程启动后固定，修改后需要重启。
 
 ## 里程碑
 
@@ -153,3 +153,9 @@ RSS_SERVER=127.0.0.1:6379 RSS_TEST_BROWSER_REQUIRED=1 go test -race ./... -count
 This project is licensed under the [MIT License](https://github.com/soulteary/RSS-Can/blob/main/LICENSE)
 
 项目的快速进化离不开下面优秀的开源软件，你可以点击这个链接，了解它们是谁：[Credits](./CREDITS.md)
+
+### 运行指标与性能验证
+
+`/_/health/` 保留存活检查；`/_/ready/` 检查 JS 运行时和缓存可用性，支持 Redis 故障时以内存降级保持就绪。`/_/metrics/` 提供 Prometheus 指标，包括抓取失败、缓存命中、JS 排队和浏览器占用，访问限制与管理接口相同。说明与查询示例见[可观测性文档](docs/observability.md)。
+
+启用文档缓存时，相同抓取任务会合并；`DisableCache` 仍保持独立抓取。`RSS_CONFIG_CACHE_TTL=30` 可开启 30 秒配置缓存，默认关闭以保留动态规则行为。日期转换仅在单次生成内复用。压测工具与结果见[HTTP 负载报告](docs/benchmarks/feed-load.md)；覆盖率口径、依赖和 CI 门禁见[测试说明](docs/testing.md)。

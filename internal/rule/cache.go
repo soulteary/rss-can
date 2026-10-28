@@ -52,5 +52,6 @@ func InitRules() {
 	newCache := makeMap(LoadRules(define.RULES_DIRECTORY))
 	rulesMu.Lock()
 	rulesCache = newCache
+	configurations.clear()
 	rulesMu.Unlock()
 }

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 //go:embed deno_runner.js
@@ -52,6 +53,7 @@ type denoResponse struct {
 }
 
 func startDenoProcess(ctx context.Context) (*denoProcess, error) {
+	telemetry.Default.Add("js_starts_total", 1)
 	binary := os.Getenv("RSS_CAN_DENO")
 	if binary == "" {
 		binary = "deno"
@@ -146,10 +148,30 @@ func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (
 	return w.runContext(context.Background(), base, source, filename, timeout)
 }
 
-func (w *denoWorker) runContext(ctx context.Context, base, source, filename string, timeout time.Duration) (string, error) {
-	if err := w.acquire(ctx); err != nil {
+func (w *denoWorker) runContext(ctx context.Context, base, source, filename string, timeout time.Duration) (value string, err error) {
+	telemetry.Default.Add("js_requests_total", 1)
+	defer func() {
+		if err != nil {
+			telemetry.Default.Add("js_failures_total", 1)
+		}
+		if ctx.Err() != nil {
+			telemetry.Default.Add("js_cancellations_total", 1)
+		}
+	}()
+	began := time.Now()
+	telemetry.Default.Add("js_queued", 1)
+	err = w.acquire(ctx)
+	telemetry.Default.Add("js_queued", -1)
+	telemetry.Default.Observe("js_queue_seconds", time.Since(began))
+	if err != nil {
 		return "", err
 	}
+	telemetry.Default.Add("js_active", 1)
+	began = time.Now()
+	defer func() {
+		telemetry.Default.Add("js_active", -1)
+		telemetry.Default.Observe("js_execution_seconds", time.Since(began))
+	}()
 	defer func() { <-w.slot }()
 	if w.process != nil {
 		select {

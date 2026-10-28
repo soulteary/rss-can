@@ -27,29 +27,7 @@ func StartWebServer() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	timeout := fn.ExpireBySecond(define.SERVER_TIMEOUT)
-	route := fiber.New(fiber.Config{
-		ReadTimeout: timeout,
-		IdleTimeout: timeout,
-	})
-
-	if !define.DEBUG_MODE {
-		route.Use(compress.New())
-	}
-
-	route.Use(Logger(logger.Instance), recover.New())
-	route.Get(GetFeedPath()+"/:id/:type/", apiRSS())
-	route.Get(GetFeedPath(), listPage())
-	route.Get("/config/:type/:value/", adminOnly(), apiConfig())
-
-	route.Get("/inspector/:url/", adminOnly(), inspectorProxy())
-	route.Get("/inspector", adminOnly(), inspectorHome())
-	route.Post("/inspector", adminOnly(), inspectorPrepare())
-	route.Get("/_/1x1.gif", PixelImage())
-
-	route.Get("/_/health/", apiHealth())
-	route.Use("/assets", static.New("/", static.Config{FS: ServerAssets()}))
-	route.Get("/", welcomePage())
+	route := NewApp()
 
 	addr := define.HTTP_HOST + ":" + strconv.Itoa(define.HTTP_PORT)
 
@@ -72,4 +50,35 @@ func StartWebServer() {
 	}
 
 	logger.Instance.Infoln("Look forward to meeting you again ❤️")
+}
+
+// NewApp builds production routes without binding a listening socket.
+func NewApp() *fiber.App {
+	timeout := fn.ExpireBySecond(define.SERVER_TIMEOUT)
+	route := fiber.New(fiber.Config{
+		ReadTimeout: timeout,
+		IdleTimeout: timeout,
+	})
+
+	if !define.DEBUG_MODE {
+		route.Use(compress.New())
+	}
+
+	route.Use(Logger(logger.Instance), recover.New())
+	route.Get(GetFeedPath()+"/:id/:type/", apiRSS())
+	route.Get(GetFeedPath(), listPage())
+	route.Get("/config/:type/:value/", adminOnly(), apiConfig())
+
+	route.Get("/inspector/:url/", adminOnly(), inspectorProxy())
+	route.Get("/inspector", adminOnly(), inspectorHome())
+	route.Post("/inspector", adminOnly(), inspectorPrepare())
+	route.Get("/_/1x1.gif", PixelImage())
+
+	route.Get("/_/health/", apiHealth())
+	route.Get("/_/ready/", apiReady())
+	route.Get("/_/metrics/", adminOnly(), apiMetrics())
+	route.Use("/assets", static.New("/", static.Config{FS: ServerAssets()}))
+	route.Get("/", welcomePage())
+
+	return route
 }

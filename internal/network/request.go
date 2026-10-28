@@ -3,6 +3,7 @@ package network
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,9 +13,11 @@ import (
 	"github.com/soulteary/goquery"
 
 	"github.com/soulteary/RSS-Can/internal/cacher"
+	"github.com/soulteary/RSS-Can/internal/coalesce"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 func MixCodeStatus(code define.ErrorCode, desc string, detail any) (define.ErrorCode, string) {
@@ -55,7 +58,31 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 // MaxDocumentBytes limits the decoded HTML retained for a single upstream page.
 const MaxDocumentBytes = 10 << 20
 
+var documentFlights coalesce.Group[define.RemoteBodySanitized]
+
 func GetRemoteDocumentContext(ctx context.Context, url string, charset string, expire int, disableCache bool) define.RemoteBodySanitized {
+	if disableCache || !cacher.IsEnable() {
+		return getRemoteDocument(ctx, url, charset, expire, disableCache)
+	}
+	key := documentKey(url, charset, expire)
+	result, err, shared := documentFlights.Do(ctx, key, fn.ExpireBySecond(define.SERVER_TIMEOUT), func(work context.Context) (define.RemoteBodySanitized, error) {
+		return getRemoteDocument(work, url, charset, expire, false), nil
+	})
+	if shared {
+		telemetry.Default.Add("fetch_shared_total", 1)
+	}
+	if err != nil {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), "")
+	}
+	return result
+}
+
+func documentKey(url, charset string, expire int) string {
+	return fmt.Sprintf("document:v1:%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d", url, charset, expire))))
+}
+
+func getRemoteDocument(ctx context.Context, url string, charset string, expire int, disableCache bool) (result define.RemoteBodySanitized) {
+	key := documentKey(url, charset, expire)
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
@@ -70,13 +97,21 @@ func GetRemoteDocumentContext(ctx context.Context, url string, charset string, e
 	}()
 
 	if cacher.IsEnable() && !disableCache {
-		cache, found, err := cacher.GetWithStatus(ctx, url)
+		cache, found, err := cacher.GetWithStatus(ctx, key)
 		if err == nil && found {
 			logger.Instance.Debugln("Get remote document from cache", url)
 			return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, cache)
 		}
 	}
 
+	began := time.Now()
+	telemetry.Default.Add("fetch_requests_total", 1)
+	defer func() {
+		telemetry.Default.Observe("fetch_duration_seconds", time.Since(began))
+		if result.Code != define.ERROR_CODE_NULL {
+			telemetry.Default.Add("fetch_failures_total", 1)
+		}
+	}()
 	// todo change ua with config
 	code, status, res := HttpGetContext(ctx, url, define.USER_AGENT)
 	if code != define.ERROR_CODE_NULL {
@@ -111,7 +146,7 @@ func GetRemoteDocumentContext(ctx context.Context, url string, charset string, e
 		if expire <= 0 {
 			ttl = fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)
 		}
-		err = cacher.SetWithTTL(ctx, url, buffer.String(), ttl)
+		err = cacher.SetWithTTL(ctx, key, buffer.String(), ttl)
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		}

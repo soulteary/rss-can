@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -12,6 +13,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 func feedMIME(rssType string) (string, bool) {
@@ -28,7 +30,20 @@ func feedMIME(rssType string) (string, bool) {
 }
 
 func apiRSS() fiber.Handler {
-	return func(c fiber.Ctx) error {
+	return func(c fiber.Ctx) (err error) {
+		began := time.Now()
+		telemetry.Default.Add("feed_requests_total", 1)
+		defer func() {
+			telemetry.Default.Observe("feed_duration_seconds", time.Since(began))
+			if c.Response().StatusCode() >= 400 || err != nil {
+				telemetry.Default.Add("feed_failures_total", 1)
+			} else {
+				telemetry.Default.Add("feed_successes_total", 1)
+			}
+			if c.Response().StatusCode() == http.StatusGatewayTimeout {
+				telemetry.Default.Add("feed_timeouts_total", 1)
+			}
+		}()
 		id := c.Params("id")
 		rssType := strings.ToLower(c.Params("type"))
 		if id == "" || rssType == "" {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
 func TestUpstreamFeedsPreserveEntries(t *testing.T) {
@@ -80,5 +81,22 @@ func TestGeneratorReturnsErrors(t *testing.T) {
 		if output, err := GenerateFeedsByTypeContext(ctx, define.JavaScriptConfig{}, define.BodyParsed{}, format); !errors.Is(err, context.Canceled) || output != "" {
 			t.Fatalf("canceled %s feed: %q, %v", format, output, err)
 		}
+	}
+}
+
+func TestRepeatedDatesUseOneConversionPerFeed(t *testing.T) {
+	data := define.BodyParsed{Body: []define.InfoItem{{Title: "a", Date: "2026-10-28 12:00:00"}, {Title: "b", Date: "2026-10-28 12:00:00"}}}
+	before := telemetry.Default.Value("js_requests_total")
+	if _, err := GenerateFeedsByType(define.JavaScriptConfig{Name: "dates"}, data, define.FEED_TYPE_RSS); err != nil {
+		t.Fatal(err)
+	}
+	if telemetry.Default.Value("js_requests_total") != before+1 {
+		t.Fatal("repeated dates evaluated more than once")
+	}
+	if _, err := GenerateFeedsByType(define.JavaScriptConfig{Name: "dates"}, data, define.FEED_TYPE_RSS); err != nil {
+		t.Fatal(err)
+	}
+	if telemetry.Default.Value("js_requests_total") != before+2 {
+		t.Fatal("date cached across feeds; relative timestamps could become stale")
 	}
 }

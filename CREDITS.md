@@ -5,7 +5,7 @@ upstream releases through `go.mod` and verified with `go.sum`; the historical
 source copies under `pkg/` are no longer used or maintained here.
 
 - [goquery](https://github.com/PuerkitoBio/goquery), by PuerkitoBio: HTML traversal for SSR parsing, v1.13.0, BSD-3-Clause.
-- [cascadia](https://github.com/andybalholm/cascadia), by Andy Balholm: CSS selectors, v1.3.5, BSD-2-Clause.
+- [cascadia](https://github.com/soulteary/cascadia), forked from Andy Balholm's cascadia: CSS selectors, v1.0.0, BSD-2-Clause.
 - [v8go](https://github.com/rogchap/v8go), by rogchap and contributors: JavaScript execution, v0.9.0, BSD-3-Clause.
 - [gorilla/feeds](https://github.com/gorilla/feeds), by the Gorilla Web Toolkit team: RSS, Atom and JSON Feed generation, v1.2.0, BSD-2-Clause.
 - [Gin](https://github.com/gin-gonic/gin), by the Gin team: HTTP service, v1.12.0, MIT.

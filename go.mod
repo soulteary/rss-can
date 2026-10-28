@@ -19,6 +19,8 @@ require (
 	rogchap.com/v8go v0.9.0
 )
 
+replace github.com/andybalholm/cascadia => github.com/soulteary/cascadia v1.0.0
+
 require (
 	github.com/JohannesKaufmann/dom v0.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

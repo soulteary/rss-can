@@ -4,8 +4,6 @@ github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2 h1:XFJZFWESIWlUEHHjzBuv8R
 github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2/go.mod h1:BHWO8lJzttJLqwuV8Rb1B3OG2OSzLbssZDI1FRg2eAA=
 github.com/PuerkitoBio/goquery v1.13.0 h1:mqHbjD7Jmnul4DTR24LKTjo1uUmHUh072kteGV+xpFM=
 github.com/PuerkitoBio/goquery v1.13.0/go.mod h1:Hip5mdBL8K2wEGKJdr27sRaNwIdDajmCwB/ExUPwW+g=
-github.com/andybalholm/cascadia v1.3.5 h1:RLjq12WJy58dN6eCIQrz0bAGZkztHWsEPFxP53Y7Ms8=
-github.com/andybalholm/cascadia v1.3.5/go.mod h1:BLRmbRjpEtNKieZOCCvYj4RqN+KRA41GBe/5O+G93kM=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=
@@ -60,6 +58,8 @@ github.com/shamaton/msgpack/v3 v3.2.3 h1:0r0aZtrXDFOPpwWJTEOpFq+Ih/JmMLm0pqLN5mS
 github.com/shamaton/msgpack/v3 v3.2.3/go.mod h1:sgBYvEiyz8JR1NC3yGRoPVME9xXovpnh3l/plW1nfRo=
 github.com/soulteary/cache-kit/v2 v2.1.0 h1:lDnyw18bY8y7UaiPV6BoxdtfeAUoBelyzMkUpwg9k30=
 github.com/soulteary/cache-kit/v2 v2.1.0/go.mod h1:dMmR1yt0wGhjTeSw1kIZz5UGyUz6kE4QiI3oSyAPTmc=
+github.com/soulteary/cascadia v1.0.0 h1:EKoZu9OmE9jz/6wfwJFpGwG0ynE3FcecegZYCjRSHnE=
+github.com/soulteary/cascadia v1.0.0/go.mod h1:7arpchZ3j0E9OlpuqHJ9sfaN4iWAp7aIPX/QTtvPKk4=
 github.com/soulteary/redis-kit v1.8.0 h1:8nILkb49Q3eLWcuFE+DfyNqX9kFeyuHKoCDvngXgK+k=
 github.com/soulteary/redis-kit v1.8.0/go.mod h1:k/lvXA9ecjKhSvNJrGlQ7K0ijp727OYfecG1Mxadv5A=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=

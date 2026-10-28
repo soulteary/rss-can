@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +29,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/rulefile"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
@@ -321,8 +321,8 @@ func deadline(ctx context.Context) time.Time {
 // GetCSRInjectCode is a compatibility helper for callers loading a standalone
 // file. Feed generation uses csrInjectCode with its captured configuration source.
 func GetCSRInjectCode(file string) string {
-	jsRule := fn.GetFileContent(file)
-	if jsRule == nil {
+	jsRule, err := rulefile.Read(context.Background(), file)
+	if err != nil {
 		return ""
 	}
 	return jssdk.GenerateCSRInjectParser(jsRule)
@@ -393,8 +393,14 @@ func browserCacheKeyContext(ctx context.Context, config define.JavaScriptConfig,
 // Direct parser callers may supply only File. Capture it once, before cache
 // lookup and browser work; production configurations already carry their source.
 func captureBrowserRule(config define.JavaScriptConfig) (define.JavaScriptConfig, error) {
+	return captureBrowserRuleContext(context.Background(), config)
+}
+func captureBrowserRuleContext(ctx context.Context, config define.JavaScriptConfig) (define.JavaScriptConfig, error) {
+	if err := ctx.Err(); err != nil {
+		return config, err
+	}
 	if !config.RuleSource.Present() && config.File != "" {
-		body, err := os.ReadFile(config.File)
+		body, err := rulefile.Read(ctx, config.File)
 		if err != nil {
 			return config, fmt.Errorf("cannot read rule %s: %w", config.File, err)
 		}
@@ -419,7 +425,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}
 	var err error
-	config, err = captureBrowserRule(config)
+	config, err = captureBrowserRuleContext(ctx, config)
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
@@ -459,9 +465,12 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 func browserData(ctx context.Context, key string, cacheEnabled bool, timeout time.Duration, expire int, fetchData func(context.Context) (string, error)) (string, error) {
 	load := func(work context.Context) (string, error) {
 		if cacheEnabled {
-			if cached, found, err := cacher.GetWithStatus(work, key); err == nil && found {
+			if cached, found, err := cacher.GetWithinLimit(work, key, limits.MaxPageBytes); err == nil && found {
 				return cached, nil
 			}
+		}
+		if err := work.Err(); err != nil {
+			return "", err
 		}
 		data, err := fetchData(work)
 		if err != nil {

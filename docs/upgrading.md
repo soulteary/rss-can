@@ -190,3 +190,37 @@ fixed two-second grace shorter than a feed deadline. The HTTP grace defaults to
 the server timeout plus one second. Handler and shared-work cleanup completes
 before owned cache/JS resources close. Listener/startup/shutdown errors return to
 the owner, allowing cleanup instead of exiting through a lower-layer fatal log.
+
+## List, rule-file and cache-hit boundaries
+
+The production subscription list now reads display metadata captured by the
+last successful rule reload. Listing no longer evaluates JavaScript or consumes
+JS worker slots. A time-dependent display name changes on the next successful
+reload; actual feed configuration remains dynamically evaluated on generation.
+Failed reloads preserve both the prior rules and their display metadata.
+Each list handler admits two active renders and eight waiting renders. Saturation
+returns 503, cancellation/deadline expiry returns 504, and output above 10 MiB
+fails instead of returning a successful partial list. Legacy standalone list
+helpers retain a cancellation-aware configuration adapter.
+
+Safe rule loading accepts regular files only on supported Linux/macOS targets:
+
+- Up to 256 rule groups/rule files, 1 MiB per rule and 16 MiB total source bytes.
+- Validated display names are limited to 4096 UTF-8 bytes.
+- A symbolic-link rule root (final path component), group directory or `.js`
+  file is rejected. Use real directories/files or directory mounts instead.
+- FIFO, device and other non-regular `.js` entries reject the reload immediately.
+  Opens are descriptor-anchored, nonblocking and no-follow; the opened file's
+  type and size are checked again before a bounded read. Growing files cannot
+  bypass the read limit. A failed read retains the last published snapshot.
+
+Direct browser-parser compatibility helpers use the same safe rule reader.
+Regular-file reads check cancellation before and after reading; this does not
+make an unresponsive network filesystem universally interruptible.
+
+SSR, CSR and MIX cache hits now recheck the 10 MiB page budget. Oversized entries
+are invalidated on a best-effort basis and treated as misses, then follow normal
+bounded fetching. Cancellation during cache access prevents a new fetch. This
+bounds values entering parsers; a cache backend may still allocate its stored
+value while reading it, so it is not a hard bound on transient Redis response
+memory.

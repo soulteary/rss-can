@@ -251,3 +251,28 @@ func TestApplicationRunStopsOnOwnedClose(t *testing.T) {
 		t.Fatal("closed app started again")
 	}
 }
+
+func TestApplicationListUsesPublishedMetadataWithoutJavaScript(t *testing.T) {
+	config := testConfig(t, "metadata", "https://example.org")
+	app, err := New(t.Context(), config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Close()
+	// Listing should remain a pure read of the published display snapshot even
+	// when runtime execution is unavailable and the rule file has changed.
+	if err := app.runtime.Close(); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(config.Server.RuleDirectory, "site", "feed.js")
+	if err := os.WriteFile(file, []byte(`throw new Error("invalid replacement")`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := app.rules.Reload(app.resources(t.Context())); err == nil {
+		t.Fatal("invalid candidate was published")
+	}
+	status, body := response(t, app, "/metadata")
+	if status != 200 || !strings.Contains(body, "metadata") || strings.Contains(body, "invalid replacement") {
+		t.Fatalf("list depended on live evaluation: %d %s", status, body)
+	}
+}

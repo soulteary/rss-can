@@ -64,6 +64,7 @@ func DefaultOptions() Options {
 type Dependencies struct {
 	Feeds        FeedGenerator
 	Snapshot     func() map[string]define.RuleCache
+	Metadata     func() map[string]rule.Metadata
 	Configure    func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
 	Reload       func(context.Context) error
 	RuntimeCheck func(context.Context) error
@@ -139,7 +140,7 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 		})
 	}
 	route.Get(options.FeedPath+"/:id/:type/", apiRSSWithService(dependencies.Feeds))
-	view := pageView{options: options, snapshot: dependencies.Snapshot, configure: dependencies.Configure}
+	view := pageView{options: options, snapshot: dependencies.Snapshot, configure: dependencies.Configure, metadata: dependencies.Metadata}
 	route.Get(options.FeedPath, view.listPage())
 	admin := adminOnlyWithToken(options.AdminToken)
 	route.Get("/config/:type/:value/", admin, apiConfigWithReload(dependencies.Reload))

@@ -19,6 +19,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/coalesce"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
@@ -113,7 +114,7 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 }
 
 // MaxDocumentBytes limits the decoded HTML retained for a single upstream page.
-const MaxDocumentBytes = 10 << 20
+const MaxDocumentBytes = limits.MaxPageBytes
 
 var documentFlights coalesce.Group[define.RemoteBodySanitized]
 
@@ -166,13 +167,16 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 	}()
 
 	if cacher.IsEnabledContext(ctx) && !disableCache {
-		cache, found, err := cacher.GetWithStatus(ctx, key)
+		cache, found, err := cacher.GetWithinLimit(ctx, key, MaxDocumentBytes)
 		if err == nil && found {
 			logger.Instance.Debugln("Get remote document from cache", url)
 			return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, cache)
 		}
 	}
 
+	if err := ctx.Err(); err != nil {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
+	}
 	began := time.Now()
 	telemetry.Default.Add("fetch_requests_total", 1)
 	defer func() {

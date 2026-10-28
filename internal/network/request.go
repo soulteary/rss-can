@@ -275,11 +275,21 @@ func GetRemoteMarkdownContext(ctx context.Context, url, selector, charset string
 	if selection.Length() == 0 {
 		return fail("detail selector matched no elements")
 	}
+	doc.BaseURL = detailDocumentBase(doc, document)
+	if err := normalizeDetailURLs(ctx, selection, doc.BaseURL); err != nil {
+		return fail(err.Error())
+	}
 	html, err := selection.Html()
 	if err != nil {
 		return fail("cannot extract detail HTML")
 	}
+	if len(html) > limits.MaxPageBytes {
+		return fail("detail HTML exceeds content size limit")
+	}
 	doc.Body = fn.Html2Md(html)
+	if len(doc.Body) > limits.MaxFeedBytes {
+		return fail("detail Markdown exceeds content size limit")
+	}
 	if err := ctx.Err(); err != nil {
 		return fail(err.Error())
 	}

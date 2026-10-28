@@ -354,3 +354,27 @@ fail rather than returning a successful partial capture. Deliberately blocked
 images/media/fonts do not count as budget errors for native feed extraction.
 These limits cover Go-side interception buffers; they are not an operating-system
 memory limit on the remote Chrome process.
+
+## Detail content URLs and browser admission
+
+Readlink detail extraction now resolves relative HTML `href` and `src` values
+before Markdown conversion. The base comes from the detail response's final URL
+and its first effective HTML `base[href]`; template contents do not supply a
+base. The same behavior applies to fresh and cached source documents, and the
+original Cookie authorization origin remains unchanged. Explicit URI schemes
+retain their existing conversion semantics.
+
+Browser execution now admits at most four active operations and 16 waiting
+operations across the process. Inspector and CSR/MIX share this budget so
+management requests cannot increase total Chrome concurrency. A full admission
+queue fails immediately: Inspector and feed endpoints return HTTP 503. Waiting
+requests remain cancelable and release admission on timeout; successful raw
+browser cache hits do not need a Chrome slot. This is a shared capacity limit,
+not a reserved management quota or a strict FIFO scheduling guarantee.
+
+Chrome `/json/version` discovery responses have a separate 64 KiB decoded-body
+limit, checked against actual bytes rather than relying on Content-Length.
+Discovery requests use identity encoding and reject compressed responses.
+Configured and advertised browser endpoint URLs are limited to 8 KiB, including
+after replacing the advertised authority with the configured remote authority.
+Oversized or malformed discovery responses fail before opening a websocket.

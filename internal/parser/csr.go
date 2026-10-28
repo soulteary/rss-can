@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,14 +33,20 @@ import (
 )
 
 // Bound browser work, including connection, navigation and script evaluation.
-var browserSlots = make(chan struct{}, 4)
 var browserFlights coalesce.Group[string]
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) define.BodyParsed {
 	return ParsePageByBrowser(config, container, proxyAddr, false)
 }
 
+// Discovery is small control-plane metadata, independent of page-body budgets.
+const maxBrowserDiscoveryBytes = 64 << 10
+const maxBrowserEndpointURLBytes = 8 << 10
+
 func resolveBrowserURL(ctx context.Context, address string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	address = strings.TrimSpace(address)
 	if address == "" {
 		address = define.DEFAULT_HEADLESS_SERVER
@@ -50,6 +57,9 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	if !strings.Contains(address, "://") {
 		address = "http://" + address
 	}
+	if len(address) > maxBrowserEndpointURLBytes {
+		return "", fmt.Errorf("browser endpoint URL exceeds size limit")
+	}
 	u, err := url.Parse(address)
 	if err != nil {
 		return "", err
@@ -57,7 +67,11 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	switch u.Scheme {
 	case "ws", "wss":
 		if u.Path != "" && u.Path != "/" {
-			return u.String(), nil
+			resolved := u.String()
+			if len(resolved) > maxBrowserEndpointURLBytes {
+				return "", fmt.Errorf("browser endpoint URL exceeds size limit")
+			}
+			return resolved, nil
 		}
 		if u.Scheme == "ws" {
 			u.Scheme = "http"
@@ -73,6 +87,9 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Discovery does not need compression; retain the byte budget at the wire
+	// boundary rather than letting the default Transport decompress first.
+	req.Header.Set("Accept-Encoding", "identity")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", err
@@ -81,14 +98,34 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("browser discovery returned %d", res.StatusCode)
 	}
+	encoding := strings.ToLower(strings.TrimSpace(res.Header.Get("Content-Encoding")))
+	if res.Uncompressed || (encoding != "" && encoding != "identity") {
+		return "", fmt.Errorf("browser discovery response must use identity encoding")
+	}
+	if res.ContentLength > maxBrowserDiscoveryBytes {
+		return "", fmt.Errorf("browser discovery response exceeds size limit")
+	}
+	body, err := io.ReadAll(io.LimitReader(res.Body, maxBrowserDiscoveryBytes+1))
+	if err != nil {
+		return "", err
+	}
+	if len(body) > maxBrowserDiscoveryBytes {
+		return "", fmt.Errorf("browser discovery response exceeds size limit")
+	}
+	if err := ctx.Err(); err != nil {
+		return "", err
+	}
 	var info struct {
 		URL string `json:"webSocketDebuggerUrl"`
 	}
-	if err := json.NewDecoder(res.Body).Decode(&info); err != nil {
+	if err := json.Unmarshal(body, &info); err != nil {
 		return "", err
 	}
 	if info.URL == "" {
 		return "", fmt.Errorf("browser discovery returned no websocket URL")
+	}
+	if len(info.URL) > maxBrowserEndpointURLBytes {
+		return "", fmt.Errorf("browser websocket URL exceeds size limit")
 	}
 	websocketURL, err := url.Parse(info.URL)
 	if err != nil {
@@ -102,7 +139,11 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 	if u.Scheme == "https" {
 		websocketURL.Scheme = "wss"
 	}
-	return websocketURL.String(), nil
+	resolved := websocketURL.String()
+	if len(resolved) > maxBrowserEndpointURLBytes {
+		return "", fmt.Errorf("browser websocket URL exceeds size limit")
+	}
+	return resolved, nil
 }
 
 // withBrowserPage owns an isolated browser context and its connection. It never
@@ -116,22 +157,19 @@ func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cooki
 			telemetry.Default.Add("browser_failures_total", 1)
 		}
 	}()
-	select {
-	case browserSlots <- struct{}{}:
-		telemetry.Default.Add("browser_queued", -1)
-		telemetry.Default.Observe("browser_queue_seconds", time.Since(began))
-		telemetry.Default.Add("browser_active", 1)
-		began = time.Now()
-		defer func() {
-			<-browserSlots
-			telemetry.Default.Add("browser_active", -1)
-			telemetry.Default.Observe("browser_duration_seconds", time.Since(began))
-		}()
-	case <-ctx.Done():
-		telemetry.Default.Add("browser_queued", -1)
-		telemetry.Default.Observe("browser_queue_seconds", time.Since(began))
-		return ctx.Err()
+	release, err := browserQueue.acquire(ctx)
+	telemetry.Default.Add("browser_queued", -1)
+	telemetry.Default.Observe("browser_queue_seconds", time.Since(began))
+	if err != nil {
+		return err
 	}
+	telemetry.Default.Add("browser_active", 1)
+	began = time.Now()
+	defer func() {
+		release()
+		telemetry.Default.Add("browser_active", -1)
+		telemetry.Default.Observe("browser_duration_seconds", time.Since(began))
+	}()
 
 	var allocCtx context.Context
 	var allocCancel context.CancelFunc
@@ -377,7 +415,11 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 		return fetchBrowserData(work, config, container, proxyAddr, useMixParser)
 	}, validatePayload)
 	if err != nil {
-		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+		code := define.ERROR_CODE_NETWORK
+		if errors.Is(err, ErrBrowserOverloaded) {
+			code = define.ERROR_CODE_OVERLOADED
+		}
+		return define.MixupBodyParsed(code, err.Error(), time.Now(), nil)
 	}
 	return decode(data)
 }

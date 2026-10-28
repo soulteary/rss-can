@@ -263,6 +263,12 @@ func inspectorPrepare() fiber.Handler {
 func inspectorProxy() fiber.Handler { return inspectorProxyWithOptions(DefaultOptions()) }
 
 func inspectorProxyWithOptions(options Options) fiber.Handler {
+	return inspectorProxyWithFetcher(func(ctx context.Context, url string) (string, error) {
+		return parser.ProxyPageByBrowserWithTimeout(ctx, url, options.Headless, options.Proxy, "", options.BrowserTimeout)
+	})
+}
+
+func inspectorProxyWithFetcher(fetch func(context.Context, string) (string, error)) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		encodedURL := c.Params("url")
 		if encodedURL == "" {
@@ -274,8 +280,11 @@ func inspectorProxyWithOptions(options Options) fiber.Handler {
 		if err := network.PublicURL(url); err != nil {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "invalid inspector URL"})
 		}
-		rawHtml, err := parser.ProxyPageByBrowserWithTimeout(c.Context(), url, options.Headless, options.Proxy, "", options.BrowserTimeout)
+		rawHtml, err := fetch(c.Context(), url)
 		if err != nil {
+			if errors.Is(err, parser.ErrBrowserOverloaded) {
+				return c.Status(http.StatusServiceUnavailable).JSON(fiber.Map{"msg": "browser queue is full"})
+			}
 			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": "inspector fetch failed"})
 		}
 		html := parser.ParseFullPageByGoQuery(rawHtml, func(document *goquery.Document) string {

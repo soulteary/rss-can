@@ -81,7 +81,15 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 						return
 					}
 					if r.URL.Path == prefix+"post/42" {
-						fmt.Fprint(w, `<html><body>Detail from final base</body></html>`)
+						http.Redirect(w, r, "/detail/42/", http.StatusFound)
+						return
+					}
+					if r.URL.Path == "/detail/42/" {
+						base := ""
+						if withBase {
+							base = `<base href="/assets/">`
+						}
+						fmt.Fprintf(w, `<html><head>%s</head><body>Detail from final base <a href="next">next</a><img src="pic.png"></body></html>`, base)
 						return
 					}
 					if r.URL.Path != "/news/" {
@@ -116,6 +124,15 @@ func TestApplicationFinalBaseSurvivesFreshAndCachedFetch(t *testing.T) {
 					item := feed.Items[0]
 					if item.URL != upstream.URL+prefix+"post/42" || item.ID != "42" || !strings.Contains(item.Content, "Detail from final base") {
 						t.Fatalf("base metadata lost: %s", body)
+					}
+					detailBase := upstream.URL + "/detail/42/"
+					if withBase {
+						detailBase = upstream.URL + "/assets/"
+					}
+					for _, reference := range []string{"next", "pic.png"} {
+						if !strings.Contains(item.Content, detailBase+reference) {
+							t.Fatalf("detail URL base lost for %s: %s", reference, body)
+						}
 					}
 				}
 				assertFeed()

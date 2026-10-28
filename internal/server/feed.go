@@ -1,58 +1,78 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/generator"
+	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
-func generateFeedResponse(config define.JavaScriptConfig, data define.BodyParsed, rssType string) (mimetype string, response string) {
+func feedMIME(rssType string) (string, bool) {
 	switch rssType {
 	case define.FEED_TYPE_RSS:
-		mimetype = define.FEED_MIME_TYPE_RSS
-		response = generator.GenerateFeedsByType(config, data, rssType)
+		return define.FEED_MIME_TYPE_RSS, true
 	case define.FEED_TYPE_ATOM:
-		mimetype = define.FEED_MIME_TYPE_ATOM
-		response = generator.GenerateFeedsByType(config, data, rssType)
+		return define.FEED_MIME_TYPE_ATOM, true
 	case define.FEED_TYPE_JSON:
-		mimetype = define.FEED_MIME_TYPE_JSON
-		response = generator.GenerateFeedsByType(config, data, rssType)
+		return define.FEED_MIME_TYPE_JSON, true
 	default:
-		mimetype = define.FEED_MIME_TYPE_JSON
-		response = "incorrect type"
+		return "", false
 	}
-	return mimetype, response
 }
 
 func apiRSS() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		id := c.Params("id")
-		rssType := c.Params("type")
+		rssType := strings.ToLower(c.Params("type"))
 		if id == "" || rssType == "" {
 			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "missing feed parameter"})
 		}
-
+		mimetype, supported := feedMIME(rssType)
+		if !supported {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "unsupported feed type"})
+		}
 		ruleFile, exist := rule.Lookup(id)
 		if !exist {
 			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "rule not found"})
 		}
 
-		config, err := rule.GenerateConfigByRule(ruleFile)
+		// One budget for JS queueing/execution, cache operations, browser/HTTP
+		// requests, pagination, detail hooks and feed serialization.
+		ctx, cancel := context.WithTimeout(c.Context(), fn.ExpireBySecond(define.SERVER_TIMEOUT))
+		defer cancel()
+		timedOut := func() error {
+			return c.Status(http.StatusGatewayTimeout).JSON(fiber.Map{"msg": "feed generation timed out"})
+		}
+		config, err := rule.GenerateConfigByRuleContext(ctx, ruleFile)
+		if ctx.Err() != nil {
+			return timedOut()
+		}
 		if err != nil {
-			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "parse config failed"})
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "parse config failed"})
 		}
 
-		data := rule.GetWebsiteDataWithConfig(config)
+		data := rule.GetWebsiteDataWithConfigContext(ctx, config)
+		if ctx.Err() != nil {
+			return timedOut()
+		}
 		if data.Code != define.ERROR_CODE_NULL {
 			return c.Status(http.StatusBadGateway).JSON(fiber.Map{"msg": fmt.Sprintf("get website data failed, code:%v", data.Code)})
 		}
-
-		mimetype, response := generateFeedResponse(config, data, strings.ToLower(rssType))
+		response, err := generator.GenerateFeedsByTypeContext(ctx, config, data, rssType)
+		if ctx.Err() != nil {
+			return timedOut()
+		}
+		if err != nil {
+			logger.Instance.Errorf("Generate feed failed: %v", err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "generate feed failed"})
+		}
 		c.Set(fiber.HeaderContentType, mimetype)
 		return c.Status(http.StatusOK).SendString(response)
 	}

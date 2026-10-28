@@ -1,6 +1,8 @@
 package jssdk
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,8 +96,7 @@ func TestDenoWorkerTimeoutRebuildAndQueuedRecovery(t *testing.T) {
 	// Wait until the first caller owns the execution slot before queuing the
 	// second caller, rather than assuming a goroutine scheduling delay.
 	deadline := time.Now().Add(time.Second)
-	for w.mu.TryLock() {
-		w.mu.Unlock()
+	for len(w.slot) == 0 {
 		if time.Now().After(deadline) {
 			t.Fatal("timeout request never acquired execution slot")
 		}
@@ -178,5 +179,62 @@ func TestDenoWorkerStartupFailureAndRecovery(t *testing.T) {
 	t.Setenv("RSS_CAN_DENO", binary)
 	if value := workerValue(t, &w, "42"); value != "42" {
 		t.Fatal(value)
+	}
+}
+
+func TestDenoWorkerQueuedContextDeadlinePreservesProcess(t *testing.T) {
+	var w denoWorker
+	defer w.close()
+	workerValue(t, &w, "42")
+	pid := w.process.cmd.Process.Pid
+	if err := w.acquire(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	_, err := w.runContext(ctx, "", "42", "queued.js", time.Second)
+	<-w.slot
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("queue deadline: %v", err)
+	}
+	if value := workerValue(t, &w, "42"); value != "42" || w.process.cmd.Process.Pid != pid {
+		t.Fatal("queued timeout replaced healthy worker")
+	}
+}
+
+func TestDenoWorkerExecutingContextDeadlineRecovers(t *testing.T) {
+	var w denoWorker
+	defer w.close()
+	workerValue(t, &w, "42")
+	pid := w.process.cmd.Process.Pid
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	_, err := w.runContext(ctx, "", "while(true) {}", "canceled.js", time.Second)
+	if !errors.Is(err, context.DeadlineExceeded) || w.process != nil {
+		t.Fatalf("execution deadline: %v", err)
+	}
+	workerValue(t, &w, "42")
+	if w.process.cmd.Process.Pid == pid {
+		t.Fatal("canceled process reused")
+	}
+}
+
+func TestDenoWorkerStartupContextDeadline(t *testing.T) {
+	var w denoWorker
+	defer w.close()
+	binary := filepath.Join(t.TempDir(), "stalled-deno")
+	if err := os.WriteFile(binary, []byte("#!/bin/sh\nexec sleep 30\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RSS_CAN_DENO", binary)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	began := time.Now()
+	_, err := w.runContext(ctx, "", "42", "startup.js", time.Second)
+	if !errors.Is(err, context.DeadlineExceeded) || w.process != nil {
+		t.Fatalf("startup deadline: %v", err)
+	}
+	if time.Since(began) > time.Second {
+		t.Fatal("startup ignored caller deadline")
 	}
 }

@@ -1,5 +1,11 @@
 package define
 
+import (
+	"fmt"
+	"regexp"
+	"strings"
+)
+
 const (
 	FEED_TYPE_RSS  = "rss"
 	FEED_TYPE_ATOM = "atom"
@@ -73,4 +79,20 @@ type JavaScriptConfig struct {
 
 	Pager      string `json:"Pager"`
 	PagerLimit int    `json:"PagerLimit"`
+}
+
+// CompileIDRegexp validates the capture used as the entry ID before parsing.
+func (c JavaScriptConfig) CompileIDRegexp() (*regexp.Regexp, error) {
+	pattern := strings.TrimSpace(c.IdByRegexp)
+	if pattern == "" {
+		return nil, nil
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, fmt.Errorf("invalid IdByRegexp: %w", err)
+	}
+	if re.NumSubexp() == 0 {
+		return nil, fmt.Errorf("IdByRegexp must contain a capture group")
+	}
+	return re, nil
 }

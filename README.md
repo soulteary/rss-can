@@ -37,6 +37,15 @@ Source builds now use a persistent Deno worker by default. Install [Deno](https:
 
 The service checks Deno before starting. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
 
+### Feed generation limits
+
+The following behavior applies to current source builds:
+
+- SSR `PagerLimit` counts all pages, including the current page. An omitted/zero limit parses only the current page; negative values are rejected. The current document is reused, and duplicate pagination URLs (including fragment-only differences) are processed once.
+- `IdByRegexp` must be valid and contain at least one capture group. The first capture of the first match becomes the entry ID; a non-match leaves the ID unset. Invalid patterns produce a rule configuration error.
+- `RSS_SERVER_TIMEOUT` / `-timeout-server` bounds the entire feed generation pipeline: JS queueing/startup, rule evaluation, cache access, SSR/CSR/mixed parsing, pagination, detail requests and serialization. Per-request, JS and browser timeouts may end individual steps sooner. Decoded SSR and detail-page HTML is limited to 10 MiB per document.
+- Unsupported feed types return `400`; unknown rules return `404`; rule or feed generation errors return `500`; upstream failures return `502`; the overall deadline returns `504` without a partial feed.
+
 ### Docker
 
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:

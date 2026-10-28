@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,11 +10,13 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
@@ -189,5 +192,141 @@ func TestFiberUtilityRoutesAndEmbeddedAssets(t *testing.T) {
 		if !strings.Contains(string(data), test.body) {
 			t.Errorf("%s: expected body to contain %q", test.path, test.body)
 		}
+	}
+}
+
+func TestFeedRejectsUnsupportedTypeBeforeRuleExecution(t *testing.T) {
+	installTestRule(t, "http://unused.invalid")
+	// A valid format would require Deno; an invalid format must fail before it.
+	jssdk.CloseRuntime()
+	t.Setenv("RSS_CAN_DENO", filepath.Join(t.TempDir(), "missing-deno"))
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	status, body := testResponse(t, route, httptest.NewRequest("GET", "/feed/example/invalid/", nil))
+	if status != http.StatusBadRequest || !strings.Contains(body, "unsupported feed type") {
+		t.Fatalf("response: %d %s", status, body)
+	}
+}
+
+func TestFeedInvalidRuleIsServerError(t *testing.T) {
+	file, _ := installTestRule(t, "http://unused.invalid")
+	if err := os.WriteFile(file, []byte(`potted.SetConfig({IdByRegexp:"["});`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rule.InitRules()
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	status, body := testResponse(t, route, httptest.NewRequest("GET", "/feed/example/rss/", nil))
+	if status != http.StatusInternalServerError || !strings.Contains(body, "parse config failed") {
+		t.Fatalf("response: %d %s", status, body)
+	}
+}
+
+func TestFeedDeadlineReturnsGatewayTimeout(t *testing.T) {
+	upstreamCanceled := make(chan struct{})
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+		close(upstreamCanceled)
+	}))
+	defer upstream.Close()
+	installTestRule(t, upstream.URL)
+	if err := jssdk.InitializeRuntime(); err != nil {
+		t.Fatal(err)
+	}
+	route := fiber.New()
+	route.Use(func(c fiber.Ctx) error {
+		ctx, cancel := context.WithTimeout(c.Context(), 150*time.Millisecond)
+		defer cancel()
+		c.SetContext(ctx)
+		return c.Next()
+	})
+	route.Get("/feed/:id/:type/", apiRSS())
+	status, body := testResponse(t, route, httptest.NewRequest("GET", "/feed/example/rss/", nil))
+	if status != http.StatusGatewayTimeout || !strings.Contains(body, "timed out") {
+		t.Fatalf("response: %d %s", status, body)
+	}
+	select {
+	case <-upstreamCanceled:
+	case <-time.After(time.Second):
+		t.Fatal("timed out upstream left running")
+	}
+}
+
+func TestFeedGenerationFailureIsServerError(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate runtime loss between rule evaluation and date conversion.
+		jssdk.CloseRuntime()
+		fmt.Fprint(w, `<article><h2>title</h2><a href="/post">post</a><span>2026-10-28</span></article>`)
+	}))
+	defer upstream.Close()
+	file, body := installTestRule(t, upstream.URL)
+	body = strings.Replace(body, `Title:"h2"`, `DateTime:"span",Title:"h2"`, 1)
+	if err := os.WriteFile(file, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	rule.InitRules()
+	if err := jssdk.InitializeRuntime(); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("RSS_CAN_DENO", filepath.Join(t.TempDir(), "missing-deno"))
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	status, response := testResponse(t, route, httptest.NewRequest("GET", "/feed/example/rss/", nil))
+	if status != http.StatusInternalServerError || !strings.Contains(response, "generate feed failed") {
+		t.Fatalf("response: %d %s", status, response)
+	}
+}
+
+func TestFeedFormatsStillSucceed(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<article><h2>title</h2><a href="/post">post</a></article>`)
+	}))
+	defer upstream.Close()
+	installTestRule(t, upstream.URL)
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	for _, format := range []string{"rss", "atom", "json", "RSS"} {
+		response, err := route.Test(httptest.NewRequest("GET", "/feed/example/"+format+"/", nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(response.Body)
+		response.Body.Close()
+		mime, _ := feedMIME(strings.ToLower(format))
+		if err != nil || response.StatusCode != http.StatusOK || !strings.HasPrefix(response.Header.Get("Content-Type"), mime) || !strings.Contains(string(body), "title") {
+			t.Fatalf("%s: %d %s %v", format, response.StatusCode, body, err)
+		}
+	}
+}
+
+func TestFeedConfiguredServerTimeout(t *testing.T) {
+	previous := define.SERVER_TIMEOUT
+	define.SERVER_TIMEOUT = 1
+	defer func() { define.SERVER_TIMEOUT = previous }()
+	canceled := make(chan struct{})
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+		close(canceled)
+	}))
+	defer upstream.Close()
+	installTestRule(t, upstream.URL)
+	route := fiber.New()
+	route.Get("/feed/:id/:type/", apiRSS())
+	began := time.Now()
+	response, err := route.Test(httptest.NewRequest("GET", "/feed/example/rss/", nil), fiber.TestConfig{Timeout: 3 * time.Second, FailOnTimeout: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusGatewayTimeout {
+		t.Fatalf("configured timeout returned %d", response.StatusCode)
+	}
+	if elapsed := time.Since(began); elapsed > 2500*time.Millisecond {
+		t.Fatalf("configured timeout ignored: %v", elapsed)
+	}
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("upstream kept running after configured timeout")
 	}
 }

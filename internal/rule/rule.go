@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"context"
 	"path/filepath"
 	"strings"
 
@@ -35,8 +36,12 @@ func LoadRules(ruleDir string) []string {
 }
 
 func GenerateConfigByRule(rule define.RuleCache) (config define.JavaScriptConfig, err error) {
+	return GenerateConfigByRuleContext(context.Background(), rule)
+}
+
+func GenerateConfigByRuleContext(ctx context.Context, rule define.RuleCache) (config define.JavaScriptConfig, err error) {
 	app := jssdk.GenerateGetConfigWithRule(rule.Body)
-	jsConfig, err := jssdk.RunCode(jssdk.TPL_SSR_JS, app, rule.File)
+	jsConfig, err := jssdk.RunCodeContext(ctx, jssdk.TPL_SSR_JS, app, rule.File)
 	if err != nil {
 		logger.Instance.Errorf("Executing rule file failed: %v", err)
 		return config, err

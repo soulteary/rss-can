@@ -1,9 +1,15 @@
 package parser
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
@@ -40,5 +46,122 @@ func TestSSRPaginationPropagatesFailure(t *testing.T) {
 	got := GetDataAndConfigBySSR(define.JavaScriptConfig{URL: upstream.URL, Pager: ".page", PagerLimit: 2, DisableCache: true})
 	if got.Code != define.ERROR_CODE_API_NOT_READY {
 		t.Fatalf("pagination error lost: %#v", got)
+	}
+}
+
+func TestSSRPaginationBudgetAndCurrentPage(t *testing.T) {
+	logger.Initialize()
+	for _, currentLink := range []bool{false, true} {
+		for _, limit := range []int{0, 1, 2, 3, 10} {
+			t.Run(fmt.Sprintf("current=%t/limit=%d", currentLink, limit), func(t *testing.T) {
+				var mu sync.Mutex
+				var paths []string
+				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					mu.Lock()
+					paths = append(paths, r.URL.Path)
+					mu.Unlock()
+					fmt.Fprintf(w, `<article><h2>%s</h2><a href="/post">post</a></article>`, r.URL.Path)
+					if r.URL.Path == "/" {
+						if currentLink {
+							fmt.Fprint(w, `<a class="page" href="/#top">current</a>`)
+						}
+						fmt.Fprint(w, `<a class="page" href="/2">2</a><a class="page" href="/2#top">2 again</a><a class="page" href="/3">3</a>`)
+					}
+				}))
+				defer upstream.Close()
+				got := GetDataAndConfigBySSR(define.JavaScriptConfig{URL: upstream.URL, Pager: ".page", PagerLimit: limit, ListContainer: "article", Title: "h2", Link: "a", DisableCache: true})
+				want := limit
+				if want == 0 {
+					want = 1
+				}
+				if want > 3 {
+					want = 3
+				}
+				mu.Lock()
+				defer mu.Unlock()
+				if got.Code != define.ERROR_CODE_NULL || len(got.Body) != want || len(paths) != want {
+					t.Fatalf("limit %d: items=%#v paths=%v error=%s", limit, got.Body, paths, got.Status)
+				}
+				if got.Body[0].Title != "/" {
+					t.Fatal("current page omitted")
+				}
+			})
+		}
+	}
+	got := ParseDataAndConfigBySSR(define.JavaScriptConfig{URL: "https://example.org", Pager: ".missing", PagerLimit: 3, ListContainer: "article", Title: "h2"}, define.RemoteBodySanitized{}, `<article><h2>current</h2></article>`)
+	if len(got.Body) != 1 || got.Body[0].Title != "current" {
+		t.Fatalf("page without pagination: %#v", got)
+	}
+}
+
+func TestSSRRejectsInvalidIDRegexp(t *testing.T) {
+	for _, pattern := range []string{"[", `/post/\d+`} {
+		got := ParseDataAndConfigBySSR(define.JavaScriptConfig{IdByRegexp: pattern, ListContainer: "article", Title: "h2", Link: "a"}, define.RemoteBodySanitized{}, `<article><h2>title</h2><a href="/post/42">post</a></article>`)
+		if got.Code != define.ERROR_CODE_PARSE_CONTENT_FAILED || !strings.Contains(got.Status, "IdByRegexp") {
+			t.Fatalf("%q: %#v", pattern, got)
+		}
+	}
+	for _, link := range []string{"/post/42", "/other"} {
+		got := ParseDataAndConfigBySSR(define.JavaScriptConfig{URL: "https://example.org", IdByRegexp: `/post/(\d+)`, ListContainer: "article", Title: "h2", Link: "a"}, define.RemoteBodySanitized{}, fmt.Sprintf(`<article><h2>title</h2><a href="%s">post</a></article>`, link))
+		want := ""
+		if link == "/post/42" {
+			want = "42"
+		}
+		if got.Code != define.ERROR_CODE_NULL || len(got.Body) != 1 || got.Body[0].ID != want {
+			t.Fatalf("%s: %#v", link, got)
+		}
+	}
+}
+
+func TestSSRSharedDeadlineAcrossPages(t *testing.T) {
+	logger.Initialize()
+	var requests atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		select {
+		case <-time.After(60 * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+		fmt.Fprint(w, `<article><h2>title</h2></article><a class="page" href="/2">2</a><a class="page" href="/3">3</a><a class="page" href="/4">4</a>`)
+	}))
+	defer upstream.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+	began := time.Now()
+	got := GetDataAndConfigBySSRContext(ctx, define.JavaScriptConfig{URL: upstream.URL, Pager: ".page", PagerLimit: 4, ListContainer: "article", Title: "h2", DisableCache: true})
+	if ctx.Err() != context.DeadlineExceeded || got.Code == define.ERROR_CODE_NULL || len(got.Body) != 0 {
+		t.Fatalf("deadline lost: %#v, %v", got, ctx.Err())
+	}
+	if elapsed := time.Since(began); elapsed > time.Second {
+		t.Fatalf("total deadline exceeded: %v", elapsed)
+	}
+	if requests.Load() >= 4 {
+		t.Fatal("continued pagination after budget expired")
+	}
+}
+
+func TestSSRDetailHookHonorsDeadline(t *testing.T) {
+	logger.Initialize()
+	canceled := make(chan struct{})
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			fmt.Fprint(w, `<article><h2>title</h2><a href="/detail">detail</a></article>`)
+			return
+		}
+		<-r.Context().Done()
+		close(canceled)
+	}))
+	defer upstream.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	got := GetDataAndConfigBySSRContext(ctx, define.JavaScriptConfig{URL: upstream.URL, ListContainer: "article", Title: "h2", Link: "a", DisableCache: true, ContentHook: define.ConfigHook{Action: define.ConfigHookReadLink, URL: "a", Object: "body"}})
+	if got.Code == define.ERROR_CODE_NULL || len(got.Body) != 0 {
+		t.Fatalf("partial feed accepted: %#v", got)
+	}
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("upstream request not canceled")
 	}
 }

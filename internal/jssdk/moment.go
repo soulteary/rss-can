@@ -1,6 +1,7 @@
 package jssdk
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -19,7 +20,11 @@ func ConvertAgoToUnix(date string) (time.Time, error) {
 }
 
 func ConvertStrToUnix(str string) (time.Time, error) {
-	unixStr, err := RunCode(TPL_DATE_JS, "ConvertStrToUnix("+strconv.Quote(str)+")", "convert.js")
+	return ConvertStrToUnixContext(context.Background(), str)
+}
+
+func ConvertStrToUnixContext(ctx context.Context, str string) (time.Time, error) {
+	unixStr, err := RunCodeContext(ctx, TPL_DATE_JS, "ConvertStrToUnix("+strconv.Quote(str)+")", "convert.js")
 	if err != nil {
 		return time.Now(), err
 	}

@@ -29,10 +29,10 @@ initial ready message, then a matching JSON result/error per request on stdout.
 Messages support embedded newlines and Unicode; protocol writes handle partial
 pipe writes. Rule console output stays inside the VM.
 
-Calls serialize behind a mutex: one execution and one Deno process at a time.
-Waiting callers block rather than starting more processes. Ordering among
-concurrent callers follows mutex scheduling; there is no explicit FIFO or
-bounded queue, and the existing RunCode API has no cancellation parameter.
+Calls share one execution slot and one Deno process. Waiting callers block
+rather than starting more processes; there is no explicit FIFO or bounded
+queue. `RunCodeContext` lets a caller cancel while waiting without disturbing
+the active worker. `RunCode` retains the background-context behavior.
 
 Every request gets a fresh V8 Context. The SDK and rule execute as separate
 classic scripts in that context, preserving shared declarations and script
@@ -42,7 +42,10 @@ reuse an existing Context or its modified global/prototype objects.
 Startup has a separate 10-second deadline. After acquiring the execution slot
 and receiving ready, `JS_EXECUTE_TIMEOUT` covers protocol write/read, both
 scripts, and result conversion. Queue waiting and startup do not consume this
-execution timeout.
+execution timeout. Feed requests also carry one `RSS_SERVER_TIMEOUT` deadline
+through queueing, startup and execution, so the earlier deadline wins. Canceling
+an active execution kills and joins its process; canceling startup also closes
+and reaps the partially started worker.
 
 A timeout kills and reaps the process, closes its pipes, and joins its pending
 exchange before releasing the slot. The next request (including one already

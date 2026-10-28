@@ -2,6 +2,7 @@ package jssdk
 
 import (
 	"bufio"
+	"context"
 	_ "embed"
 	"encoding/base64"
 	"encoding/json"
@@ -38,7 +39,8 @@ func (p *denoProcess) stop() {
 }
 
 type denoWorker struct {
-	mu      sync.Mutex // One in-flight request; callers wait here without consuming execution time.
+	once    sync.Once
+	slot    chan struct{} // One in-flight request; queueing respects the caller's context.
 	process *denoProcess
 	nextID  uint64
 }
@@ -49,7 +51,7 @@ type denoResponse struct {
 	Error  string `json:"error"`
 }
 
-func startDenoProcess() (*denoProcess, error) {
+func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 	binary := os.Getenv("RSS_CAN_DENO")
 	if binary == "" {
 		binary = "deno"
@@ -93,6 +95,10 @@ func startDenoProcess() (*denoProcess, error) {
 	timer := time.NewTimer(10 * time.Second)
 	defer timer.Stop()
 	select {
+	case <-ctx.Done():
+		p.stop()
+		<-ready
+		return nil, ctx.Err()
 	case err := <-ready:
 		if err != nil {
 			p.stop()
@@ -113,11 +119,38 @@ func (w *denoWorker) stopLocked() {
 	}
 }
 
-func (w *denoWorker) close() { w.mu.Lock(); defer w.mu.Unlock(); w.stopLocked() }
+func (w *denoWorker) acquire(ctx context.Context) error {
+	w.once.Do(func() { w.slot = make(chan struct{}, 1) })
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case w.slot <- struct{}{}:
+		if err := ctx.Err(); err != nil {
+			<-w.slot
+			return err
+		}
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (w *denoWorker) close() {
+	_ = w.acquire(context.Background())
+	defer func() { <-w.slot }()
+	w.stopLocked()
+}
 
 func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (string, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	return w.runContext(context.Background(), base, source, filename, timeout)
+}
+
+func (w *denoWorker) runContext(ctx context.Context, base, source, filename string, timeout time.Duration) (string, error) {
+	if err := w.acquire(ctx); err != nil {
+		return "", err
+	}
+	defer func() { <-w.slot }()
 	if w.process != nil {
 		select {
 		case <-w.process.done:
@@ -126,7 +159,7 @@ func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (
 		}
 	}
 	if w.process == nil {
-		p, err := startDenoProcess()
+		p, err := startDenoProcess(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -163,6 +196,10 @@ func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (
 		done <- result
 	}()
 	select {
+	case <-ctx.Done():
+		w.stopLocked()
+		<-done
+		return "", ctx.Err()
 	case result := <-done:
 		if result.err != nil {
 			w.stopLocked()
@@ -186,7 +223,11 @@ func (w *denoWorker) run(base, source, filename string, timeout time.Duration) (
 // RunCode serializes calls through one lazy, persistent Deno process. Each
 // request uses a fresh JS context. A failed process is replaced on the next call.
 func RunCode(base, source, originFile string) (string, error) {
-	return defaultDenoWorker.run(base, source, originFile, time.Duration(define.JS_EXECUTE_TIMEOUT)*time.Millisecond)
+	return RunCodeContext(context.Background(), base, source, originFile)
+}
+
+func RunCodeContext(ctx context.Context, base, source, originFile string) (string, error) {
+	return defaultDenoWorker.runContext(ctx, base, source, originFile, time.Duration(define.JS_EXECUTE_TIMEOUT)*time.Millisecond)
 }
 
 // CloseRuntime releases the worker after active execution finishes. A later

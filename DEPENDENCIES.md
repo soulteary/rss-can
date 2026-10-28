@@ -14,18 +14,17 @@ in `third_party/licenses/`.
 This upgrade replaces goquery v1.13.0 with the performance-focused
 `github.com/soulteary/goquery` v1.14.0 fork and cascadia v1.3.5 with
 `github.com/soulteary/cascadia` v1.0.0, Redis from v8.11.5 to
-`github.com/redis/go-redis/v9` v9.23.0, HTML conversion from the local v1 copy to
-`github.com/JohannesKaufmann/html-to-markdown/v2` v2.5.2, and Sonic from v1.15.4
+`github.com/redis/go-redis/v9` v9.23.0, HTML conversion to the
+`github.com/soulteary/html-to-markdown/v2` v2.0.0 fork, and Sonic from v1.15.4
 to v1.15.5. Feeds v1.2.0 and cache2go commit `518229cd8021` are now the actual
 upstream implementations rather than older local copies bearing those version
 labels. Redis address/password/database environment variables and cache APIs
 retain their existing names.
 
-Application imports use the forks' module paths directly, and the goquery fork
-uses the cascadia fork as its selector engine. HTML-to-Markdown independently
-retains upstream cascadia v1.3.4 as a transitive dependency; the two module paths
-cannot be replaced with the same module version without creating duplicate
-module identities.
+Application imports use the forks' module paths directly. The goquery fork uses
+the cascadia fork as its selector engine. The HTML-to-Markdown fork depends only
+on `golang.org/x/net`, removing its former DOM helper and upstream cascadia
+transitive dependencies.
 
 The upstream feeds implementation emits JSON Feed 1.1, including the `authors`
 array and the legacy `author` field. RSS and Atom entry IDs, content and links

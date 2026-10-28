@@ -29,7 +29,9 @@ GoReleaser only stages archives (`--skip=publish`). The three CI artifacts
 archives and three checksum files. Archives include rules, release notes,
 documentation and third-party license notices. Standalone binaries require Deno
 2.9.8 on PATH (or RSS_CAN_DENO); Docker images include the pinned Deno binary.
-CI installs the same Deno version before running tests.
+CI installs the same Deno version before running tests. Archives include
+`docs/upgrading.md`; follow it for the v0.3.12-to-Deno transition. The release
+tooling gate checks Docker and CI Deno pins against `.deno-version`.
 
 The archive gate validates checksums, runtime files and all four binary identities
 before any image is pushed. Native AMD64 and ARM64 runners then build the source

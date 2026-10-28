@@ -41,3 +41,39 @@ go test -race ./internal/coalesce ./internal/telemetry ./internal/define ./inter
 These are regression floors, not completeness claims. Browser interception failure branches, remote certificate/proxy setup and process entry/shutdown still need dedicated scenarios. Prefer tests that assert results, cancellation, isolation and cleanup over tests written only to raise a number. The gate has its own Python regression tests for statement weighting, duplicate blocks, invalid evidence and missing packages.
 
 The checked-in `.github/go-test-report.md` and badges can refer to older generated evidence; use a freshly generated profile or the CI artifact for the revision being reviewed. See [the measured baseline and current profile](benchmarks/feed-load.md) for this improvement's results.
+
+## Detail, request-option and worker-pool regressions
+
+The suite now verifies that every SSR detail hook rejects upstream failures,
+missing links and missing selectors without returning a partial feed. It also
+checks parallel detail ordering, sibling cancellation, slot cleanup, inline
+metadata overrides, cookies/proxies through pagination and details, cross-host
+cookie isolation, and cache isolation by credentials/proxy.
+
+The required Chrome regression checks that a remote browser actually reaches
+an HTTP proxy while preserving its scoped cookie. Worker-pool tests cover
+parallel progress during an occupied worker, queued cancellation, recovery,
+startup failures, fixed configuration and shutdown/restart. The release tooling
+suite checks `.deno-version` consistency and requires the upgrade guide in new
+non-CGO release archives.
+
+For isolated local dependencies, override the ports rather than reusing personal
+browser profiles or changing an existing Redis instance. Example:
+
+```sh
+RSS_SERVER=127.0.0.1:16379 \
+RSS_CAN_DENO=/path/to/deno \
+RSS_TEST_BROWSER_URL=http://127.0.0.1:9222 \
+RSS_TEST_BROWSER_REQUIRED=1 \
+go test -race ./... -count=1 -timeout=90s -covermode=atomic -coverprofile=/tmp/rss-can-coverage.out
+python3 scripts/check_coverage.py /tmp/rss-can-coverage.out
+python3 scripts/check_runtime_versions.py
+```
+
+Keep `RSS_JS_WORKERS` unset for the default full suite; dedicated pool tests set
+their own sizes. Production may opt into a larger pool as described in
+[upgrading](upgrading.md). For a portable-runtime smoke test, put the built
+`rssc` and an executable `deno` in one directory, remove Deno from PATH, unset
+`RSS_CAN_DENO`, explicitly set `RSS_REDIS=false RSS_MEMORY=true`, and check
+`/_/ready/` with HTTP environment proxies bypassed. Also verify a missing explicit
+runtime override fails startup and SIGTERM exits cleanly.

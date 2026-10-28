@@ -1,6 +1,6 @@
 # Deno execution backend
 
-The default build uses a single persistent Deno worker behind
+The default build uses a bounded persistent Deno worker pool behind
 `jssdk.RunCode(base, source, originFile) (string, error)`. No build tag is needed.
 Install Deno 2.9.8 and ensure it is on PATH, then build and test:
 
@@ -18,7 +18,8 @@ runtime startup/execution before serving traffic and fails immediately if unavai
 Deno is the sole execution backend. The legacy v8go backend, its low-level
 context helpers, and its Go module dependency have been removed.
 
-Deno is resolved from PATH, or from `RSS_CAN_DENO`, when the worker starts.
+Deno is resolved from `RSS_CAN_DENO`, an executable `deno` beside `rssc`,
+then PATH, when a worker starts. See [installation and upgrade instructions](upgrading.md).
 There is no automatic fallback when Deno is missing or fails.
 
 ## Lifecycle and protocol
@@ -29,9 +30,10 @@ initial ready message, then a matching JSON result/error per request on stdout.
 Messages support embedded newlines and Unicode; protocol writes handle partial
 pipe writes. Rule console output stays inside the VM.
 
-Calls share one execution slot and one Deno process. Waiting callers block
-rather than starting more processes; there is no explicit FIFO or bounded
-queue. `RunCodeContext` lets a caller cancel while waiting without disturbing
+Calls share `RSS_JS_WORKERS` execution slots and Deno processes (default 1,
+range 1–16, read once per process). Startup validates all configured workers.
+Waiting callers block rather than starting additional processes; there is no
+explicit FIFO or bounded queue. `RunCodeContext` lets a caller cancel while waiting without disturbing
 the active worker. `RunCode` retains the background-context behavior.
 
 Every request gets a fresh V8 Context. The SDK and rule execute as separate
@@ -54,7 +56,7 @@ Normal JS exceptions return an error while keeping the process alive. An idle
 process exit is reaped in the background; communication errors or mismatched
 IDs discard the process, and the next request starts a fresh one.
 
-`jssdk.CloseRuntime()` drains the active execution and releases the worker; the
+`jssdk.CloseRuntime()` drains active calls and releases all workers; the
 main program calls it on normal shutdown.
 Drain application requests first: a later RunCode can start the worker again.
 If the Go process exits without normal cleanup, closing stdin lets the idle

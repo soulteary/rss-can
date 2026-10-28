@@ -81,7 +81,7 @@ def verify(directory, tag, commit, go_version, cgo_enabled="0"):
     required = {"rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
                 f"docs/releases/{tag}.md", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"}
     if cgo_enabled == "0":
-        required |= {"third_party/licenses/deno.txt", "docs/deno-prototype.md"}
+        required |= {"third_party/licenses/deno.txt", "docs/deno-prototype.md", "docs/upgrading.md"}
     required |= {f"third_party/licenses/{name}.txt" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown")}
     for name, (system, arch, _) in archives.items():
         path = directory / name

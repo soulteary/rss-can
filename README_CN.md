@@ -33,9 +33,9 @@
 
 ### 源码构建的 JavaScript 运行时
 
-源码构建现已默认使用常驻 Deno worker。请先安装 [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** 并加入 PATH，或用 `RSS_CAN_DENO` 指定可执行文件。使用 `CGO_ENABLED=0 go build -o rssc .` 构建，无需构建标签；运行测试也需要 Deno。更新后的 Docker 构建会内置 Deno，独立发行包需单独安装。已发布的 v0.3.12 二进制和镜像仍使用原来的运行时。
+源码构建现已默认使用常驻 Deno worker（`RSS_JS_WORKERS` 默认 `1`，可配置为 `1–16`，修改后重启）。请先安装 [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** 并加入 PATH，或用 `RSS_CAN_DENO` 指定可执行文件。使用 `CGO_ENABLED=0 go build -o rssc .` 构建，无需构建标签；运行测试也需要 Deno。更新后的 Docker 构建会内置 Deno，独立发行包需单独安装。已发布的 v0.3.12 二进制和镜像仍使用原来的运行时。
 
-服务启动时会检查 Deno 是否可用。生命周期与部署要求见[运行时说明](docs/deno-prototype.md)。
+服务启动时会检查所有 Deno worker 是否可用。`RSS_CAN_DENO` 优先，其次查找 `rssc` 同目录的 `deno`，最后使用 PATH。安装、迁移、代理/Cookie 和并发说明见[升级指南](docs/upgrading.md)。生命周期与部署要求见[运行时说明](docs/deno-prototype.md)。
 
 ### 订阅生成边界
 
@@ -94,8 +94,6 @@ Usage of rssc:
     	set Redis db, env: RSS_REDIS_DB
   -redis-pass RSS_REDIS_PASSWD
     	set Redis password, env: RSS_REDIS_PASSWD
-  -rod string
-    	Set the default value of options used by rod.
   -rule RSS_RULE
     	set Rule directory, env: RSS_RULE (default "./rules")
   -timeout-headless RSS_HEADLESS_EXEC_TIMEOUT

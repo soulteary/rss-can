@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/parser"
 )
 
@@ -40,29 +42,19 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 }
 
 func GetWebsiteDataWithConfigContext(ctx context.Context, config define.JavaScriptConfig) (result define.BodyParsed) {
+	proxy, err := network.NormalizeProxy(network.OptionsForConfig(config).Proxy)
+	if err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_INIT_NETWORK_FAILED, err.Error(), time.Now(), nil)
+	}
 	switch strings.ToLower(config.Mode) {
 	case define.PARSE_MODE_SSR:
 		return parser.GetDataAndConfigBySSRContext(ctx, config)
-	case define.PARSE_MODE_CSR:
+	case define.PARSE_MODE_CSR, define.PARSE_MODE_MIX:
 		container := define.HEADLESS_SERVER
 		if fn.IsVaildHeadlessAddr(config.Headless) {
 			container = config.Headless
 		}
-		proxy := define.PROXY_SERVER
-		if fn.IsVaildProxyAddr(config.Proxy) {
-			proxy = config.Proxy
-		}
-		return parser.ParsePageByBrowserContext(ctx, config, container, proxy, false)
-	case define.PARSE_MODE_MIX:
-		container := define.HEADLESS_SERVER
-		if fn.IsVaildHeadlessAddr(config.Headless) {
-			container = config.Headless
-		}
-		proxy := define.PROXY_SERVER
-		if fn.IsVaildProxyAddr(config.Proxy) {
-			proxy = config.Proxy
-		}
-		return parser.ParsePageByBrowserContext(ctx, config, container, proxy, true)
+		return parser.ParsePageByBrowserContext(ctx, config, container, proxy, strings.EqualFold(config.Mode, define.PARSE_MODE_MIX))
 	}
 
 	// TODO handle remote mode(api) ...

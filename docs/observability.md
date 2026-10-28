@@ -44,3 +44,13 @@ Set `RSS_CONFIG_CACHE_TTL=30` to opt into a 30-second configuration cache. The d
 Repeated identical date strings are converted once per generated feed. Conversions are never cached across requests, preserving relative-date behavior.
 
 The implementation retains one Deno worker. Local fixture measurements establish the benefit of removing duplicate work; they are not a production capacity guarantee. Use queue histograms and active/waiting gauges under your actual rules before introducing more workers and their memory/process overhead. See [load measurements](benchmarks/feed-load.md).
+
+## Configurable concurrency
+
+`RSS_JS_WORKERS` controls a fixed pool of 1–16 Deno processes (default 1).
+Existing `js_queued`, `js_active`, `js_queue_seconds` and `js_execution_seconds`
+cover pool admission and execution, including canceled waiters. With N workers,
+`js_active` can reach N. Increasing N raises the process-tree memory footprint;
+measure real-rule latency and RSS before tuning. SSR/mixed detail extraction is
+bounded at four entry workers per page and sixteen active fetches process-wide.
+See [upgrading](upgrading.md) for failure semantics and configuration scope.

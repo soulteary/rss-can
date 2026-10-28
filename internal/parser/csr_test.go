@@ -189,6 +189,29 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 			assertClean(t)
 		})
 	}
+
+	t.Run("remote browser uses rule proxy", func(t *testing.T) {
+		var proxied atomic.Int32
+		proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Host == "rss-can-proxy.invalid" {
+				proxied.Add(1)
+				if r.Header.Get("Cookie") != "session=proxy" {
+					t.Errorf("proxy cookie lost: %q", r.Header.Get("Cookie"))
+				}
+			}
+			fmt.Fprint(w, `<html><body><article><h2>Via proxy</h2><a href="/item">Read</a></article></body></html>`)
+		}))
+		defer proxy.Close()
+		proxiedConfig := config
+		proxiedConfig.URL = "http://rss-can-proxy.invalid/list"
+		proxiedConfig.Cookies = "session=proxy"
+		proxiedConfig.DisableCache = true
+		got := ParsePageByBrowser(proxiedConfig, address, proxy.URL, false)
+		if got.Code != 0 || len(got.Body) != 1 || got.Body[0].Title != "Via proxy" || proxied.Load() == 0 {
+			t.Fatalf("remote proxy ignored: %#v requests=%d", got, proxied.Load())
+		}
+		assertClean(t)
+	})
 	t.Run("SDK jQuery is isolated from target page", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

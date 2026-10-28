@@ -73,15 +73,18 @@ func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyPa
 	return GetDataAndConfigBySSRContext(context.Background(), config)
 }
 
-func GetDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig) (result define.BodyParsed) {
-	doc := network.GetRemoteDocumentContext(ctx, config.URL, config.Charset, config.Expire, config.DisableCache)
+func GetDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, options ...network.RequestOptions) (result define.BodyParsed) {
+	if len(options) == 0 {
+		options = []network.RequestOptions{network.OptionsForConfig(config)}
+	}
+	doc := network.GetRemoteDocumentContext(ctx, config.URL, config.Charset, config.Expire, config.DisableCache, options...)
 	if doc.Code != define.ERROR_CODE_NULL {
 		return define.MixupBodyParsed(doc.Code, doc.Status, doc.Date, nil)
 	}
 	if doc.Body == "" {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, "empty upstream response", doc.Date, nil)
 	}
-	return ParseDataAndConfigBySSRContext(ctx, config, doc, "")
+	return ParseDataAndConfigBySSRContext(ctx, config, doc, "", options...)
 }
 
 func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links []string) {
@@ -104,7 +107,10 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 	return ParseDataAndConfigBySSRContext(context.Background(), config, userDoc, userHtml)
 }
 
-func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
+func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string, options ...network.RequestOptions) (result define.BodyParsed) {
+	if len(options) == 0 {
+		options = []network.RequestOptions{network.OptionsForConfig(config)}
+	}
 	failure := func(err error) define.BodyParsed {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
@@ -145,7 +151,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		}
 		firstConfig := config
 		firstConfig.Pager = ""
-		first := ParseDataAndConfigBySSRContext(ctx, firstConfig, doc, "")
+		first := ParseDataAndConfigBySSRContext(ctx, firstConfig, doc, "", options...)
 		if first.Code != define.ERROR_CODE_NULL {
 			return first
 		}
@@ -180,7 +186,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 			newConfig := config
 			newConfig.URL = link
 			newConfig.Pager = ""
-			ret := GetDataAndConfigBySSRContext(ctx, newConfig)
+			ret := GetDataAndConfigBySSRContext(ctx, newConfig, options...)
 			if ret.Code != define.ERROR_CODE_NULL {
 				return ret
 			}
@@ -194,6 +200,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		return define.MixupBodyParsed(code, status, time.Now(), items)
 	}
 
+	var selections []*goquery.Selection
 	result = ParsePageByGoQuery(doc, func(document *goquery.Document) (items []define.InfoItem) {
 		document.Find(config.ListContainer).EachWithBreak(func(i int, s *goquery.Selection) bool {
 			if ctx.Err() != nil {
@@ -213,40 +220,13 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 				author := jsBridge(config.Author, "text", s)
 				item.Author = author
 			}
-
-			if config.DateTimeHook.Action == define.ConfigHookReadLink {
-				rawLink := jsBridge(config.DateTimeHook.URL, "href", s)
-				link, err := fn.LinkResolveRelative(rawLink, config.URL)
-				if err == nil {
-					time := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.DateTimeHook.Object, config.Charset, config.Expire, config.DisableCache)
-					item.Date = time
-				}
-			}
 			if config.DateTime != "" {
 				time := jsBridge(config.DateTime, "text", s)
 				item.Date = time
 			}
-
-			if config.CategoryHook.Action == define.ConfigHookReadLink {
-				rawLink := jsBridge(config.CategoryHook.URL, "href", s)
-				link, err := fn.LinkResolveRelative(rawLink, config.URL)
-				if err == nil {
-					category := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.CategoryHook.Object, config.Charset, config.Expire, config.DisableCache)
-					item.Category = category
-				}
-			}
 			if config.Category != "" {
 				category := jsBridge(config.Category, "text", s)
 				item.Category = category
-			}
-
-			if config.DescriptionHook.Action == define.ConfigHookReadLink {
-				rawLink := jsBridge(config.DescriptionHook.URL, "href", s)
-				link, err := fn.LinkResolveRelative(rawLink, config.URL)
-				if err == nil {
-					description := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
-					item.Description = description
-				}
 			}
 			if config.Description != "" {
 				description := jsBridge(config.Description, "text", s)
@@ -273,15 +253,6 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 				item.ID = prop
 			}
 
-			if config.ContentHook.Action == define.ConfigHookReadLink {
-				rawLink := jsBridge(config.ContentHook.URL, "href", s)
-				link, err := fn.LinkResolveRelative(rawLink, config.URL)
-				if err == nil {
-					content := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.ContentHook.Object, config.Charset, config.Expire, config.DisableCache)
-					item.Content = content
-				}
-			}
-
 			if item.Content == "" {
 				if config.Content != "" {
 					content := jsBridge(config.Content, "text", s)
@@ -289,6 +260,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 				}
 			}
 
+			selections = append(selections, s)
 			items = append(items, item)
 			return ctx.Err() == nil
 		})
@@ -296,6 +268,11 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	})
 	if err := ctx.Err(); err != nil {
 		return failure(err)
+	}
+	if result.Code == define.ERROR_CODE_NULL {
+		if detailFailure := fillDetails(ctx, config, result.Body, selections, options); detailFailure != nil {
+			return *detailFailure
+		}
 	}
 	return result
 }

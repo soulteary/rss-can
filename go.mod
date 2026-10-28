@@ -4,22 +4,20 @@ go 1.27.3
 
 require (
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
-	github.com/PuerkitoBio/goquery v1.13.0
-	github.com/andybalholm/cascadia v1.3.5
 	github.com/chromedp/cdproto v0.157.8
 	github.com/chromedp/chromedp v0.21.0
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/gorilla/feeds v1.2.0
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/soulteary/cache-kit/v2 v2.1.0
+	github.com/soulteary/cascadia v1.0.0
+	github.com/soulteary/goquery v1.14.0
 	github.com/soulteary/redis-kit v1.8.0
 	go.uber.org/zap v1.28.0
-	golang.org/x/net v0.61.0
+	golang.org/x/net v0.62.0
 	golang.org/x/text v0.43.0
 	rogchap.com/v8go v0.9.0
 )
-
-replace github.com/andybalholm/cascadia => github.com/soulteary/cascadia v1.0.0
 
 require (
 	github.com/JohannesKaufmann/dom v0.3.1 // indirect

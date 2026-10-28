@@ -19,7 +19,14 @@ func ValidateConfig(config define.JavaScriptConfig) error {
 		mode = define.DEFAULT_PARSE_MODE
 	}
 	switch mode {
-	case define.PARSE_MODE_SSR, define.PARSE_MODE_MIX:
+	case define.PARSE_MODE_SSR:
+		if strings.TrimSpace(config.ReadySelector) != "" {
+			return fmt.Errorf("ReadySelector is supported only for CSR/MIX parsing")
+		}
+		if err := parser.ValidateSSRConfig(config); err != nil {
+			return err
+		}
+	case define.PARSE_MODE_MIX:
 		if err := parser.ValidateSSRConfig(config); err != nil {
 			return err
 		}
@@ -56,6 +63,27 @@ func ValidateConfig(config define.JavaScriptConfig) error {
 			if _, err := cascadia.Compile(field.hook.Object); err != nil {
 				return fmt.Errorf("invalid %s Object selector: %w", field.name, err)
 			}
+		}
+	}
+	return validateFieldExpressions(config)
+}
+
+// Explicit selector expressions fail before browser/HTTP work rather than
+// becoming an empty field. Legacy unprefixed strings keep their existing DSL.
+func validateFieldExpressions(config define.JavaScriptConfig) error {
+	for _, field := range []struct{ name, value string }{
+		{"Title", config.Title}, {"Author", config.Author}, {"Category", config.Category}, {"DateTime", config.DateTime}, {"Description", config.Description}, {"Link", config.Link},
+		{"DateTimeHook.URL", config.DateTimeHook.URL}, {"CategoryHook.URL", config.CategoryHook.URL}, {"DescriptionHook.URL", config.DescriptionHook.URL}, {"ContentHook.URL", config.ContentHook.URL},
+	} {
+		expression := define.ParseFieldExpression(field.value)
+		if !expression.Explicit || !expression.Selector {
+			continue
+		}
+		if expression.Value == "" {
+			return fmt.Errorf("%s css: selector must not be empty", field.name)
+		}
+		if _, err := cascadia.Compile(expression.Value); err != nil {
+			return fmt.Errorf("invalid %s css: selector: %w", field.name, err)
 		}
 	}
 	return nil

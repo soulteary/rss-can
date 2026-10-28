@@ -387,7 +387,7 @@ func browserCacheKeyContext(ctx context.Context, config define.JavaScriptConfig,
 	encoded, _ := json.Marshal(config)
 	ruleHash := config.RuleSource.Hash()
 	sum := sha256.Sum256(append(encoded, ruleHash[:]...))
-	return fmt.Sprintf("browser:v4:%t:%x", useMixParser, sum)
+	return fmt.Sprintf("browser:v5:%t:%x", useMixParser, sum)
 }
 
 // Direct parser callers may supply only File. Capture it once, before cache
@@ -424,6 +424,9 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	if err := ctx.Err(); err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}
+	if err := ValidateReadySelector(config.ReadySelector); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
+	}
 	var err error
 	config, err = captureBrowserRuleContext(ctx, config)
 	if err != nil {
@@ -443,7 +446,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 		if useMixParser {
 			return ParseDataAndConfigBySSRContext(ctx, config, define.RemoteBodySanitized{}, data)
 		}
-		return parseCSRItems(data)
+		return processCSRItemsContext(ctx, config, data)
 	}
 	timeout := define.HEADLESS_EXCUTE_TIMEOUT
 	if config.Timeout > 0 {
@@ -508,7 +511,7 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 func fetchBrowserData(ctx context.Context, config define.JavaScriptConfig, container, proxyAddr string, useMixParser bool) (string, error) {
 	var data string
 	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
-		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(config.ListContainer))); err != nil {
+		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(browserReadySelector(config)))); err != nil {
 			return err
 		}
 		expression := "(" + jssdk.TPL_MIX_JS + ")()"
@@ -563,4 +566,14 @@ func ProxyPageByBrowserWithTimeout(ctx context.Context, url, container, proxyAdd
 		return err
 	})
 	return html, err
+}
+
+// browserReadySelector preserves delayed-content behavior by default. Rules can
+// instead name a loaded/empty-state marker (for example body) when a ready page
+// legitimately has no ListContainer matches.
+func browserReadySelector(config define.JavaScriptConfig) string {
+	if selector := strings.TrimSpace(config.ReadySelector); selector != "" {
+		return selector
+	}
+	return strings.TrimSpace(config.ListContainer)
 }

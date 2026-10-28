@@ -72,36 +72,51 @@ class POTTED {
     return scope.find($selector).attr("href").trim();
   }
 
+  // Rule fields carry selector/literal expressions; explicit custom helpers
+  // GetText/GetLink retain their historical selector-only contracts.
+  GetField($expression, $method, $parentSelector) {
+    let scope = this.scope;
+    if ($parentSelector != "") scope = $($parentSelector);
+    return RSSCanReadField($expression, $method, scope);
+  }
+
   // get data according to configuration
   GetData($config) {
-    if (this.scope.length == 0) return [];
+    if (this.scope.length == 0) { this.value = "[]"; return this; }
     if ($config) this.SetConfig($config);
-    if (this.isConfigured == false) return [];
+    if (this.isConfigured == false) { this.value = "[]"; return this; }
 
     if (this.scope.length > 1000) throw new Error("browser result exceeds item limit");
+    if (!RSSCanFieldExpression(this.config.Title).value.trim() || !RSSCanFieldExpression(this.config.Link).value.trim()) throw new Error("native CSR parser requires Title and Link expressions");
     let result = [];
     let self = this;
     this.scope.each((_, el) => {
       if (self.config.Title && self.config.Link) {
-        const title = self.GetText(self.config.Title, el);
+        const title = self.GetField(self.config.Title, "text", el);
         let author = "";
         if (self.config.Author) {
-          author = self.GetText(self.config.Author, el);
+          author = self.GetField(self.config.Author, "text", el);
         }
         let category = "";
         if (self.config.Category) {
-          category = self.GetText(self.config.Category, el);
+          category = self.GetField(self.config.Category, "text", el);
         }
         let date = "";
         if (self.config.DateTime) {
-          date = self.GetText(self.config.DateTime, el);
+          date = self.GetField(self.config.DateTime, "text", el);
         }
         let description = "";
         if (self.config.Description) {
-          description = self.GetText(self.config.Description, el);
+          description = self.GetField(self.config.Description, "text", el);
         }
-        const link = self.GetLink(self.config.Link, el);
-        result.push({ title, author, category, date, description, link });
+        const link = self.GetField(self.config.Link, "href", el);
+        const hooks = {};
+        for (const name of ["DateTime", "Category", "Description", "Content"]) {
+          if (name !== "Content" && self.config[name]) continue;
+          const hook = self.config[name + "Hook"];
+          if (hook && hook.action === "readlink") hooks[name] = self.GetField(hook.URL || "", "href", el);
+        }
+        result.push({ title, author, category, date, description, link, __rsscan_native: true, __rsscan_hooks: hooks });
       }
     });
     this.value = JSON.stringify(result);

@@ -79,6 +79,8 @@ type JavaScriptConfig struct {
 	Cookies      string     `json:"Cookies"`
 
 	ListContainer string `json:"ListContainer"`
+	// ReadySelector optionally separates browser page readiness from data scope.
+	ReadySelector string `json:"ReadySelector,omitempty"`
 	Title         string `json:"Title"`
 	Author        string `json:"Author"`
 	Link          string `json:"Link"`

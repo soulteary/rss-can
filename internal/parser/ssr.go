@@ -39,35 +39,29 @@ func ParsePagerByGoQuery(data define.RemoteBodySanitized, callback func(document
 }
 
 func jsBridge(field string, method string, s *goquery.Selection) string {
-	if field == "" {
-		value, exists := s.Attr(strings.TrimSpace(strings.ToLower(method)))
-		if exists {
-			return strings.TrimSpace(value)
-		}
+	expression := define.ParseFieldExpression(field)
+	action := strings.TrimSpace(strings.ToLower(method))
+	if !expression.Explicit && expression.Value == "" {
+		value, _ := s.Attr(action)
+		return strings.TrimSpace(value)
 	}
-
-	if fn.IsCssSelector(field) || fn.IsDomTagName(field) {
-		action := strings.TrimSpace(strings.ToLower(method))
-		switch action {
-		case "text":
-			return strings.TrimSpace(s.Find(field).Text())
-		case "html":
-			html, err := s.Find(field).Html()
-			if err != nil {
-				return ""
-			}
-			return html
-		case "href":
-			prop, exists := s.Find(field).Attr(action)
-			if !exists {
-				return ""
-			}
-			return strings.TrimSpace(prop)
-		}
+	if !expression.Selector {
+		return expression.Value
 	}
-
-	// if not a selector, fallback the original content
-	return field
+	if expression.Value == "" {
+		return ""
+	}
+	switch action {
+	case "text":
+		return strings.TrimSpace(s.Find(expression.Value).Text())
+	case "html":
+		value, _ := s.Find(expression.Value).Html()
+		return value
+	case "href":
+		value, _ := s.Find(expression.Value).First().Attr(action)
+		return strings.TrimSpace(value)
+	}
+	return ""
 }
 
 func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {

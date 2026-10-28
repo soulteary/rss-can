@@ -74,6 +74,7 @@ func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.J
 	config.DateTime = strings.TrimSpace(config.DateTime)
 	config.Description = strings.TrimSpace(config.Description)
 	config.Pager = strings.TrimSpace(config.Pager)
+	config.ReadySelector = strings.TrimSpace(config.ReadySelector)
 
 	config.DateTimeHook.Action = strings.TrimSpace(config.DateTimeHook.Action)
 	config.DateTimeHook.Object = strings.TrimSpace(config.DateTimeHook.Object)

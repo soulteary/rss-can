@@ -17,7 +17,10 @@ func ValidatePageConfig(config define.JavaScriptConfig) error {
 	if err != nil || target.Hostname() == "" || (!strings.EqualFold(target.Scheme, "http") && !strings.EqualFold(target.Scheme, "https")) {
 		return fmt.Errorf("URL must be an absolute HTTP(S) URL")
 	}
-	return validateScope(config.ListContainer)
+	if err := validateScope(config.ListContainer); err != nil {
+		return err
+	}
+	return ValidateReadySelector(config.ReadySelector)
 }
 
 func validateScope(scope string) error {
@@ -47,8 +50,22 @@ func validateSSRFields(config define.JavaScriptConfig) error {
 	return validateTitle(config.Title)
 }
 func validateTitle(title string) error {
-	if strings.TrimSpace(title) == "" {
+	if strings.TrimSpace(define.ParseFieldExpression(title).Value) == "" {
 		return fmt.Errorf("Title is required for SSR/MIX parsing")
+	}
+	return nil
+}
+
+// ValidateReadySelector checks the optional browser readiness expression. Empty
+// retains the historical wait for ListContainer; an explicit marker may become
+// ready even when the data scope contains no entries.
+func ValidateReadySelector(selector string) error {
+	selector = strings.TrimSpace(selector)
+	if selector == "" {
+		return nil
+	}
+	if _, err := cascadia.Compile(selector); err != nil {
+		return fmt.Errorf("invalid ReadySelector selector: %w", err)
 	}
 	return nil
 }

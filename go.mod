@@ -3,7 +3,6 @@ module github.com/soulteary/RSS-Can
 go 1.27.3
 
 require (
-	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
 	github.com/chromedp/cdproto v0.157.8
 	github.com/chromedp/chromedp v0.21.0
 	github.com/gofiber/fiber/v3 v3.6.1
@@ -12,6 +11,7 @@ require (
 	github.com/soulteary/cache-kit/v2 v2.1.0
 	github.com/soulteary/cascadia v1.0.0
 	github.com/soulteary/goquery v1.14.0
+	github.com/soulteary/html-to-markdown/v2 v2.0.0
 	github.com/soulteary/redis-kit v1.8.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.62.0
@@ -20,7 +20,6 @@ require (
 )
 
 require (
-	github.com/JohannesKaufmann/dom v0.3.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260213210345-44df1a37e875 // indirect
 	github.com/gofiber/schema v1.8.8 // indirect

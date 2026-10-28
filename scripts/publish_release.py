@@ -100,6 +100,7 @@ if __name__ == '__main__':
     parser.add_argument('--repo', required=True)
     parser.add_argument('--notes', required=True, type=pathlib.Path)
     parser.add_argument('--go-mod', type=pathlib.Path, default=pathlib.Path('go.mod'))
+    parser.add_argument('--cgo-enabled', choices=('0', '1'), default='0')
     args = parser.parse_args()
-    verify(args.directory, args.tag, args.source, go_version_from_mod(args.go_mod))
+    verify(args.directory, args.tag, args.source, go_version_from_mod(args.go_mod), args.cgo_enabled)
     publish(args.directory, args.tag, args.source, args.repo, args.notes)

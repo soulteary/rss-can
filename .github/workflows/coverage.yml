@@ -43,6 +43,11 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Deno runtime
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.8
+
       - name: Run coverage
         if: "!(github.event_name == 'pull_request')"
         run: go test ./... -coverprofile=coverage.out -covermode=atomic

@@ -5,10 +5,8 @@ project_name: RSS-Can
 builds:
   - id: linux-amd64
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
       - GO111MODULE=on
-      - CC=gcc
-      - CXX=g++
     ldflags:
       - -w -s
       - -X "github.com/soulteary/RSS-Can/internal/version.Version={{ .Tag }}"
@@ -21,10 +19,8 @@ builds:
 
   - id: linux-arm64
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
       - GO111MODULE=on
-      - CC=aarch64-linux-gnu-gcc
-      - CXX=aarch64-linux-gnu-g++
     ldflags:
       - -w -s
       - -X "github.com/soulteary/RSS-Can/internal/version.Version={{ .Tag }}"
@@ -43,6 +39,7 @@ archives:
       - README_CN.md
       - CREDITS.md
       - DEPENDENCIES.md
+      - docs/deno-prototype.md
       - CHANGELOG.md
       - docs/releases/*.md
       - third_party/licenses/*

@@ -107,3 +107,11 @@ be cached now that local `replace` directives are gone.
 - `govulncheck` reported zero reachable vulnerabilities and zero vulnerabilities in imported packages; the unused OpenPGP module-level advisory remains unchanged.
 - macOS ARM64 and AMD64 builds passed. Linux AMD64 also compiled successfully under QEMU and the resulting binary executed its help command.
 - The source-built Linux ARM64 Docker image built successfully; its health endpoint and dynamic rule list both returned HTTP 200.
+
+## Default JavaScript runtime switch
+
+Current source builds use Deno 2.9.8 as a single persistent worker. Docker and CI
+pin that version. Standalone installations must supply Deno on PATH or through
+RSS_CAN_DENO. Release Go binaries use CGO_ENABLED=0; v8go v0.9.0 is retained only
+for explicit `-tags v8go` builds and benchmark comparisons. Historical dependency
+notes above describe earlier releases. See docs/deno-prototype.md for setup.

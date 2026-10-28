@@ -20,14 +20,16 @@ and is not the normal release path.
 ## Publication gates
 
 GoReleaser v2.18.3 is fixed in `.github/workflows/build.yml`. Linux uses a pinned
-Ubuntu 24.04 runner with explicit AMD64 and ARM64 CGO compilers. macOS builds
+Ubuntu 24.04 runner with CGO_ENABLED=0 for AMD64 and ARM64. macOS builds
 both architectures. All executables are named `rssc`; their version, full source
 commit and build timestamp are injected at link time.
 
 GoReleaser only stages archives (`--skip=publish`). The three CI artifacts
 `release-linux`, `release-darwin-amd64`, and `release-darwin-arm64` contain four
 archives and three checksum files. Archives include rules, release notes,
-documentation and third-party license notices.
+documentation and third-party license notices. Standalone binaries require Deno
+2.9.8 on PATH (or RSS_CAN_DENO); Docker images include the pinned Deno binary.
+CI installs the same Deno version before running tests.
 
 The archive gate validates checksums, runtime files and all four binary identities
 before any image is pushed. Native AMD64 and ARM64 runners then build the source
@@ -63,11 +65,13 @@ in `.github/GO-REPORTS.md`.
 ## Post-release verification
 
 Download all assets into an otherwise empty directory and run the verifier from
-the current default branch against the immutable release source:
+the current default branch against the immutable release source. Historical v8go archives require
+`--cgo-enabled 1` (also supported by publish_release.py); completion automation
+reads this setting from the original source build configuration:
 
 ```sh
 git show v0.3.12:go.mod > /tmp/release.go.mod
-python3 scripts/verify_release_assets.py /tmp/release-assets v0.3.12 "$(git rev-parse v0.3.12^{commit})" --go-mod /tmp/release.go.mod
+python3 scripts/verify_release_assets.py /tmp/release-assets v0.3.12 "$(git rev-parse v0.3.12^{commit})" --go-mod /tmp/release.go.mod --cgo-enabled 1
 ```
 
 Confirm Docker Hub version tags contain `linux/amd64` and `linux/arm64`,

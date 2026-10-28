@@ -5,7 +5,7 @@ project_name: RSS Can (Darwin ARMv64)
 builds:
   - id: darwin-arm64
     env:
-      - CGO_ENABLED=1
+      - CGO_ENABLED=0
       - GO111MODULE=on
     ldflags:
         - -w -s
@@ -23,6 +23,7 @@ archives:
       - README_CN.md
       - CREDITS.md
       - DEPENDENCIES.md
+      - docs/deno-prototype.md
       - CHANGELOG.md
       - docs/releases/*.md
       - third_party/licenses/*

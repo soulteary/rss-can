@@ -24,8 +24,23 @@ func OpenDirectory(path string) (*Directory, error) {
 	}
 	return &Directory{file: file}, nil
 }
-func (d *Directory) Close() error                         { return d.file.Close() }
-func (d *Directory) ReadDir(n int) ([]os.DirEntry, error) { return d.file.ReadDir(n) }
+func (d *Directory) Close() error { return d.file.Close() }
+
+// ReadDir deliberately enumerates names, not os.DirEntry values. On filesystems
+// returning DT_UNKNOWN, os.File.ReadDir may resolve metadata using File.Name(),
+// which is not an anchored pathname for openat-created files.
+func (d *Directory) ReadDir(n int) ([]os.DirEntry, error) {
+	names, err := d.file.Readdirnames(n)
+	entries := make([]os.DirEntry, 0, len(names))
+	for _, name := range names {
+		entry, statErr := directoryEntry(d.file, name)
+		if statErr != nil {
+			return nil, statErr
+		}
+		entries = append(entries, entry)
+	}
+	return entries, err
+}
 func (d *Directory) OpenDirectory(name string) (*Directory, error) {
 	if !validChildName(name) {
 		return nil, fmt.Errorf("rule group must be one path component: %q", name)

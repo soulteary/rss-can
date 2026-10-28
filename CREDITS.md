@@ -7,7 +7,7 @@ source copies under `pkg/` are no longer used or maintained here.
 - [goquery](https://github.com/soulteary/goquery), forked from PuerkitoBio's goquery: HTML traversal for SSR parsing, v1.14.0, BSD-3-Clause.
 - [cascadia](https://github.com/soulteary/cascadia), forked from Andy Balholm's cascadia: application CSS selectors, v1.0.0, BSD-2-Clause.
 - [v8go](https://github.com/rogchap/v8go), by rogchap and contributors: JavaScript execution, v0.9.0, BSD-3-Clause.
-- [gorilla/feeds](https://github.com/gorilla/feeds), by the Gorilla Web Toolkit team: RSS, Atom and JSON Feed generation, v1.2.0, BSD-2-Clause.
+- [feeds](https://github.com/soulteary/feeds), forked from gorilla/feeds: RSS, Atom and JSON Feed generation, v1.3.0, BSD-2-Clause.
 - [Gin](https://github.com/gin-gonic/gin), by the Gin team: HTTP service, v1.12.0, MIT.
 - [gin-contrib/gzip](https://github.com/gin-contrib/gzip): response compression, v1.2.8, MIT.
 - [chromedp](https://github.com/chromedp/chromedp), by the chromedp team: Chrome DevTools Protocol automation, v0.21.0, MIT.

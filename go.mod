@@ -6,10 +6,10 @@ require (
 	github.com/chromedp/cdproto v0.157.8
 	github.com/chromedp/chromedp v0.21.0
 	github.com/gofiber/fiber/v3 v3.6.1
-	github.com/gorilla/feeds v1.2.0
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/soulteary/cache-kit/v2 v2.1.0
 	github.com/soulteary/cascadia v1.0.0
+	github.com/soulteary/feeds v1.3.0
 	github.com/soulteary/goquery v1.14.0
 	github.com/soulteary/html-to-markdown/v2 v2.0.0
 	github.com/soulteary/redis-kit v1.8.0

@@ -16,10 +16,17 @@ This upgrade replaces goquery v1.13.0 with the performance-focused
 `github.com/soulteary/cascadia` v1.0.0, Redis from v8.11.5 to
 `github.com/redis/go-redis/v9` v9.23.0, HTML conversion to the
 `github.com/soulteary/html-to-markdown/v2` v2.0.0 fork, and Sonic from v1.15.4
-to v1.15.5. Feeds v1.2.0 and cache2go commit `518229cd8021` are now the actual
+to v1.15.5. Feed generation uses the `github.com/soulteary/feeds` v1.3.0 fork,
+and cache2go commit `518229cd8021` is now the actual
 upstream implementations rather than older local copies bearing those version
 labels. Redis address/password/database environment variables and cache APIs
 retain their existing names.
+
+The feeds fork keeps the existing keyed-struct API but includes intentional wire
+format corrections. Atom honors an explicit feed ID and emits item `published`
+timestamps; RSS/Atom namespace serialization and author handling can therefore
+differ from gorilla/feeds v1.2.0. See `docs/feeds-performance.md` for the common-
+path performance comparison and compatibility limits.
 
 Application imports use the forks' module paths directly. The goquery fork uses
 the cascadia fork as its selector engine. The HTML-to-Markdown fork depends only

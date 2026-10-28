@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -21,9 +22,12 @@ func MixCodeStatus(code define.ErrorCode, desc string, detail any) (define.Error
 }
 
 func HttpGet(url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
-	// TODO Consider setting it with a timeout in config
+	return HttpGetContext(context.Background(), url, userAgent)
+}
+
+func HttpGetContext(ctx context.Context, url string, userAgent string) (code define.ErrorCode, status string, response *http.Response) {
 	client := &http.Client{Timeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT)}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		code, status = MixCodeStatus(define.ERROR_CODE_INIT_NETWORK_FAILED, define.ERROR_STATUS_INIT_NETWORK_FAILED, err)
 		return code, status, response
@@ -45,9 +49,19 @@ func HttpGet(url string, userAgent string) (code define.ErrorCode, status string
 }
 
 func GetRemoteDocument(url string, charset string, expire int, disableCache bool) define.RemoteBodySanitized {
+	return GetRemoteDocumentContext(context.Background(), url, charset, expire, disableCache)
+}
+
+// MaxDocumentBytes limits the decoded HTML retained for a single upstream page.
+const MaxDocumentBytes = 10 << 20
+
+func GetRemoteDocumentContext(ctx context.Context, url string, charset string, expire int, disableCache bool) define.RemoteBodySanitized {
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
+	if err := ctx.Err(); err != nil {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
+	}
 
 	defer func() { // log when error
 		if code != define.ERROR_CODE_NULL {
@@ -56,7 +70,7 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}()
 
 	if cacher.IsEnable() && !disableCache {
-		cache, found, err := cacher.GetWithStatus(context.Background(), url)
+		cache, found, err := cacher.GetWithStatus(ctx, url)
 		if err == nil && found {
 			logger.Instance.Debugln("Get remote document from cache", url)
 			return define.MixupRemoteBodySanitized(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, now, cache)
@@ -64,7 +78,7 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}
 
 	// todo change ua with config
-	code, status, res := HttpGet(url, define.USER_AGENT)
+	code, status, res := HttpGetContext(ctx, url, define.USER_AGENT)
 	if code != define.ERROR_CODE_NULL {
 		return define.MixupRemoteBodySanitized(code, status, now, "")
 	}
@@ -81,9 +95,15 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 	}
 
 	buffer := new(bytes.Buffer)
-	if _, err := buffer.ReadFrom(bodyParsed); err != nil {
+	if _, err := buffer.ReadFrom(io.LimitReader(bodyParsed, MaxDocumentBytes+1)); err != nil {
 		code, status = MixCodeStatus(define.ERROR_CODE_NETWORK, define.ERROR_STATUS_NETWORK, err)
 		return define.MixupRemoteBodySanitized(code, status, now, "")
+	}
+	if buffer.Len() > MaxDocumentBytes {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, "upstream document exceeds 10 MiB", now, "")
+	}
+	if err := ctx.Err(); err != nil {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
 	}
 
 	if cacher.IsEnable() && !disableCache {
@@ -91,7 +111,7 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 		if expire <= 0 {
 			ttl = fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)
 		}
-		err = cacher.SetWithTTL(context.Background(), url, buffer.String(), ttl)
+		err = cacher.SetWithTTL(ctx, url, buffer.String(), ttl)
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		}
@@ -100,7 +120,11 @@ func GetRemoteDocument(url string, charset string, expire int, disableCache bool
 }
 
 func GetRemoteDocumentAsMarkdown(url string, selector string, charset string, expire int, disableCache bool) string {
-	doc := GetRemoteDocument(url, charset, expire, disableCache)
+	return GetRemoteDocumentAsMarkdownContext(context.Background(), url, selector, charset, expire, disableCache)
+}
+
+func GetRemoteDocumentAsMarkdownContext(ctx context.Context, url string, selector string, charset string, expire int, disableCache bool) string {
+	doc := GetRemoteDocumentContext(ctx, url, charset, expire, disableCache)
 	if doc.Body == "" {
 		return ""
 	}

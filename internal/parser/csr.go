@@ -315,15 +315,22 @@ func browserCacheKey(config define.JavaScriptConfig, useMixParser bool) string {
 }
 
 func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
+	return ParsePageByBrowserContext(context.Background(), config, container, proxyAddr, useMixParser)
+}
+
+func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
+	if err := ctx.Err(); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+	}
 	key := browserCacheKey(config, useMixParser)
 	decode := func(data string) define.BodyParsed {
 		if useMixParser {
-			return ParseDataAndConfigBySSR(config, define.RemoteBodySanitized{}, data)
+			return ParseDataAndConfigBySSRContext(ctx, config, define.RemoteBodySanitized{}, data)
 		}
 		return parseCSRItems(data)
 	}
 	if cacher.IsEnable() && !config.DisableCache {
-		if cached, found, err := cacher.GetWithStatus(context.Background(), key); err == nil && found {
+		if cached, found, err := cacher.GetWithStatus(ctx, key); err == nil && found {
 			return decode(cached)
 		}
 	}
@@ -331,7 +338,7 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 	if config.Timeout > 0 {
 		timeout = config.Timeout
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), fn.ExpireBySecond(timeout))
+	ctx, cancel := context.WithTimeout(ctx, fn.ExpireBySecond(timeout))
 	defer cancel()
 	var data string
 	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
@@ -360,7 +367,7 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 		if expire <= 0 {
 			expire = define.IN_MEMORY_EXPIRATION
 		}
-		if err := cacher.SetWithTTL(context.Background(), key, data, fn.ExpireBySecond(expire)); err != nil {
+		if err := cacher.SetWithTTL(ctx, key, data, fn.ExpireBySecond(expire)); err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		}
 	}

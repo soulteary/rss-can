@@ -1,8 +1,9 @@
 package parser
 
 import (
+	"context"
 	"fmt"
-	"regexp"
+	"net/url"
 	"strings"
 	"time"
 
@@ -69,14 +70,18 @@ func jsBridge(field string, method string, s *goquery.Selection) string {
 }
 
 func GetDataAndConfigBySSR(config define.JavaScriptConfig) (result define.BodyParsed) {
-	doc := network.GetRemoteDocument(config.URL, config.Charset, config.Expire, config.DisableCache)
+	return GetDataAndConfigBySSRContext(context.Background(), config)
+}
+
+func GetDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig) (result define.BodyParsed) {
+	doc := network.GetRemoteDocumentContext(ctx, config.URL, config.Charset, config.Expire, config.DisableCache)
 	if doc.Code != define.ERROR_CODE_NULL {
 		return define.MixupBodyParsed(doc.Code, doc.Status, doc.Date, nil)
 	}
 	if doc.Body == "" {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, "empty upstream response", doc.Date, nil)
 	}
-	return ParseDataAndConfigBySSR(config, doc, "")
+	return ParseDataAndConfigBySSRContext(ctx, config, doc, "")
 }
 
 func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links []string) {
@@ -96,6 +101,23 @@ func GetPager(config define.JavaScriptConfig, document *goquery.Document) (links
 }
 
 func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
+	return ParseDataAndConfigBySSRContext(context.Background(), config, userDoc, userHtml)
+}
+
+func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScriptConfig, userDoc define.RemoteBodySanitized, userHtml string) (result define.BodyParsed) {
+	failure := func(err error) define.BodyParsed {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
+	}
+	if err := ctx.Err(); err != nil {
+		return failure(err)
+	}
+	idRegexp, err := config.CompileIDRegexp()
+	if err != nil {
+		return failure(err)
+	}
+	if config.PagerLimit < 0 {
+		return failure(fmt.Errorf("PagerLimit must not be negative"))
+	}
 	var doc define.RemoteBodySanitized
 	if userHtml != "" {
 		doc.Code = define.ERROR_CODE_NULL
@@ -115,38 +137,72 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 			return GetPager(config, document)
 		})
 
-		if len(pageLinks) > config.PagerLimit {
-			// check page link is in the task list
-			if fn.IsStrInArray(pageLinks, config.URL) {
-				pageLinks = pageLinks[:config.PagerLimit]
-			} else {
-				if config.PagerLimit > 2 {
-					pageLinks = pageLinks[:config.PagerLimit-1]
-				}
-			}
+		// PagerLimit is the total page budget, including the current page.
+		// An omitted/zero limit parses only the current page.
+		limit := config.PagerLimit
+		if limit == 0 {
+			limit = 1
 		}
+		firstConfig := config
+		firstConfig.Pager = ""
+		first := ParseDataAndConfigBySSRContext(ctx, firstConfig, doc, "")
+		if first.Code != define.ERROR_CODE_NULL {
+			return first
+		}
+		items = append(items, first.Body...)
+		canonical := func(link string) string {
+			u, err := url.Parse(link)
+			if err != nil {
+				return link
+			}
+			u.Fragment = ""
+			if u.Path == "" {
+				u.Path = "/"
+			}
+			return u.String()
+		}
+		seen := map[string]bool{canonical(config.URL): true}
+		pages := 1
 
 		for _, link := range pageLinks {
+			if pages >= limit {
+				break
+			}
+			key := canonical(link)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			pages++
+			if err := ctx.Err(); err != nil {
+				return failure(err)
+			}
 			newConfig := config
 			newConfig.URL = link
 			newConfig.Pager = ""
-			ret := GetDataAndConfigBySSR(newConfig)
+			ret := GetDataAndConfigBySSRContext(ctx, newConfig)
 			if ret.Code != define.ERROR_CODE_NULL {
 				return ret
 			}
 			items = append(items, ret.Body...)
+		}
+		if err := ctx.Err(); err != nil {
+			return failure(err)
 		}
 		code := define.ERROR_CODE_NULL
 		status := define.ERROR_STATUS_NULL
 		return define.MixupBodyParsed(code, status, time.Now(), items)
 	}
 
-	return ParsePageByGoQuery(doc, func(document *goquery.Document) (items []define.InfoItem) {
-		document.Find(config.ListContainer).Each(func(i int, s *goquery.Selection) {
+	result = ParsePageByGoQuery(doc, func(document *goquery.Document) (items []define.InfoItem) {
+		document.Find(config.ListContainer).EachWithBreak(func(i int, s *goquery.Selection) bool {
+			if ctx.Err() != nil {
+				return false
+			}
 			var item define.InfoItem
 			// title must exist in the config
 			if config.Title == "" {
-				return
+				return true
 			}
 
 			// TODO bind all hook action
@@ -162,7 +218,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				rawLink := jsBridge(config.DateTimeHook.URL, "href", s)
 				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
-					time := network.GetRemoteDocumentAsMarkdown(link, config.DateTimeHook.Object, config.Charset, config.Expire, config.DisableCache)
+					time := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.DateTimeHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Date = time
 				}
 			}
@@ -175,7 +231,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				rawLink := jsBridge(config.CategoryHook.URL, "href", s)
 				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
-					category := network.GetRemoteDocumentAsMarkdown(link, config.CategoryHook.Object, config.Charset, config.Expire, config.DisableCache)
+					category := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.CategoryHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Category = category
 				}
 			}
@@ -188,7 +244,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				rawLink := jsBridge(config.DescriptionHook.URL, "href", s)
 				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
-					description := network.GetRemoteDocumentAsMarkdown(link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
+					description := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.DescriptionHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Description = description
 				}
 			}
@@ -204,11 +260,10 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 					item.Link = link
 				}
 
-				if config.IdByRegexp != "" {
-					re := regexp.MustCompile(config.IdByRegexp)
-					match := re.FindAllStringSubmatch(rawLink, -1)
-					if len(match) == 1 {
-						item.ID = match[0][1]
+				if idRegexp != nil {
+					match := idRegexp.FindStringSubmatch(rawLink)
+					if len(match) > 1 {
+						item.ID = match[1]
 					}
 				}
 			}
@@ -222,7 +277,7 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 				rawLink := jsBridge(config.ContentHook.URL, "href", s)
 				link, err := fn.LinkResolveRelative(rawLink, config.URL)
 				if err == nil {
-					content := network.GetRemoteDocumentAsMarkdown(link, config.ContentHook.Object, config.Charset, config.Expire, config.DisableCache)
+					content := network.GetRemoteDocumentAsMarkdownContext(ctx, link, config.ContentHook.Object, config.Charset, config.Expire, config.DisableCache)
 					item.Content = content
 				}
 			}
@@ -235,9 +290,14 @@ func ParseDataAndConfigBySSR(config define.JavaScriptConfig, userDoc define.Remo
 			}
 
 			items = append(items, item)
+			return ctx.Err() == nil
 		})
 		return items
 	})
+	if err := ctx.Err(); err != nil {
+		return failure(err)
+	}
+	return result
 }
 
 func ParseFullPageByGoQuery(html string, callback func(document *goquery.Document) string) (result string) {

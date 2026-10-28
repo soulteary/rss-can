@@ -2,9 +2,11 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,5 +67,40 @@ func TestInspectorTransportBlocksDNSAndRedirectDestinations(t *testing.T) {
 	// A redirect/subresource request to a private IP uses the same pinned transport.
 	if _, err := client.Get("http://127.0.0.1:80"); err == nil {
 		t.Fatal("private redirect destination allowed")
+	}
+}
+
+func TestDocumentBodyHonorsContextDeadline(t *testing.T) {
+	logger.Initialize()
+	canceled := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.(http.Flusher).Flush()
+		<-r.Context().Done()
+		close(canceled)
+	}))
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	got := GetRemoteDocumentContext(ctx, server.URL, "utf-8", 1, true)
+	if got.Code == define.ERROR_CODE_NULL || got.Body != "" || ctx.Err() != context.DeadlineExceeded {
+		t.Fatalf("deadline lost: %#v", got)
+	}
+	select {
+	case <-canceled:
+	case <-time.After(time.Second):
+		t.Fatal("body request not canceled")
+	}
+}
+
+func TestOversizedDocumentRejected(t *testing.T) {
+	logger.Initialize()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, strings.Repeat("x", MaxDocumentBytes+1))
+	}))
+	defer server.Close()
+	got := GetRemoteDocument(server.URL, "utf-8", 1, true)
+	if got.Code == define.ERROR_CODE_NULL || got.Body != "" || !strings.Contains(got.Status, "10 MiB") {
+		t.Fatalf("oversized document accepted: code=%v status=%q size=%d", got.Code, got.Status, len(got.Body))
 	}
 }

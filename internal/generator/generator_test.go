@@ -1,8 +1,10 @@
 package generator
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"strings"
 	"testing"
 
@@ -16,7 +18,10 @@ func TestUpstreamFeedsPreserveEntries(t *testing.T) {
 	data := define.BodyParsed{Body: []define.InfoItem{{ID: "entry-1", Title: "标题 & text", Link: "https://example.org/post", Author: "Author", Description: "Summary", Content: "Article content"}}}
 	for _, format := range []string{define.FEED_TYPE_RSS, define.FEED_TYPE_ATOM} {
 		t.Run(format, func(t *testing.T) {
-			output := GenerateFeedsByType(config, data, format)
+			output, err := GenerateFeedsByType(config, data, format)
+			if err != nil {
+				t.Fatal(err)
+			}
 			var document struct{ XMLName xml.Name }
 			if err := xml.Unmarshal([]byte(output), &document); err != nil {
 				t.Fatalf("invalid XML: %v\n%s", err, output)
@@ -28,7 +33,10 @@ func TestUpstreamFeedsPreserveEntries(t *testing.T) {
 			}
 		})
 	}
-	output := GenerateFeedsByType(config, data, define.FEED_TYPE_JSON)
+	output, err := GenerateFeedsByType(config, data, define.FEED_TYPE_JSON)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var feed struct {
 		Version string `json:"version"`
 		Title   string `json:"title"`
@@ -56,8 +64,21 @@ func TestUpstreamFeedsPreserveEntries(t *testing.T) {
 func TestUpstreamFeedsHandleMissingLinks(t *testing.T) {
 	logger.Initialize()
 	for _, format := range []string{define.FEED_TYPE_RSS, define.FEED_TYPE_ATOM, define.FEED_TYPE_JSON} {
-		if output := GenerateFeedsByType(define.JavaScriptConfig{Name: "Empty"}, define.BodyParsed{}, format); output == "" {
+		if output, err := GenerateFeedsByType(define.JavaScriptConfig{Name: "Empty"}, define.BodyParsed{}, format); err != nil || output == "" {
 			t.Errorf("empty %s feed could not be serialized", format)
+		}
+	}
+}
+
+func TestGeneratorReturnsErrors(t *testing.T) {
+	if output, err := GenerateFeedsByType(define.JavaScriptConfig{}, define.BodyParsed{}, "invalid"); err == nil || output != "" {
+		t.Fatalf("invalid format: %q, %v", output, err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	for _, format := range []string{define.FEED_TYPE_RSS, define.FEED_TYPE_ATOM, define.FEED_TYPE_JSON} {
+		if output, err := GenerateFeedsByTypeContext(ctx, define.JavaScriptConfig{}, define.BodyParsed{}, format); !errors.Is(err, context.Canceled) || output != "" {
+			t.Fatalf("canceled %s feed: %q, %v", format, output, err)
 		}
 	}
 }

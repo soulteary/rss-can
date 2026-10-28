@@ -281,3 +281,20 @@ func TestBrowserDiscoveryPreservesConfiguredRemoteHost(t *testing.T) {
 		}
 	}
 }
+
+func TestBrowserQueueHonorsFeedContext(t *testing.T) {
+	for range cap(browserSlots) {
+		browserSlots <- struct{}{}
+	}
+	defer func() {
+		for range cap(browserSlots) {
+			<-browserSlots
+		}
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Millisecond)
+	defer cancel()
+	got := ParsePageByBrowserContext(ctx, define.JavaScriptConfig{URL: "https://example.org", DisableCache: true, Timeout: 10}, "unreachable", "", false)
+	if ctx.Err() != context.DeadlineExceeded || got.Code == define.ERROR_CODE_NULL {
+		t.Fatalf("feed queue timeout lost: %#v", got)
+	}
+}

@@ -78,8 +78,9 @@ func InitializeRedis(enabled bool) *redis.Client {
 		PoolSize: 100,
 		// Keep pipelines inside the configured connection budget, matching
 		// clients constructed by redis-kit.
-		PipelinePoolSize: -1,
-		MaxRetries:       3,
+		PipelinePoolSize:      -1,
+		MaxRetries:            3,
+		ContextTimeoutEnabled: true,
 	})
 }
 

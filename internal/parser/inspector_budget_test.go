@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -335,5 +336,28 @@ func TestInspectorFinalAcceptanceJoinsOverloadCallback(t *testing.T) {
 	case <-finished:
 	case <-time.After(time.Second):
 		t.Fatal("overload cleanup was not joined")
+	}
+}
+
+func TestInspectorGzipWireExhaustionRecordsPageFailure(t *testing.T) {
+	value := make([]byte, InspectorResourceBytes)
+	_, _ = rand.New(rand.NewSource(42)).Read(value)
+	compressed := compressedInspectorBody(t, string(value))
+	if len(compressed) <= InspectorResourceBytes {
+		t.Fatal("fixture must exceed wire budget")
+	}
+	response, body := inspectorResponse(bytes.NewReader(compressed), -1, "gzip")
+	budget := newInspectorBudget()
+	_, err := readInspectorResponse(t.Context(), response, budget)
+	if !errors.Is(err, errInspectorResourceBudget) || !errors.Is(budget.Err(), errInspectorResourceBudget) {
+		t.Fatalf("wire exhaustion must fail page: read=%v budget=%v", err, budget.Err())
+	}
+	if body.reads.Load() > InspectorResourceBytes+1 || body.closes.Load() != 1 {
+		t.Fatalf("read=%d close=%d", body.reads.Load(), body.closes.Load())
+	}
+	malformed, _ := inspectorResponse(strings.NewReader("invalid gzip"), -1, "gzip")
+	validBudget := newInspectorBudget()
+	if _, err := readInspectorResponse(t.Context(), malformed, validBudget); err == nil || validBudget.Err() != nil {
+		t.Fatalf("ordinary gzip error must stay distinct: %v %v", err, validBudget.Err())
 	}
 }

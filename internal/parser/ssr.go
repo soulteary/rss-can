@@ -356,16 +356,27 @@ func validPageBase(raw string) bool {
 // Tokenization avoids building an additional full DOM just to find its base.
 func documentBaseFromHTML(finalURL, body string) string {
 	tokenizer := html.NewTokenizer(strings.NewReader(body))
+	templateDepth := 0
 	for {
 		tokenType := tokenizer.Next()
 		if tokenType == html.ErrorToken {
 			return finalURL
 		}
+		if tokenType == html.EndTagToken {
+			if tokenizer.Token().Data == "template" && templateDepth > 0 {
+				templateDepth--
+			}
+			continue
+		}
 		if tokenType != html.StartTagToken && tokenType != html.SelfClosingTagToken {
 			continue
 		}
 		token := tokenizer.Token()
-		if token.Data != "base" {
+		if token.Data == "template" {
+			templateDepth++
+			continue
+		}
+		if templateDepth > 0 || token.Data != "base" {
 			continue
 		}
 		for _, attribute := range token.Attr {

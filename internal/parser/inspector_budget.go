@@ -165,6 +165,11 @@ func readInspectorResponse(ctx context.Context, response *http.Response, budget 
 		return nil, fmt.Errorf("unsupported inspector Content-Encoding %q", encoding)
 	}
 	body, err := io.ReadAll(io.LimitReader(inspectorReader{ctx, reader, budget}, InspectorResourceBytes+1))
+	// A decoder can report unexpected EOF when the wire limiter truncates it.
+	// Classify exhaustion first so the page cannot accept a partial capture.
+	if wire.N == 0 {
+		return nil, fmt.Errorf("%w: compressed response", errInspectorResourceBudget)
+	}
 	if err != nil {
 		return nil, err
 	}

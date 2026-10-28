@@ -53,21 +53,27 @@ jobs:
         run: |
           set -euo pipefail
           chrome_bin="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
-          profile="$RUNNER_TEMP/rss-can-chrome"
-          "$chrome_bin" --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check --remote-debugging-port=0 --user-data-dir="$profile" about:blank > "$RUNNER_TEMP/rss-can-chrome.log" 2>&1 &
+          profile="$(mktemp -d "$RUNNER_TEMP/rss-can-chrome.XXXXXX")"
+          chrome_log="$RUNNER_TEMP/rss-can-chrome.log"
+          trap 'cat "$chrome_log"; kill "${chrome_pid:-}" 2>/dev/null || true' ERR
+          "$chrome_bin" --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check --remote-debugging-port=0 --user-data-dir="$profile" about:blank > "$chrome_log" 2>&1 &
           chrome_pid=$!
           echo "RSS_TEST_CHROME_PID=$chrome_pid" >> "$GITHUB_ENV"
-          for attempt in $(seq 1 100); do
-            if test -f "$profile/DevToolsActivePort"; then
+          for attempt in $(seq 1 600); do
+            if test -s "$profile/DevToolsActivePort"; then
               port="$(head -n 1 "$profile/DevToolsActivePort")"
-              echo "RSS_TEST_BROWSER_URL=http://127.0.0.1:$port" >> "$GITHUB_ENV"
-              echo "RSS_TEST_BROWSER_REQUIRED=1" >> "$GITHUB_ENV"
-              exit 0
+              if [[ "$port" =~ ^[0-9]+$ ]] && curl --noproxy '*' --fail --silent --max-time 1 "http://127.0.0.1:$port/json/version" > "$RUNNER_TEMP/rss-can-chrome-version.json"; then
+                echo "RSS_TEST_BROWSER_URL=http://127.0.0.1:$port" >> "$GITHUB_ENV"
+                echo "RSS_TEST_BROWSER_REQUIRED=1" >> "$GITHUB_ENV"
+                exit 0
+              fi
             fi
             kill -0 "$chrome_pid"
             sleep 0.1
           done
-          cat "$RUNNER_TEMP/rss-can-chrome.log"
+          echo "Chrome DevTools endpoint was not ready within the startup window" >&2
+          cat "$chrome_log"
+          kill "$chrome_pid" 2>/dev/null || true
           exit 1
 
       - name: Run coverage

@@ -126,3 +126,17 @@ func TestSSRDistinctBaseRootPagerIsFetchedOnce(t *testing.T) {
 		}
 	}
 }
+
+func TestDocumentBaseIgnoresTemplateContents(t *testing.T) {
+	final := "https://target.example/news/"
+	for _, tc := range []struct{ body, want string }{
+		{`<template><base href="https://wrong.example/"></template>`, final},
+		{`<template><template><base href="https://wrong.example/"></template><base href="https://wrong.example/"></template><base href="../articles/">`, "https://target.example/articles/"},
+		{`<template/><base href="https://wrong.example/"></template><base href="../articles/">`, "https://target.example/articles/"},
+		{`<template><base href="https://wrong.example/">`, final},
+	} {
+		if got := documentBaseFromHTML(final, tc.body); got != tc.want {
+			t.Errorf("%s: got %s want %s", tc.body, got, tc.want)
+		}
+	}
+}

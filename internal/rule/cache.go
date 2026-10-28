@@ -1,6 +1,8 @@
 package rule
 
 import (
+	"context"
+	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
@@ -8,6 +10,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/rulefile"
 )
 
 var rulesMu sync.RWMutex
@@ -33,7 +36,11 @@ func Snapshot() map[string]define.RuleCache {
 	return result
 }
 
-func makeMap(list []string) map[string]define.RuleCache {
+func makeMap(list []string) (map[string]define.RuleCache, error) {
+	if len(list) > rulefile.MaxFiles {
+		return nil, fmt.Errorf("rule count exceeds maximum %d", rulefile.MaxFiles)
+	}
+	total := 0
 	result := make(map[string]define.RuleCache)
 	for _, file := range list {
 		id := filepath.Base(filepath.Dir(file))
@@ -41,17 +48,25 @@ func makeMap(list []string) map[string]define.RuleCache {
 			logger.Instance.Warnf("Ignoring duplicate rule ID %s: %s", id, file)
 			continue
 		}
-		body := fn.GetFileContent(file)
-		if body == nil {
-			continue
+		body, err := rulefile.Read(context.Background(), file)
+		if err != nil {
+			return nil, err
+		}
+		total += len(body)
+		if total > rulefile.MaxTotalBytes {
+			return nil, fmt.Errorf("rule bytes exceed maximum %d", rulefile.MaxTotalBytes)
 		}
 		result[id] = define.RuleCache{Body: body, Time: time.Now(), Sign: fn.GetFileSHA1(body), File: file}
 	}
-	return result
+	return result, nil
 }
 
 func InitRules() {
-	newCache := makeMap(LoadRules(define.RULES_DIRECTORY))
+	newCache, err := makeMap(LoadRules(define.RULES_DIRECTORY))
+	if err != nil {
+		logger.Instance.Errorf("Unable to load rules: %v", err)
+		return
+	}
 	rulesMu.Lock()
 	rulesCache = newCache
 	configurations.clear()

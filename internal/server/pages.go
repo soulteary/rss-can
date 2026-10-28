@@ -4,16 +4,21 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"errors"
 	"fmt"
+	"html"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/parser"
@@ -46,6 +51,8 @@ type pageView struct {
 	options   Options
 	snapshot  func() map[string]define.RuleCache
 	configure func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
+	metadata  func() map[string]rule.Metadata
+	admission *listAdmission
 }
 
 func defaultPageView() pageView {
@@ -82,71 +89,148 @@ func (v pageView) welcomePage() fiber.Handler {
 	}
 }
 
+// Legacy callers retain their byte-only helper; production handlers use the
+// error-returning renderer and validated metadata instead of executing rules.
 func (v pageView) updateListPage(ctx context.Context, content []byte) []byte {
-	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
-	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
-
-	baseLink := v.options.FeedPath
-
-	// TODO Pre-execute configuration for caching
-
-	id := 1
-	tpl := ""
-
-	filePathFix := strings.Replace(v.options.RuleDirectory, "./", "", -1) + "/"
-
-	rules := v.snapshot()
-	rulesOrdered := []string{}
-	for dirName := range rules {
-		rulesOrdered = append(rulesOrdered, dirName)
-	}
-	slices.Sort(rulesOrdered)
-
-	for _, dirName := range rulesOrdered {
-		RuleFile, exist := rules[dirName]
-		if !exist {
-			continue
-		}
-
-		config, err := v.configure(ctx, RuleFile)
-		if err != nil {
-			logger.Instance.Errorf("Parsing rule file failed: %v", err)
-			continue
-		}
-
-		rssLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">RSS</span></a>`, baseLink+`/`+dirName+`/rss`)
-		atomLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">ATOM</span></a>`, baseLink+`/`+dirName+`/atom`)
-		jsonLink := fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">JSON</span></a>`, baseLink+`/`+dirName+`/json`)
-		tpl = tpl + fmt.Sprintf(`
-<th>%d</th>
-<td>%s</td>
-<td>%s</td>
-<td><span class="badge badge-sm badge-outline badge-success">%s</span></td>
-<td>%s</td>
-<td>%s</td>
-<td>%s</td>
-</tr>`, id, config.Name, strings.Replace(RuleFile.File, filePathFix, "", -1), RuleFile.Sign[0:6], rssLink, atomLink, jsonLink)
-		id++
-	}
-	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(tpl))
-
+	body, _ := v.renderListPage(ctx, content)
 	return body
 }
 
-func (v pageView) listPage() fiber.Handler {
+func (v pageView) renderListPage(ctx context.Context, content []byte) ([]byte, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	entries := map[string]rule.Metadata{}
+	if v.metadata != nil {
+		entries = v.metadata()
+	} else {
+		// Standalone compatibility path. Production always injects metadata from
+		// the repository's last successfully validated transaction.
+		for id, snapshot := range v.snapshot() {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			config, err := v.configure(ctx, snapshot)
+			if err != nil {
+				if canceled := ctx.Err(); canceled != nil {
+					return nil, canceled
+				}
+				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+					return nil, err
+				}
+				logger.Instance.Errorf("Parsing rule file failed: %v", err)
+				continue
+			}
+			entries[id] = rule.Metadata{Name: config.Name, File: snapshot.File, Sign: snapshot.Sign}
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	ordered := make([]string, 0, len(entries))
+	for id := range entries {
+		ordered = append(ordered, id)
+	}
+	slices.Sort(ordered)
+	var rows strings.Builder
+	for i, id := range ordered {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		entry := entries[id]
+		filePrefix := strings.TrimPrefix(v.options.RuleDirectory, "./") + "/"
+		sign := entry.Sign[:min(6, len(entry.Sign))]
+		base := strings.TrimRight(v.options.FeedPath, "/") + "/" + url.PathEscape(id)
+		links := make([]string, 0, 3)
+		for _, format := range []string{"rss", "atom", "json"} {
+			links = append(links, fmt.Sprintf(`<a target="_blank" href="%s"><span class="badge badge-sm badge-outline badge-warning">%s</span></a>`, html.EscapeString(base+"/"+format), strings.ToUpper(format)))
+		}
+		row := fmt.Sprintf("<tr><th>%d</th><td>%s</td><td>%s</td><td><span class=\"badge badge-sm badge-outline badge-success\">%s</span></td><td>%s</td><td>%s</td><td>%s</td></tr>", i+1, html.EscapeString(entry.Name), html.EscapeString(strings.TrimPrefix(entry.File, filePrefix)), html.EscapeString(sign), links[0], links[1], links[2])
+		if len(row) > limits.MaxFeedBytes-rows.Len() {
+			return nil, errors.New("rule list exceeds output size limit")
+		}
+		rows.WriteString(row)
+	}
+	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_FEED_LIST%}`), []byte(rows.String()))
+	if len(body) > limits.MaxFeedBytes {
+		return nil, errors.New("rule list exceeds output size limit")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return body, nil
+}
 
+const ListConcurrency = 2
+const ListQueueLimit = 8
+
+var errListOverloaded = errors.New("rule list queue is full")
+
+type listAdmission struct{ admitted, active chan struct{} }
+
+func newListAdmission() *listAdmission {
+	return &listAdmission{make(chan struct{}, ListConcurrency+ListQueueLimit), make(chan struct{}, ListConcurrency)}
+}
+func (a *listAdmission) acquire(ctx context.Context) (func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	select {
+	case a.admitted <- struct{}{}:
+	default:
+		return nil, errListOverloaded
+	}
+	select {
+	case a.active <- struct{}{}:
+		if err := ctx.Err(); err != nil {
+			<-a.active
+			<-a.admitted
+			return nil, err
+		}
+		var once sync.Once
+		return func() { once.Do(func() { <-a.active; <-a.admitted }) }, nil
+	case <-ctx.Done():
+		<-a.admitted
+		return nil, ctx.Err()
+	}
+}
+
+func (v pageView) listPage() fiber.Handler {
+	admission := v.admission
+	if admission == nil {
+		admission = newListAdmission()
+	}
 	return func(c fiber.Ctx) error {
-		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+		ctx, cancel := context.WithTimeout(c.Context(), v.options.Timeout)
+		defer cancel()
+		release, err := admission.acquire(ctx)
+		if err != nil {
+			if errors.Is(err, errListOverloaded) {
+				return c.Status(http.StatusServiceUnavailable).JSON(fiber.Map{"msg": "rule list queue is full"})
+			}
+			return c.Status(http.StatusGatewayTimeout).JSON(fiber.Map{"msg": "rule list generation timed out"})
+		}
+		defer release()
+		content := GetPageByName("list.html")
 		if v.options.Debug {
-			file := fn.GetFileContent("internal/server/templates/list.html")
-			if file != nil {
-				return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), file))
+			if file := fn.GetFileContent("internal/server/templates/list.html"); file != nil {
+				content = file
 			} else {
 				logger.Instance.Warnf("rendering template list failed")
-				return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), GetPageByName("list.html")))
 			}
 		}
-		return c.Status(http.StatusOK).Send(v.updateListPage(c.Context(), GetPageByName("list.html")))
+		body, err := v.renderListPage(ctx, content)
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return c.Status(http.StatusGatewayTimeout).JSON(fiber.Map{"msg": "rule list generation timed out"})
+			}
+			logger.Instance.Errorf("Rendering rule list failed: %v", err)
+			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "rule list generation failed"})
+		}
+		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+		return c.Status(http.StatusOK).Send(body)
 	}
 }
 

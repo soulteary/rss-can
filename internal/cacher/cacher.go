@@ -77,8 +77,37 @@ func FallbackToMemorySet(key string, value string) error {
 }
 
 func Del(key string) error {
+	return DeleteWithContext(context.Background(), key)
+}
+
+// DeleteWithContext invalidates only the cache selected by the caller's scope.
+func DeleteWithContext(ctx context.Context, key string) error {
+	if cache := scopedCache(ctx); cache != nil {
+		return cache.service.Delete(ctx, key)
+	}
 	Initialize()
-	return instanceService.Delete(context.Background(), key)
+	return instanceService.Delete(ctx, key)
+}
+
+// GetWithinLimit treats oversized values as invalid cache entries. Deletion is
+// best effort because a failed cache must not stop a fresh bounded fetch. The
+// backend may allocate the value while reading; this bounds what reaches parsers.
+func GetWithinLimit(ctx context.Context, key string, maxBytes int) (string, bool, error) {
+	value, found, err := GetWithStatus(ctx, key)
+	if canceled := ctx.Err(); canceled != nil {
+		return "", false, canceled
+	}
+	if err != nil || !found {
+		return "", false, err
+	}
+	if len(value) <= maxBytes {
+		return value, true, nil
+	}
+	_ = DeleteWithContext(ctx, key)
+	if canceled := ctx.Err(); canceled != nil {
+		return "", false, canceled
+	}
+	return "", false, nil
 }
 
 func FallbackToMemoryDel(key string) error {

@@ -142,7 +142,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 		},
 	})
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
-		Feeds: app.feeds, Snapshot: app.rules.Snapshot, Configure: app.rules.Configure,
+		Feeds: app.feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
 	})
 	return app, nil

@@ -34,7 +34,7 @@ go test -race ./internal/coalesce ./internal/telemetry ./internal/define ./inter
 - 95%: cmd, coalesce, define, fn, limits, logger, telemetry, workscope.
 - 90%: rule.
 - 85%: application, generator.
-- 80%: cacher, feedservice, jssdk.
+- 80%: cacher, feedservice, jssdk, rulefile.
 - 75%: network, server.
 - 70%: parser.
 
@@ -97,3 +97,11 @@ cover transactional rollback, empty-set rejection and concurrent publication.
 Capacity tests verify LRU byte accounting and oversize rejection. The required
 Chrome suite checks ASCII and multi-byte oversized extraction before transfer;
 shared browser tests check independent cancellation and final-waiter cleanup.
+
+List boundary regressions verify that production listing works with a closed JS
+runtime, uses published metadata after a failed reload, stops on cancellation,
+and enforces its admission/output limits. Rule-file tests reject FIFO and
+symlink inputs without blocking, cover per-file/count/total-size limits and
+metadata rollback, and check descriptor-anchored reads. Cache boundary tests
+seed oversized entries, verify scoped invalidation/refetch, accept the exact
+size boundary, and ensure cancellation does not start another HTTP/browser task.

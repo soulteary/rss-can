@@ -3,6 +3,7 @@ package rule
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,9 +12,14 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
+	"github.com/soulteary/RSS-Can/internal/rulefile"
 )
 
 // ConfigEvaluator evaluates a captured script without reading the filesystem.
+const MaxMetadataNameBytes = 4096
+
+type Metadata struct{ Name, File, Sign string }
+
 type ConfigEvaluator func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
 
 // Repository publishes complete validated snapshots. A failed reload never
@@ -23,6 +29,7 @@ type Repository struct {
 	reloadMu       chan struct{}
 	mu             sync.RWMutex
 	rules          map[string]define.RuleCache
+	metadata       map[string]Metadata
 	configurations configStore
 	evaluate       ConfigEvaluator
 	cacheTTL       time.Duration
@@ -65,6 +72,18 @@ func (r *Repository) Snapshot() map[string]define.RuleCache {
 	}
 	return result
 }
+
+// SnapshotMetadata exposes display-only values captured during successful
+// validation. It never evaluates JavaScript or copies rule source bytes.
+func (r *Repository) SnapshotMetadata() map[string]Metadata {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	result := make(map[string]Metadata, len(r.metadata))
+	for id, item := range r.metadata {
+		result[id] = item
+	}
+	return result
+}
 func (r *Repository) Configure(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
 	return r.configurations.load(ctx, snapshot, r.cacheTTL, r.evaluate, r.timeout)
 }
@@ -79,7 +98,7 @@ func (r *Repository) Reload(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	candidate, err := loadCandidate(ctx, r.directory, r.evaluate)
+	candidate, metadata, err := loadCandidate(ctx, r.directory, r.evaluate)
 	if err != nil {
 		return err
 	}
@@ -89,67 +108,127 @@ func (r *Repository) Reload(ctx context.Context) error {
 		return err
 	}
 	r.rules = candidate
+	r.metadata = metadata
 	r.configurations.clear()
 	return nil
 }
 
-// readRuleFiles propagates every filesystem error. Unlike the historical scan
-// helper, a missing directory cannot be mistaken for an intentionally empty one.
-func readRuleFiles(ctx context.Context, directory string) ([]string, error) {
-	entries, err := os.ReadDir(directory)
-	if err != nil {
-		return nil, fmt.Errorf("scan rule directory: %w", err)
-	}
+// scanRuleFiles reads bounded batches and rejects symbolic-link groups and
+// non-regular .js entries rather than silently omitting part of a candidate.
+func scanRuleFiles(ctx context.Context, root *rulefile.Directory) ([]string, error) {
 	var files []string
-	for _, entry := range entries {
-		if err := ctx.Err(); err != nil {
-			return nil, err
+	groups := 0
+	for {
+		entries, err := root.ReadDir(64)
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("scan rule directory: %w", err)
 		}
-		if !entry.IsDir() {
-			continue
-		}
-		subdir := filepath.Join(directory, entry.Name())
-		children, err := os.ReadDir(subdir)
-		if err != nil {
-			return nil, fmt.Errorf("scan rule group %s: %w", entry.Name(), err)
-		}
-		for _, child := range children {
-			if child.IsDir() || !strings.EqualFold(filepath.Ext(child.Name()), ".js") {
+		for _, entry := range entries {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			if entry.Type()&os.ModeSymlink != 0 {
+				return nil, fmt.Errorf("rule group must not be a symbolic link: %s", entry.Name())
+			}
+			if !entry.IsDir() {
 				continue
 			}
-			files = append(files, filepath.Join(subdir, child.Name()))
+			groups++
+			if groups > rulefile.MaxFiles {
+				return nil, fmt.Errorf("rule groups exceed maximum %d", rulefile.MaxFiles)
+			}
+			group, err := root.OpenDirectory(entry.Name())
+			if err != nil {
+				return nil, fmt.Errorf("open rule group %s: %w", entry.Name(), err)
+			}
+			children, err := scanRuleGroup(ctx, group, entry.Name(), rulefile.MaxFiles-len(files))
+			group.Close()
+			if err != nil {
+				return nil, err
+			}
+			files = append(files, children...)
+		}
+		if err == io.EOF {
+			break
 		}
 	}
 	return files, nil
 }
-func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluator) (map[string]define.RuleCache, error) {
-	files, err := readRuleFiles(ctx, directory)
+func scanRuleGroup(ctx context.Context, group *rulefile.Directory, name string, remaining int) ([]string, error) {
+	var files []string
+	for {
+		children, err := group.ReadDir(64)
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("scan rule group %s: %w", name, err)
+		}
+		for _, child := range children {
+			if err := ctx.Err(); err != nil {
+				return nil, err
+			}
+			if !strings.EqualFold(filepath.Ext(child.Name()), ".js") {
+				continue
+			}
+			if !child.Type().IsRegular() {
+				return nil, fmt.Errorf("rule must be a regular file: %s", filepath.Join(name, child.Name()))
+			}
+			if len(files) >= remaining {
+				return nil, fmt.Errorf("rule count exceeds maximum %d", rulefile.MaxFiles)
+			}
+			files = append(files, filepath.Join(name, child.Name()))
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	return files, nil
+}
+func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluator) (map[string]define.RuleCache, map[string]Metadata, error) {
+	root, err := rulefile.OpenDirectory(directory)
 	if err != nil {
-		return nil, err
+		return nil, nil, fmt.Errorf("scan rule directory: %w", err)
+	}
+	defer root.Close()
+	files, err := scanRuleFiles(ctx, root)
+	if err != nil {
+		return nil, nil, err
 	}
 	if len(files) == 0 {
-		return nil, fmt.Errorf("rule reload rejected: no JavaScript rules in %s", directory)
+		return nil, nil, fmt.Errorf("rule reload rejected: no JavaScript rules in %s", directory)
 	}
 	candidate := make(map[string]define.RuleCache, len(files))
-	for _, file := range files {
+	metadata := make(map[string]Metadata, len(files))
+	total := 0
+	for _, relative := range files {
 		if err := ctx.Err(); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		id := filepath.Base(filepath.Dir(file))
+		id := filepath.Dir(relative)
 		if _, exists := candidate[id]; exists {
-			return nil, fmt.Errorf("rule reload rejected: duplicate rule ID %s", id)
+			return nil, nil, fmt.Errorf("rule reload rejected: duplicate rule ID %s", id)
 		}
-		body, err := os.ReadFile(file)
+		group, err := root.OpenDirectory(id)
 		if err != nil {
-			return nil, fmt.Errorf("read rule %s: %w", file, err)
+			return nil, nil, fmt.Errorf("open rule group %s: %w", id, err)
 		}
+		body, err := group.ReadFile(ctx, filepath.Base(relative), min(rulefile.MaxBytes, rulefile.MaxTotalBytes-total))
+		group.Close()
+		if err != nil {
+			return nil, nil, fmt.Errorf("read rule %s: %w", relative, err)
+		}
+		total += len(body)
+		file := filepath.Join(directory, relative)
 		snapshot := define.RuleCache{Body: body, Time: time.Now(), Sign: fn.GetFileSHA1(body), File: file}
-		if _, err := evaluate(ctx, snapshot); err != nil {
-			return nil, fmt.Errorf("validate rule %s: %w", id, err)
+		config, err := evaluate(ctx, snapshot)
+		if err != nil {
+			return nil, nil, fmt.Errorf("validate rule %s: %w", id, err)
+		}
+		if len(config.Name) > MaxMetadataNameBytes {
+			return nil, nil, fmt.Errorf("rule %s display name exceeds %d bytes", id, MaxMetadataNameBytes)
 		}
 		candidate[id] = snapshot
+		metadata[id] = Metadata{Name: config.Name, File: file, Sign: snapshot.Sign}
 	}
-	return candidate, nil
+	return candidate, metadata, nil
 }
 
 var reloadMu = make(chan struct{}, 1)
@@ -163,7 +242,7 @@ func Reload(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	candidate, err := loadCandidate(ctx, define.RULES_DIRECTORY, evaluateConfig)
+	candidate, _, err := loadCandidate(ctx, define.RULES_DIRECTORY, evaluateConfig)
 	if err != nil {
 		return err
 	}

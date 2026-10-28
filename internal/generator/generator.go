@@ -8,6 +8,7 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/feeds"
 )
 
@@ -21,6 +22,9 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 	}
 	if err := ctx.Err(); err != nil {
 		return "", err
+	}
+	if !limits.ItemsWithinBudget(data.Body) {
+		return "", fmt.Errorf("feed exceeds item or content size limit")
 	}
 	now := time.Now()
 
@@ -105,6 +109,9 @@ type contextWriter struct {
 func (w contextWriter) Write(p []byte) (int, error) {
 	if err := w.ctx.Err(); err != nil {
 		return 0, err
+	}
+	if len(p) > limits.MaxFeedBytes-w.buffer.Len() {
+		return 0, fmt.Errorf("feed exceeds %d bytes", limits.MaxFeedBytes)
 	}
 	return w.buffer.Write(p)
 }

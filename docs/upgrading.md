@@ -139,3 +139,54 @@ status mapping and request metrics. The service owns a single generation
 deadline and accepts rule lookup, configuration, fetching and serialization
 functions as dependencies. Legacy module globals remain behind the production
 adapters for incremental migration.
+
+## Capacity, transactional reload and owned application lifecycle
+
+Source builds now apply fixed capacity budgets in addition to deadlines:
+
+- Each memory cache instance keeps at most 1024 entries and 64 MiB of key/value
+  bytes, with a per-entry limit of 10 MiB + 1 KiB. LRU eviction enforces both
+  aggregate limits. This accounts for retained payload bytes, not all Go heap
+  overhead or Chrome/Deno process memory. Oversize cache writes are rejected
+  without replacing an existing value; feeds can still succeed without caching.
+- Each FeedService admits eight active generations and 32 waiting generations.
+  The slot covers configuration, fetching, parsing and serialization. A full
+  queue returns 503; waiting is included in the existing generation deadline.
+  The process-wide HTTP budget of 16 active and 64 waiting fetches still applies.
+- A decoded or browser-extracted page and a serialized feed are each limited to
+  10 MiB. A feed can retain at most 1000 entries, 20 pages and 10 MiB of entry
+  fields including details. These are rejection limits, not silent truncation.
+  An omitted/zero PagerLimit still means only the current page. JavaScript
+  request/response protocol messages are limited to 16 MiB. Chrome checks the
+  extracted string before returning it over CDP; this does not cap the remote
+  page's own JavaScript allocations or browser memory.
+
+CSR/MIX requests with caching enabled now share in-flight raw page extraction by
+immutable browser cache key and application scope. Each caller keeps its own
+cancellation and subsequent parsing/detail work. The last departing caller
+cancels shared work; `DisableCache` keeps independent execution. This prevents a
+cold-cache burst for one subscription from duplicating its browser extraction.
+
+Rule reload now reads and validates a complete candidate set before atomically
+publishing it. Missing/unreadable directories or files, duplicate IDs, invalid JS
+and invalid configuration reject the reload and preserve the previous snapshot.
+An empty rule set is explicitly rejected to protect against a temporarily empty
+mount. The management endpoint returns 500 on failure, and production startup
+fails if no valid initial rule set can be loaded. Configuration validation
+executes rules but does not freeze their time-dependent output; generation still
+evaluates dynamic rules normally. Environment options are captured at startup.
+
+Production startup now constructs an `application.App` owning its rule
+repository, bounded cache, network client, generation service and JS pool.
+Legacy context-aware parsing helpers bind to those owned resources through
+request-scoped adapters; legacy standalone wrappers remain for compatibility.
+Separate apps do not share cache contents, configuration caches, JS workers or
+in-flight fetches. HTTP/browser/detail process limits and telemetry remain
+process-wide safeguards. Browser settings and admin credentials are captured
+per app as well.
+
+Shutdown stops admission and cancels active requests instead of relying on a
+fixed two-second grace shorter than a feed deadline. The HTTP grace defaults to
+the server timeout plus one second. Handler and shared-work cleanup completes
+before owned cache/JS resources close. Listener/startup/shutdown errors return to
+the owner, allowing cleanup instead of exiting through a lower-layer fatal log.

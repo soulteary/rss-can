@@ -32,8 +32,12 @@ func HttpGet(url string, userAgent string) (code define.ErrorCode, status string
 }
 
 func HttpGetContext(ctx context.Context, targetURL string, userAgent string, options ...RequestOptions) (code define.ErrorCode, status string, response *http.Response) {
-	client := &http.Client{Timeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT)}
+	settings := configForContext(ctx)
+	client := &http.Client{Timeout: settings.RequestTimeout}
 	opts := requestOptions(options)
+	if len(options) == 0 && scopedClient(ctx) != nil {
+		opts.Proxy = settings.Proxy
+	}
 	proxy, err := NormalizeProxy(opts.Proxy)
 	if err != nil {
 		return define.ERROR_CODE_INIT_NETWORK_FAILED, "invalid proxy configuration", nil
@@ -68,7 +72,7 @@ func HttpGetContext(ctx context.Context, targetURL string, userAgent string, opt
 	if userAgent != "" {
 		req.Header.Set("User-Agent", userAgent)
 	} else {
-		req.Header.Set("User-Agent", define.USER_AGENT)
+		req.Header.Set("User-Agent", settings.UserAgent)
 	}
 
 	release, err := upstreamBudget.acquire(ctx)
@@ -114,11 +118,19 @@ const MaxDocumentBytes = 10 << 20
 var documentFlights coalesce.Group[define.RemoteBodySanitized]
 
 func GetRemoteDocumentContext(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) define.RemoteBodySanitized {
-	if disableCache || !cacher.IsEnable() {
+	if client := scopedClient(ctx); client != nil && len(options) == 0 {
+		options = []RequestOptions{{Proxy: client.config.Proxy}}
+	}
+	if disableCache || !cacher.IsEnabledContext(ctx) {
 		return getRemoteDocument(ctx, url, charset, expire, disableCache, options...)
 	}
 	key := documentKey(url, charset, expire, options...)
-	result, err, shared := documentFlights.Do(ctx, key, fn.ExpireBySecond(define.SERVER_TIMEOUT), func(work context.Context) (define.RemoteBodySanitized, error) {
+	flights := &documentFlights
+	if client := scopedClient(ctx); client != nil {
+		flights = &client.flights
+	}
+	key = cacher.Scope(ctx) + ":" + configForContext(ctx).UserAgent + ":" + key
+	result, err, shared := flights.Do(ctx, key, configForContext(ctx).ServerTimeout, func(work context.Context) (define.RemoteBodySanitized, error) {
 		return getRemoteDocument(work, url, charset, expire, false, options...), nil
 	})
 	if shared {
@@ -137,6 +149,9 @@ func documentKey(url, charset string, expire int, options ...RequestOptions) str
 
 func getRemoteDocument(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) (result define.RemoteBodySanitized) {
 	key := documentKey(url, charset, expire, options...)
+	if scopedClient(ctx) != nil {
+		key += fmt.Sprintf(":ua:%x", sha256.Sum256([]byte(configForContext(ctx).UserAgent)))
+	}
 	var code define.ErrorCode
 	var status string
 	var now = time.Now()
@@ -150,7 +165,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		}
 	}()
 
-	if cacher.IsEnable() && !disableCache {
+	if cacher.IsEnabledContext(ctx) && !disableCache {
 		cache, found, err := cacher.GetWithStatus(ctx, key)
 		if err == nil && found {
 			logger.Instance.Debugln("Get remote document from cache", url)
@@ -167,7 +182,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		}
 	}()
 	// todo change ua with config
-	code, status, res := HttpGetContext(ctx, url, define.USER_AGENT, options...)
+	code, status, res := HttpGetContext(ctx, url, "", options...)
 	if code != define.ERROR_CODE_NULL {
 		return define.MixupRemoteBodySanitized(code, status, now, "")
 	}
@@ -195,10 +210,10 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
 	}
 
-	if cacher.IsEnable() && !disableCache {
+	if cacher.IsEnabledContext(ctx) && !disableCache {
 		ttl := fn.ExpireBySecond(expire)
 		if expire <= 0 {
-			ttl = fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)
+			ttl = configForContext(ctx).DefaultTTL
 		}
 		err = cacher.SetWithTTL(ctx, key, buffer.String(), ttl)
 		if err != nil {

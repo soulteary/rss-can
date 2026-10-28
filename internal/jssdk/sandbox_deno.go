@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
@@ -55,7 +56,7 @@ type denoResponse struct {
 
 func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 	telemetry.Default.Add("js_starts_total", 1)
-	binary := denoExecutable()
+	binary := runtimeBinary(ctx)
 	cmd := exec.Command(binary, "run", "--no-prompt", "--no-config", "--no-lock", "data:application/javascript;base64,"+base64.StdEncoding.EncodeToString([]byte(denoRunner)))
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -83,7 +84,7 @@ func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 		var message struct {
 			Ready bool `json:"ready"`
 		}
-		line, err := p.reader.ReadBytes('\n')
+		line, err := readProtocolLine(p.reader)
 		if err == nil {
 			err = json.Unmarshal(line, &message)
 			if err == nil && !message.Ready {
@@ -185,6 +186,9 @@ func runDeno(ctx context.Context, base, source, filename string, timeout time.Du
 }
 
 func (w *denoWorker) executeContext(ctx context.Context, base, source, filename string, timeout time.Duration) (string, error) {
+	if len(base) > limits.MaxJSMessageBytes || len(source) > limits.MaxJSMessageBytes-len(base) || len(filename) > limits.MaxJSMessageBytes-len(base)-len(source) {
+		return "", fmt.Errorf("JavaScript request exceeds size limit")
+	}
 	if w.process != nil {
 		select {
 		case <-w.process.done:
@@ -210,6 +214,9 @@ func (w *denoWorker) executeContext(ctx context.Context, base, source, filename 
 	if err != nil {
 		return "", err
 	}
+	if len(request) > limits.MaxJSMessageBytes {
+		return "", fmt.Errorf("JavaScript request exceeds size limit")
+	}
 	p := w.process
 	type execution struct {
 		response denoResponse
@@ -222,7 +229,7 @@ func (w *denoWorker) executeContext(ctx context.Context, base, source, filename 
 		var result execution
 		if _, result.err = p.stdin.Write(append(request, '\n')); result.err == nil {
 			var line []byte
-			line, result.err = p.reader.ReadBytes('\n')
+			line, result.err = readProtocolLine(p.reader)
 			if result.err == nil {
 				result.err = json.Unmarshal(line, &result.response)
 			}
@@ -261,6 +268,9 @@ func RunCode(base, source, originFile string) (string, error) {
 }
 
 func RunCodeContext(ctx context.Context, base, source, originFile string) (string, error) {
+	if runtime := runtimeFromContext(ctx); runtime != nil {
+		return runtime.runCode(ctx, base, source, originFile)
+	}
 	return defaultDenoPool.runContext(ctx, base, source, originFile, time.Duration(define.JS_EXECUTE_TIMEOUT)*time.Millisecond)
 }
 
@@ -287,4 +297,21 @@ func denoExecutable() string {
 		}
 	}
 	return "deno"
+}
+
+// readProtocolLine never retains an unbounded worker response. The caller kills
+// the worker on failure so a partial line cannot contaminate its next exchange.
+func readProtocolLine(reader *bufio.Reader) ([]byte, error) {
+	var line []byte
+	for {
+		fragment, err := reader.ReadSlice('\n')
+		if len(fragment) > limits.MaxJSMessageBytes-len(line) {
+			return nil, fmt.Errorf("JavaScript response exceeds size limit")
+		}
+		line = append(line, fragment...)
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		return line, err
+	}
 }

@@ -23,9 +23,11 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/chromedp/chromedp/remote"
 	"github.com/soulteary/RSS-Can/internal/cacher"
+	"github.com/soulteary/RSS-Can/internal/coalesce"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
@@ -33,6 +35,7 @@ import (
 
 // Bound browser work, including connection, navigation and script evaluation.
 var browserSlots = make(chan struct{}, 4)
+var browserFlights coalesce.Group[string]
 
 func GetDataAndConfigByCSR(config define.JavaScriptConfig, container string, proxyAddr string) define.BodyParsed {
 	return ParsePageByBrowser(config, container, proxyAddr, false)
@@ -134,13 +137,14 @@ func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cooki
 
 	var allocCtx context.Context
 	var allocCancel context.CancelFunc
-	if define.CSR_DEBUG && !publicOnly {
+	options := browserOptions(ctx)
+	if options.Debug && !publicOnly {
 		opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
 		opts = append(opts, chromedp.VisibleWindow)
 		if proxyAddr != "" {
 			opts = append(opts, chromedp.ProxyServer(proxyAddr))
 		}
-		if define.CSR_IGNORE_CERT_ERRORS {
+		if options.IgnoreCertificateErrors {
 			opts = append(opts, chromedp.IgnoreCertErrors)
 		}
 		allocCtx, allocCancel = chromedp.NewExecAllocator(ctx, opts...)
@@ -168,7 +172,7 @@ func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cooki
 	if err := chromedp.Do(pageCtx); err != nil {
 		return err
 	}
-	if define.CSR_IGNORE_CERT_ERRORS && !publicOnly {
+	if options.IgnoreCertificateErrors && !publicOnly {
 		if _, err := cdp.Call(pageCtx, chromedp.FromContext(pageCtx).Target, security.SetIgnoreCertificateErrors, security.SetIgnoreCertificateErrorsParams{Ignore: true}); err != nil {
 			return err
 		}
@@ -325,18 +329,58 @@ func GetCSRInjectCode(file string) string {
 }
 
 func parseCSRItems(data string) define.BodyParsed {
+	failure := func(message string) define.BodyParsed {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, message, time.Now(), nil)
+	}
+	if len(data) > limits.MaxPageBytes {
+		return failure("browser result exceeds size limit")
+	}
+	decoder := json.NewDecoder(strings.NewReader(data))
+	start, err := decoder.Token()
+	if err != nil {
+		return failure(err.Error())
+	}
+	// Historical JSON null represented an empty result.
+	if start == nil {
+		var extra any
+		if decoder.Decode(&extra) != io.EOF {
+			return failure("invalid trailing browser JSON")
+		}
+		return define.MixupBodyParsed(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, time.Now(), nil)
+	}
+	if start != json.Delim('[') {
+		return failure("browser result must be an array")
+	}
 	var items []define.InfoItem
-	if err := json.Unmarshal([]byte(data), &items); err != nil {
-		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
+	for decoder.More() {
+		if len(items) >= limits.MaxItems {
+			return failure("browser result exceeds item limit")
+		}
+		var item define.InfoItem
+		if err := decoder.Decode(&item); err != nil {
+			return failure(err.Error())
+		}
+		items = append(items, item)
+	}
+	if _, err := decoder.Token(); err != nil {
+		return failure(err.Error())
+	}
+	var extra any
+	if decoder.Decode(&extra) != io.EOF {
+		return failure("invalid trailing browser JSON")
 	}
 	return define.MixupBodyParsed(define.ERROR_CODE_NULL, define.ERROR_STATUS_NULL, time.Now(), items)
 }
 
 func browserCacheKey(config define.JavaScriptConfig, useMixParser bool) string {
+	return browserCacheKeyContext(context.Background(), config, useMixParser)
+}
+
+func browserCacheKeyContext(ctx context.Context, config define.JavaScriptConfig, useMixParser bool) string {
 	// Separate browser JSON/HTML from SSR HTML, and isolate rules, cookies and
 	// parser settings. Include the rule bytes so edits cannot reuse old results.
 	// Include the effective global proxy when a rule does not override it.
-	config.Proxy = network.OptionsForConfig(config).Proxy
+	config.Proxy = network.OptionsForConfigContext(ctx, config).Proxy
 	if normalized, err := network.NormalizeProxy(config.Proxy); err == nil {
 		config.Proxy = normalized
 	}
@@ -380,7 +424,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
 	if proxyAddr == "" {
-		proxyAddr = network.OptionsForConfig(config).Proxy
+		proxyAddr = network.OptionsForConfigContext(ctx, config).Proxy
 	}
 	normalizedProxy, err := network.NormalizeProxy(proxyAddr)
 	if err != nil {
@@ -388,63 +432,117 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 	}
 	config.Proxy = normalizedProxy
 	proxyAddr = normalizedProxy
-	key := browserCacheKey(config, useMixParser)
+	key := browserCacheKeyContext(ctx, config, useMixParser)
 	decode := func(data string) define.BodyParsed {
 		if useMixParser {
 			return ParseDataAndConfigBySSRContext(ctx, config, define.RemoteBodySanitized{}, data)
 		}
 		return parseCSRItems(data)
 	}
-	if cacher.IsEnable() && !config.DisableCache {
-		if cached, found, err := cacher.GetWithStatus(ctx, key); err == nil && found {
-			return decode(cached)
-		}
-	}
 	timeout := define.HEADLESS_EXCUTE_TIMEOUT
 	if config.Timeout > 0 {
 		timeout = config.Timeout
 	}
-	ctx, cancel := context.WithTimeout(ctx, fn.ExpireBySecond(timeout))
-	defer cancel()
-	var data string
-	err = withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
-		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(config.ListContainer))); err != nil {
-			return err
-		}
-		if useMixParser {
-			var err error
-			data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+jssdk.TPL_MIX_JS+")()"))
-			return err
-		}
-		injectCode := csrInjectCode(config)
-		if injectCode == "" {
-			return fmt.Errorf("cannot read rule %s", config.File)
-		}
-		var err error
-		data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+injectCode+")()"))
-		return err
+	sharedTimeout := fn.ExpireBySecond(timeout)
+	cacheEnabled := cacher.IsEnabledContext(ctx) && !config.DisableCache
+	data, err := browserData(ctx, key, cacheEnabled, sharedTimeout, config.Expire, func(work context.Context) (string, error) {
+		return fetchBrowserData(work, config, container, proxyAddr, useMixParser)
 	})
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}
-	result := decode(data)
-	if result.Code == define.ERROR_CODE_NULL && cacher.IsEnable() && !config.DisableCache {
-		expire := config.Expire
-		if expire <= 0 {
-			expire = define.IN_MEMORY_EXPIRATION
+	return decode(data)
+}
+
+// browserData shares only captured page data. Each caller decodes using its own
+// context, so a departing caller cannot cancel the other callers' detail work.
+func browserData(ctx context.Context, key string, cacheEnabled bool, timeout time.Duration, expire int, fetchData func(context.Context) (string, error)) (string, error) {
+	load := func(work context.Context) (string, error) {
+		if cacheEnabled {
+			if cached, found, err := cacher.GetWithStatus(work, key); err == nil && found {
+				return cached, nil
+			}
 		}
-		if err := cacher.SetWithTTL(ctx, key, data, fn.ExpireBySecond(expire)); err != nil {
-			logger.Instance.Warn("Unable to use cache")
+		data, err := fetchData(work)
+		if err != nil {
+			return "", err
+		}
+		if len(data) > limits.MaxPageBytes {
+			return "", fmt.Errorf("browser result exceeds size limit")
+		}
+		if err := work.Err(); err != nil {
+			return "", err
+		}
+		if cacheEnabled {
+			if expire <= 0 {
+				expire = define.IN_MEMORY_EXPIRATION
+			}
+			if err := cacher.SetWithTTL(work, key, data, fn.ExpireBySecond(expire)); err != nil {
+				logger.Instance.Warn("Unable to use cache")
+			}
+		}
+		return data, nil
+	}
+	if !cacheEnabled {
+		work, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		return load(work)
+	}
+	// Application scope prevents one cache/runtime instance from joining another.
+	data, err, shared := browserFlights.Do(ctx, cacher.Scope(ctx)+":"+network.Scope(ctx)+":"+key, timeout, load)
+	if shared {
+		telemetry.Default.Add("browser_shared_total", 1)
+	}
+	return data, err
+}
+
+func fetchBrowserData(ctx context.Context, config define.JavaScriptConfig, container, proxyAddr string, useMixParser bool) (string, error) {
+	var data string
+	err := withBrowserPage(ctx, container, proxyAddr, config.URL, config.Cookies, false, func(pageCtx context.Context) error {
+		if err := chromedp.Do(pageCtx, chromedp.Navigate(config.URL), chromedp.WaitReady(chromedp.CSS(config.ListContainer))); err != nil {
+			return err
+		}
+		expression := "(" + jssdk.TPL_MIX_JS + ")()"
+		if !useMixParser {
+			injectCode := csrInjectCode(config)
+			if injectCode == "" {
+				return fmt.Errorf("cannot read rule %s", config.File)
+			}
+			expression = "(" + injectCode + ")()"
+		}
+		var err error
+		data, err = chromedp.Run(pageCtx, chromedp.Evaluate[string](boundedBrowserExpression(expression)))
+		return err
+	})
+	if err != nil {
+		return "", err
+	}
+	if !useMixParser {
+		if parsed := parseCSRItems(data); parsed.Code != define.ERROR_CODE_NULL {
+			return "", fmt.Errorf("%s", parsed.Status)
 		}
 	}
-	return result
+	return data, nil
+}
+
+// Check the serialized value inside Chrome before CDP transfers it to Go.
+func boundedBrowserExpression(expression string) string {
+	return fmt.Sprintf(`(()=>{const value=(%s);if(typeof value!=="string")throw new Error("invalid browser result");if(value.length>%d||new TextEncoder().encode(value).length>%d)throw new Error("browser result exceeds size limit");return value;})()`, expression, limits.MaxPageBytes, limits.MaxPageBytes)
 }
 
 func ProxyPageByBrowser(url string, container string, proxyAddr string, cookies string) (string, error) {
+	return ProxyPageByBrowserContext(context.Background(), url, container, proxyAddr, cookies)
+}
+
+func ProxyPageByBrowserContext(ctx context.Context, url, container, proxyAddr, cookies string) (string, error) {
+	return ProxyPageByBrowserWithTimeout(ctx, url, container, proxyAddr, cookies, fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT))
+}
+
+func ProxyPageByBrowserWithTimeout(ctx context.Context, url, container, proxyAddr, cookies string, timeout time.Duration) (string, error) {
 	if err := network.PublicURL(url); err != nil {
 		return "", err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT))
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	var html string
 	err := withBrowserPage(ctx, container, "", url, cookies, true, func(pageCtx context.Context) error {
@@ -452,7 +550,7 @@ func ProxyPageByBrowser(url string, container string, proxyAddr string, cookies 
 			return err
 		}
 		var err error
-		html, err = chromedp.Run(pageCtx, chromedp.Evaluate[string]("("+jssdk.TPL_MIX_JS+")()"))
+		html, err = chromedp.Run(pageCtx, chromedp.Evaluate[string](boundedBrowserExpression("("+jssdk.TPL_MIX_JS+")()")))
 		return err
 	})
 	return html, err

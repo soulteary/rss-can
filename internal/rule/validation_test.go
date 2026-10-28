@@ -12,6 +12,7 @@ func TestConfigRejectsInvalidParserSettings(t *testing.T) {
 		{`{"IdByRegexp":"["}`, "IdByRegexp"},
 		{`{"IdByRegexp":"/post/[0-9]+"}`, "IdByRegexp"},
 		{`{"PagerLimit":-1}`, "PagerLimit"},
+		{`{"PagerLimit":21}`, "PagerLimit"},
 	} {
 		_, err := ParseConfigFromJSON(tc.body, define.RuleCache{})
 		if err == nil || !strings.Contains(err.Error(), tc.field) {

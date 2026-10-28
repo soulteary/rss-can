@@ -34,7 +34,11 @@ type FeedGenerator interface {
 }
 
 func apiRSS() fiber.Handler {
-	return apiRSSWithService(feedservice.NewDefault(fn.ExpireBySecond(define.SERVER_TIMEOUT)))
+	return apiRSSWithService(defaultFeedGenerator())
+}
+
+func defaultFeedGenerator() FeedGenerator {
+	return feedservice.NewDefault(fn.ExpireBySecond(define.SERVER_TIMEOUT))
 }
 
 func apiRSSWithService(service FeedGenerator) fiber.Handler {
@@ -81,6 +85,8 @@ func apiRSSWithService(service FeedGenerator) fiber.Handler {
 				if failure.Code == define.ERROR_CODE_OVERLOADED {
 					status, message = http.StatusServiceUnavailable, "upstream fetch queue is full"
 				}
+			case feedservice.Admission:
+				status, message = http.StatusServiceUnavailable, "feed generation queue is full"
 			case feedservice.Timeout:
 				status, message = http.StatusGatewayTimeout, "feed generation timed out"
 			}

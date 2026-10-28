@@ -10,12 +10,14 @@ import (
 
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
+	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
 type Stage string
 
 const (
+	Admission     Stage = "admission"
 	InvalidFormat Stage = "format"
 	MissingRule   Stage = "lookup"
 	Configuration Stage = "configuration"
@@ -45,6 +47,7 @@ type Dependencies struct {
 type Service struct {
 	dependencies Dependencies
 	timeout      time.Duration
+	admission    *admission
 }
 
 func New(timeout time.Duration, dependencies Dependencies) *Service {
@@ -54,7 +57,7 @@ func New(timeout time.Duration, dependencies Dependencies) *Service {
 	if dependencies.Lookup == nil || dependencies.Configure == nil || dependencies.Fetch == nil || dependencies.Serialize == nil {
 		panic("feedservice: missing dependency")
 	}
-	return &Service{dependencies: dependencies, timeout: timeout}
+	return &Service{dependencies: dependencies, timeout: timeout, admission: newAdmission(GenerationConcurrency, GenerationQueueLimit)}
 }
 
 // NewDefault adapts the existing runtime modules during gradual migration.
@@ -81,6 +84,14 @@ func (s *Service) Generate(ctx context.Context, id, format string) (string, erro
 	if err := deadline(); err != nil {
 		return "", err
 	}
+	release, err := s.admission.acquire(ctx)
+	if err != nil {
+		if canceled := deadline(); canceled != nil {
+			return "", canceled
+		}
+		return "", &Error{Stage: Admission, Code: define.ERROR_CODE_OVERLOADED, Cause: err}
+	}
+	defer release()
 	snapshot, found := s.dependencies.Lookup(id)
 	if !found {
 		return "", &Error{Stage: MissingRule, Cause: errors.New("rule not found")}
@@ -96,6 +107,9 @@ func (s *Service) Generate(ctx context.Context, id, format string) (string, erro
 	if err := deadline(); err != nil {
 		return "", err
 	}
+	if !limits.ItemsWithinBudget(data.Body) {
+		return "", &Error{Stage: Fetch, Code: define.ERROR_CODE_PARSE_CONTENT_FAILED, Cause: errors.New("feed exceeds item or content size limit")}
+	}
 	if data.Code != define.ERROR_CODE_NULL {
 		return "", &Error{Stage: Fetch, Code: data.Code, Cause: errors.New(data.Status)}
 	}
@@ -105,6 +119,9 @@ func (s *Service) Generate(ctx context.Context, id, format string) (string, erro
 	}
 	if err != nil {
 		return "", &Error{Stage: Serialization, Cause: err}
+	}
+	if len(body) > limits.MaxFeedBytes {
+		return "", &Error{Stage: Serialization, Cause: errors.New("feed exceeds output size limit")}
 	}
 	return body, nil
 }

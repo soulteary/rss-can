@@ -13,6 +13,9 @@ type Status struct {
 }
 
 func Check(ctx context.Context) Status {
+	if cache := scopedCache(ctx); cache != nil {
+		return cache.Check(ctx)
+	}
 	Initialize()
 	ctx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
 	defer cancel()

@@ -43,6 +43,7 @@ func TestHomeAndInspectorPreparation(t *testing.T) {
 	}
 }
 func TestConfigurationRoutes(t *testing.T) {
+	installTestRule(t, "https://example.org")
 	logger.Initialize()
 	previous := logger.GetLevel()
 	defer logger.SetLevel(previous)

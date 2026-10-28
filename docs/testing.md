@@ -31,9 +31,9 @@ go test -race ./internal/coalesce ./internal/telemetry ./internal/define ./inter
 
 `scripts/check_coverage.py` requires at least **80% weighted runtime statement coverage** across `internal/`. It excludes the executable entry point and developer benchmark CLI from that one budget, while `go test ./...` still tests/builds all packages and the full Go profile retains them. An empty profile or a missing required runtime package fails validation. Per-package minimums prevent highly covered utility packages from hiding a weak core module:
 
-- 95%: cmd, coalesce, define, fn, logger, telemetry.
+- 95%: cmd, coalesce, define, fn, limits, logger, telemetry, workscope.
 - 90%: rule.
-- 85%: generator.
+- 85%: application, generator.
 - 80%: cacher, feedservice, jssdk.
 - 75%: network, server.
 - 70%: parser.
@@ -87,3 +87,13 @@ tests use injected dependencies and do not require Deno, Redis or Chrome:
 ```sh
 go test -race ./internal/feedservice
 ```
+
+The owned-application regression suite also creates two apps with different rule
+directories, user agents, caches and JS processes in one Go process. It verifies
+independent configuration after legacy globals change, closing one while the
+other remains usable, startup/listener failure cleanup, active-request
+cancellation and stopping the listener on explicit app close. Repository tests
+cover transactional rollback, empty-set rejection and concurrent publication.
+Capacity tests verify LRU byte accounting and oversize rejection. The required
+Chrome suite checks ASCII and multi-byte oversized extraction before transfer;
+shared browser tests check independent cancellation and final-waiter cleanup.

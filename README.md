@@ -158,3 +158,5 @@ The rapid evolution of the project is inseparable from the following excellent o
 Cache-enabled document requests share in-flight work; `DisableCache` retains independent fetches. Set `RSS_CONFIG_CACHE_TTL=30` to opt into configuration caching, disabled by default for dynamic rules. Date conversions are reused only within a feed. See [HTTP load measurements](docs/benchmarks/feed-load.md) and [testing and coverage budgets](docs/testing.md).
 
 Source builds now share immutable rule snapshots, bound upstream HTTP work (16 active and 64 waiting; overload returns 503), bound Redis operations with circuit recovery, and inject a FeedService. See the [upgrade guide](docs/upgrading.md#architecture-hardening-in-source-builds) for behavior and limits.
+
+Source builds also add a 64 MiB memory-cache budget, transactional rule reload, generation/page/item/output limits, shared browser extraction and independently owned application shutdown. Empty or invalid rule sets now prevent startup or reload; see the [upgrade guide](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle).

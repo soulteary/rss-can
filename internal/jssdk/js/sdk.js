@@ -78,6 +78,7 @@ class POTTED {
     if ($config) this.SetConfig($config);
     if (this.isConfigured == false) return [];
 
+    if (this.scope.length > 1000) throw new Error("browser result exceeds item limit");
     let result = [];
     let self = this;
     this.scope.each((_, el) => {

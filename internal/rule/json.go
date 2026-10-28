@@ -37,8 +37,8 @@ func ParseConfigFromJSON(str string, rule define.RuleCache) (define.JavaScriptCo
 		return config, fmt.Errorf("PagerLimit must not be negative")
 	}
 
-	modeInRule := strings.ToLower(config.Mode)
-	if !fn.IsStrInArray([]string{define.PARSE_MODE_SSR, define.PARSE_MODE_CSR, define.PARSE_MODE_MIX}, modeInRule) {
+	config.Mode = strings.ToLower(strings.TrimSpace(config.Mode))
+	if config.Mode == "" {
 		config.Mode = define.DEFAULT_PARSE_MODE
 	}
 	return config, nil
@@ -49,6 +49,16 @@ func GetWebsiteDataWithConfig(config define.JavaScriptConfig) (result define.Bod
 }
 
 func GetWebsiteDataWithConfigContext(ctx context.Context, config define.JavaScriptConfig) (result define.BodyParsed) {
+	if err := ctx.Err(); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+	}
+	config.Mode = strings.ToLower(strings.TrimSpace(config.Mode))
+	if config.Mode == "" {
+		config.Mode = define.DEFAULT_PARSE_MODE
+	}
+	if err := ValidateConfig(config); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
+	}
 	proxy, err := network.NormalizeProxy(network.OptionsForConfigContext(ctx, config).Proxy)
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_INIT_NETWORK_FAILED, err.Error(), time.Now(), nil)

@@ -27,11 +27,14 @@ func writeRepositoryRule(t *testing.T, root, id, body string) string {
 	}
 	return file
 }
+func validRepositoryConfig(name string) define.JavaScriptConfig {
+	return define.JavaScriptConfig{Name: name, Mode: "ssr", URL: "https://example.org", ListContainer: "article", Title: "h2"}
+}
 func repositoryEvaluator(_ context.Context, s define.RuleCache) (define.JavaScriptConfig, error) {
 	if strings.Contains(string(s.Body), "invalid") {
 		return define.JavaScriptConfig{}, errors.New("invalid configuration")
 	}
-	return define.JavaScriptConfig{Name: string(s.Body)}, nil
+	return validRepositoryConfig(string(s.Body)), nil
 }
 func TestRepositoryReloadIsAtomicAndRetainsLastGood(t *testing.T) {
 	root := t.TempDir()
@@ -155,7 +158,7 @@ func TestRepositoryValidationDoesNotFreezeDynamicConfig(t *testing.T) {
 func TestRepositoryValidatesJavaScriptBeforePublish(t *testing.T) {
 	logger.Initialize()
 	root := t.TempDir()
-	file := writeRepositoryRule(t, root, "a", `potted.SetScope("article").SetConfig({Name:"valid",Mode:"ssr"});`)
+	file := writeRepositoryRule(t, root, "a", `potted.SetScope("article").SetConfig({Name:"valid",Mode:"ssr",URL:"https://example.org",Title:"h2"});`)
 	repo := NewRepository(root)
 	if err := repo.Reload(t.Context()); err != nil {
 		t.Fatal(err)
@@ -177,7 +180,7 @@ func TestRepositoryValidatesJavaScriptBeforePublish(t *testing.T) {
 func TestCompatibilityReloadRetainsSnapshotOnFailure(t *testing.T) {
 	logger.Initialize()
 	root := t.TempDir()
-	file := writeRepositoryRule(t, root, "compat", `potted.SetConfig({Name:"valid"});`)
+	file := writeRepositoryRule(t, root, "compat", `potted.SetScope("article").SetConfig({Name:"valid",URL:"https://example.org",Title:"h2"});`)
 	previousDirectory := define.RULES_DIRECTORY
 	rulesMu.Lock()
 	previousRules := rulesCache
@@ -247,7 +250,7 @@ func TestRepositoryCapturesCacheAndWorkBudgets(t *testing.T) {
 			t.Error("shared evaluation has no deadline")
 		}
 		budget = time.Until(deadline)
-		return define.JavaScriptConfig{Name: "captured"}, nil
+		return validRepositoryConfig("captured"), nil
 	}
 	repo := NewRepositoryWithEvaluator("unused", evaluate)
 	t.Setenv("RSS_CONFIG_CACHE_TTL", "0")

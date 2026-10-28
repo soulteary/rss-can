@@ -30,7 +30,7 @@ func TestRuleExportTimeoutAndRecovery(t *testing.T) {
 func TestDateInputCannotExecuteJavaScript(t *testing.T) {
 	// Previously interpolated directly into executable source.
 	_, err := jssdk.ConvertStrToUnix(`"); while (true) {}; //`)
-	if err != nil {
-		t.Fatal("date input was not treated as string data:", err)
+	if err == nil || strings.Contains(err.Error(), "timed out") {
+		t.Fatal("invalid date must be rejected without executing its content:", err)
 	}
 }

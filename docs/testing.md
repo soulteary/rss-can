@@ -105,3 +105,12 @@ symlink inputs without blocking, cover per-file/count/total-size limits and
 metadata rollback, and check descriptor-anchored reads. Cache boundary tests
 seed oversized entries, verify scoped invalidation/refetch, accept the exact
 size boundary, and ensure cancellation does not start another HTTP/browser task.
+
+Data-contract regressions assert actual date values (current-year month/day,
+valid negative Unix timestamps, epoch, offsets and leap-day behavior) rather
+than only checking for a nil error. Category tests parse RSS, Atom and JSON
+outputs, including direct and readlink-hook category extraction. Rule tests
+cover per-mode minimum configuration, preserved literal/CSR contracts,
+transactional semantic rejection and invalid dynamic output. Application tests
+combine category/date output, invalid-date HTTP failure and retention of the
+last valid rule after a rejected reload.

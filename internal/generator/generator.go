@@ -49,6 +49,7 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		}
 		feedItem := feeds.Item{
 			Title:       data.Title,
+			Category:    data.Category,
 			Author:      &feeds.Author{Name: data.Author},
 			Description: data.Description,
 			Link:        &feeds.Link{Href: data.Link},

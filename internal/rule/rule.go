@@ -55,6 +55,7 @@ func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.J
 	config.RuleSource = define.NewRuleSource(rule.Body)
 	if err != nil {
 		logger.Instance.Errorf("Parsing rule file failed: %v", err)
+		return config, err
 	}
 
 	config.Name = strings.TrimSpace(config.Name)
@@ -90,5 +91,8 @@ func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.J
 	config.ContentHook.Object = strings.TrimSpace(config.ContentHook.Object)
 	config.ContentHook.URL = strings.TrimSpace(config.ContentHook.URL)
 
-	return config, err
+	if err := ValidateConfig(config); err != nil {
+		return config, err
+	}
+	return config, nil
 }

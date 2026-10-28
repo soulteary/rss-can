@@ -224,3 +224,50 @@ bounded fetching. Cancellation during cache access prevents a new fetch. This
 bounds values entering parsers; a cache backend may still allocate its stored
 value while reading it, so it is not a hard bound on transient Redis response
 memory.
+
+## Date, category and executable-rule contracts
+
+Date conversion now rejects invalid or unsupported text instead of returning a
+fabricated timestamp. Valid dates before 1970 and Unix epoch values are
+preserved. A month/day value such as `12月12日` uses the current local calendar
+year; impossible dates, including February 29 in a non-leap year, are errors.
+Dates without an explicit zone retain the runtime's local-time interpretation.
+
+Supported date text includes strict ISO 8601 and RFC 2822, Chinese `YYYY年`,
+`YYYY年M月`, `[YYYY年]M月D日` (optionally followed by `H:mm` or `H:mm:ss`), and
+`YYYY/M/D` (optionally followed by a time). Relative forms accept nonnegative
+integer amounts such as `10天前`, `2个月前`, `5 minutes ago` and `1 week ago`.
+Fractional/signed relative amounts, malformed text and quoted source-like text
+are rejected. Raw numeric strings are not a new Unix-timestamp input format.
+Missing date fields remain optional because generation skips empty fields; a
+nonempty invalid extracted date fails the feed with HTTP 500 instead of
+publishing incorrect or partial content. The standalone conversion helpers
+return an error for empty input as well.
+
+Parsed item categories now reach all three formats: RSS item `category`, Atom
+entry `category` and JSON Feed item `tags`. Empty categories remain omitted;
+Unicode and XML/JSON escaping are handled by the output library.
+
+Successful rule publication now requires an executable minimum configuration,
+not only valid JavaScript/JSON:
+
+- Every parsing mode requires an absolute HTTP(S) URL and a nonempty valid CSS
+  `ListContainer`. Trusted feed rules can still use internal HTTP(S) origins;
+  inspector public-network restrictions are separate.
+- SSR and MIX additionally require a nonempty `Title` expression. Title and
+  other extraction fields can be literals where supported, so they are not
+  uniformly treated as CSS selectors. Direct parsing of supplied HTML validates
+  scope/title without requiring an unused fetch URL.
+- CSR keeps compatibility with custom `GetData` implementations and does not
+  universally require Title/Link. Rules using the native SDK still need its
+  title/link expressions to extract the intended data.
+- Omitted Mode defaults to SSR; mode whitespace/case is normalized, while an
+  explicitly unknown mode is rejected. Pager selectors and active readlink
+  Object selectors are checked; unsupported hook actions are rejected. Empty
+  readlink URL/Object retain the existing current-item-anchor/body defaults.
+
+The contract is checked before initial publication, on reload and on dynamic
+configuration evaluation. Invalid initial rules fail startup; invalid reloads
+preserve previous source/display metadata; invalid dynamic configurations fail
+feed generation rather than becoming successful empty subscriptions. A valid
+selector matching no entries is still an allowed empty feed.

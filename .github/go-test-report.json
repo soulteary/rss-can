@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
   "tests": {
-    "total": 56,
-    "passed": 56,
+    "total": 175,
+    "passed": 174,
     "failed": 0,
-    "skipped": 0
+    "skipped": 1
   },
   "coverage": {
-    "covered_statements": 440,
-    "total_statements": 1087,
-    "percentage": 40.48,
+    "covered_statements": 1703,
+    "total_statements": 2144,
+    "percentage": 79.43,
     "threshold": 0
   },
   "packages": [
@@ -23,9 +23,9 @@
     {
       "name": "internal/cacher",
       "status": "pass",
-      "tests": 5,
+      "tests": 22,
       "failed": 0,
-      "coverage": 78.51
+      "coverage": 87.04
     },
     {
       "name": "internal/cmd",
@@ -35,32 +35,46 @@
       "coverage": 100
     },
     {
+      "name": "internal/coalesce",
+      "status": "pass",
+      "tests": 3,
+      "failed": 0,
+      "coverage": 97.14
+    },
+    {
       "name": "internal/define",
       "status": "pass",
-      "tests": 2,
+      "tests": 4,
       "failed": 0,
       "coverage": 100
     },
     {
+      "name": "internal/feedservice",
+      "status": "pass",
+      "tests": 3,
+      "failed": 0,
+      "coverage": 84.21
+    },
+    {
       "name": "internal/fn",
       "status": "pass",
-      "tests": 28,
+      "tests": 30,
       "failed": 0,
-      "coverage": 97.62
+      "coverage": 98.43
     },
     {
       "name": "internal/generator",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 4,
       "failed": 0,
-      "coverage": 0
+      "coverage": 88.89
     },
     {
       "name": "internal/jssdk",
       "status": "pass",
-      "tests": 7,
+      "tests": 24,
       "failed": 0,
-      "coverage": 94.83
+      "coverage": 86.34
     },
     {
       "name": "internal/logger",
@@ -71,31 +85,38 @@
     },
     {
       "name": "internal/network",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 14,
       "failed": 0,
-      "coverage": 0
+      "coverage": 84.79
     },
     {
       "name": "internal/parser",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 23,
       "failed": 0,
-      "coverage": 0
+      "coverage": 64.06
     },
     {
       "name": "internal/rule",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 10,
       "failed": 0,
-      "coverage": 0
+      "coverage": 95
     },
     {
       "name": "internal/server",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 22,
       "failed": 0,
-      "coverage": 0
+      "coverage": 83.92
+    },
+    {
+      "name": "internal/telemetry",
+      "status": "pass",
+      "tests": 2,
+      "failed": 0,
+      "coverage": 100
     },
     {
       "name": "internal/version",
@@ -103,6 +124,13 @@
       "tests": 0,
       "failed": 0,
       "coverage": null
+    },
+    {
+      "name": "scripts/bench-jssdk",
+      "status": "no_tests",
+      "tests": 0,
+      "failed": 0,
+      "coverage": 0
     }
   ],
   "failures": null

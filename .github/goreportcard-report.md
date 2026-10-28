@@ -1,11 +1,11 @@
 # Go Report Card
 
-**Grade: A+** (99.5%)
+**Grade: A+** (98.4%)
 
 | Metric | Value |
 | ------ | ----- |
-| Files | 140 |
-| Issues | 12 |
+| Files | 109 |
+| Issues | 17 |
 
 ## Checks
 
@@ -14,46 +14,54 @@
 | go_vet | 100% |
 | gofmt | 100% |
 | ineffassign | 100% |
-| gocyclo | 95% |
+| gocyclo | 86% |
 | license | 100% |
-| misspell | 95% |
+| misspell | 98% |
 
 ## Issues
 
 ### gocyclo
 
-- `internal/cacher/cacher_test.go`
-  - Line 11: cyclomatic complexity 52 for function TestCacher
-- `internal/parser/ssr.go`
-  - Line 95: cyclomatic complexity 29 for function ParseDataAndConfigBySSR
+- `scripts/bench-jssdk/main.go`
+  - Line 28: cyclomatic complexity 28 for function main
 - `internal/fn/link_test.go`
   - Line 10: cyclomatic complexity 22 for function TestLinkResolveRelative
+- `internal/server/admin.go`
+  - Line 48: cyclomatic complexity 20 for function adminAccessStatus
+- `internal/cacher/cacher_test.go`
+  - Line 11: cyclomatic complexity 33 for function TestCacher
+- `internal/rule/config_cache.go`
+  - Line 50: cyclomatic complexity 16 for function (*configStore).load
+- `internal/rule/cache_test.go`
+  - Line 13: cyclomatic complexity 16 for function TestRulePathsAndReload
+- `internal/generator/generator_test.go`
+  - Line 16: cyclomatic complexity 16 for function TestUpstreamFeedsPreserveEntries
+- `internal/parser/details_test.go`
+  - Line 58: cyclomatic complexity 17 for function TestSSRDetailsRunConcurrentlyAndKeepOrder
+- `internal/parser/csr_test.go`
+  - Line 128: cyclomatic complexity 43 for function TestBrowserLifecycleAndLiveCache
+- `internal/parser/ssr.go`
+  - Line 110: cyclomatic complexity 35 for function ParseDataAndConfigBySSRContext
+- `internal/parser/details.go`
+  - Line 21: cyclomatic complexity 24 for function fillDetails
+- `internal/parser/csr.go`
+  - Line 373: cyclomatic complexity 20 for function ParsePageByBrowserContext
+  - Line 41: cyclomatic complexity 19 for function resolveBrowserURL
+  - Line 109: cyclomatic complexity 18 for function withBrowserPage
+- `internal/generator/generator.go`
+  - Line 18: cyclomatic complexity 19 for function GenerateFeedsByTypeContext
 - `internal/cmd/flags_test.go`
   - Line 11: cyclomatic complexity 22 for function TestApplyFlags
-- `pkg/PuerkitoBio/goquery/traversal.go`
-  - Line 613: cyclomatic complexity 21 for function getChildrenWithSiblingType
-- `pkg/andybalholm/cascadia/parser.go`
-  - Line 463: cyclomatic complexity 61 for function (*parser).parsePseudoclassSelector
-  - Line 645: cyclomatic complexity 25 for function (*parser).parseNth
-  - Line 767: cyclomatic complexity 19 for function (*parser).parseSimpleSelectorSequence
-  - Line 365: cyclomatic complexity 19 for function (*parser).parseAttributeSelector
-  - Line 172: cyclomatic complexity 19 for function (*parser).parseString
-  - Line 31: cyclomatic complexity 16 for function (*parser).parseEscape
+- `internal/network/request.go`
+  - Line 138: cyclomatic complexity 18 for function getRemoteDocument
+  - Line 34: cyclomatic complexity 16 for function HttpGetContext
 
 ### misspell
 
-- `pkg/PuerkitoBio/goquery/README.md`
-  - Line 167: "adressed" is a misspelling of "addressed"
-- `pkg/andybalholm/cascadia/selector.go`
-  - Line 309: "satisifes" is a misspelling of "satisfies"
-- `pkg/andybalholm/cascadia/test_resources/valid_selectors.json`
-  - Line 688: "thrid" is a misspelling of "third"
-- `internal/define/default.go`
-  - Line 32: "THORTTLING" is a misspelling of "THROTTLING"
 - `internal/jssdk/js/hep.js`
   - Line 36: "truely" is a misspelling of "truly"
-- `internal/jssdk/sandbox.go`
-  - Line 45: "THORTTLING" is a misspelling of "THROTTLING"
+- `internal/define/default.go`
+  - Line 32: "THORTTLING" is a misspelling of "THROTTLING"
 
 ---
 

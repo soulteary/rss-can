@@ -21,7 +21,7 @@
 - Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
 
-Current release: [v0.3.12](https://github.com/soulteary/rss-can/releases/tag/v0.3.12). See the [release notes](docs/releases/v0.3.12.md) for changes and upgrade requirements.
+Current release: [v0.4.0](https://github.com/soulteary/rss-can/releases/tag/v0.4.0). See the [release notes](docs/releases/v0.4.0.md) for changes and upgrade requirements.
 
 ## Usage
 
@@ -33,7 +33,7 @@ Download the binary from the github [release page](https://github.com/soulteary/
 
 ### JavaScript runtime for source builds
 
-Source builds now use a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. Updated Docker builds include it; standalone archives require it separately. Published v0.3.12 binaries/images retain their original runtime.
+Source builds now use a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. v0.4.0 Docker images and all four standalone archives include pinned Deno 2.9.8. Keep the bundled executable beside `rssc`; no separate download is needed. Historical v0.3.12 retains its embedded runtime.
 
 The service checks every Deno worker before starting. `RSS_JS_WORKERS` defaults to `1` and accepts `1–16` (restart to change). Runtime lookup uses `RSS_CAN_DENO`, a `deno` executable beside `rssc`, then PATH. See the [upgrade guide](docs/upgrading.md) for installation, proxy/cookie behavior and concurrency limits. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
 
@@ -51,8 +51,8 @@ The following behavior applies to current source builds:
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:
 
 ```
-docker pull soulteary/rss-can:v0.3.12
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.3.12
+docker pull soulteary/rss-can:v0.4.0
+docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.4.0
 ```
 
 

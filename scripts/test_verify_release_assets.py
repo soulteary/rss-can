@@ -11,6 +11,7 @@ import zipfile
 from unittest.mock import patch
 
 import verify_release_assets as release
+REAL_INSPECT_DENO = release.inspect_deno
 
 
 class VerifyReleaseTests(unittest.TestCase):
@@ -19,8 +20,10 @@ class VerifyReleaseTests(unittest.TestCase):
 
     def fixture(self, directory, omit=None, binaries=None):
         files = {name: b"fixture" for name in ["rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
-                 "docs/releases/v0.3.12.md", "docs/deno-prototype.md", "docs/upgrading.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
+                 f"docs/releases/{self.tag}.md", "docs/deno-prototype.md", "docs/upgrading.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
         files.update({f"third_party/licenses/{name}.txt": b"license" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown", "deno")})
+        if tuple(map(int, self.tag[1:].split("."))) >= (0, 4, 0):
+            files.update({"deno": b"runtime", "build/deno-runtime.json": b"{}"})
         if omit:
             del files[omit]
         checksums = {}
@@ -31,12 +34,15 @@ class VerifyReleaseTests(unittest.TestCase):
             if name.endswith(".zip"):
                 with zipfile.ZipFile(path, "w") as package:
                     for entry, body in files.items():
-                        package.writestr(entry, body)
+                        member = zipfile.ZipInfo(entry)
+                        member.external_attr = (0o100755 if entry in ("rssc", "deno") else 0o100644) << 16
+                        package.writestr(member, body)
             else:
                 with tarfile.open(path, "w:gz") as package:
                     for entry, body in files.items():
                         member = tarfile.TarInfo(entry)
                         member.size = len(body)
+                        member.mode = 0o755 if entry in ("rssc", "deno") else 0o644
                         package.addfile(member, io.BytesIO(body))
             checksums.setdefault(checksum, []).append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {name}\n")
         for name, records in checksums.items():
@@ -116,6 +122,35 @@ class VerifyReleaseTests(unittest.TestCase):
         release.validate_metadata(metadata, "darwin", "arm64", self.tag, self.commit, "go1.27.3")
         with self.assertRaises(ValueError):
             release.validate_metadata(metadata.replace(self.tag, self.tag+"0"), "darwin", "arm64", self.tag, self.commit, "go1.27.3")
+
+
+class PortableRuntimeTests(VerifyReleaseTests):
+    tag = "v0.4.0"
+
+    def setUp(self):
+        patcher = patch.object(release, 'inspect_deno')
+        self.inspect_runtime = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_runtime_hash_rejects_untrusted_binary(self):
+        # Call the real validator even though archive fixtures use fake runtimes.
+        self.inspect_runtime.side_effect = None
+        from prepare_deno import load_manifest
+        manifest = load_manifest(pathlib.Path(__file__).resolve().parent.parent)
+        self.assertEqual(manifest['version'], '2.9.8')
+        self.assertEqual(len(manifest['platforms']), 4)
+        with self.assertRaisesRegex(ValueError, 'Deno checksum mismatch'):
+            REAL_INSPECT_DENO(b'tampered', 'linux', 'amd64')
+
+    @patch.object(release, 'inspect_binary')
+    def test_portable_runtime_is_validated_for_every_platform(self, inspect):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            self.fixture(root)
+            release.verify(root, self.tag, self.commit, 'go1.27.3')
+            self.assertEqual(self.inspect_runtime.call_count, 4)
+            self.assertEqual({call.args[1:] for call in self.inspect_runtime.call_args_list},
+                             {('linux', 'amd64'), ('linux', 'arm64'), ('darwin', 'amd64'), ('darwin', 'arm64')})
 
 
 if __name__ == "__main__":

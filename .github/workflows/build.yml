@@ -82,6 +82,9 @@ jobs:
           go mod tidy -diff
           go test -v ./...
 
+      - name: Stage checksum-pinned portable Deno runtimes
+        run: python3 scripts/prepare_deno.py darwin
+
       - name: Validate GoReleaser configuration
         uses: goreleaser/goreleaser-action@v7
         with:
@@ -93,14 +96,22 @@ jobs:
         uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.18.3
-          args: build --snapshot --clean --config build/darwin-amd64.yaml
+          args: release --snapshot --clean --skip=publish --config build/darwin-amd64.yaml
+
+      - name: Smoke-test native amd64 snapshot before the next clean
+        if: success() && !startsWith(github.ref, 'refs/tags/') && runner.arch == 'X64'
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Validate darwin-arm64 release build without publication
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.18.3
-          args: build --snapshot --clean --config build/darwin-arm64.yaml
+          args: release --snapshot --clean --skip=publish --config build/darwin-arm64.yaml
+
+      - name: Smoke-test native arm64 snapshot before the next clean
+        if: success() && !startsWith(github.ref, 'refs/tags/') && runner.arch == 'ARM64'
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Build release archives without publication
         uses: goreleaser/goreleaser-action@v7
@@ -111,6 +122,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 0
+
+      - name: Smoke-test native portable archive without external Deno
+        if: success() && startsWith(github.ref, 'refs/tags/') && runner.arch == 'X64'
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Upload assets (macos-amd64)
         if: success() && startsWith(github.ref, 'refs/tags/')
@@ -132,6 +147,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 0
+
+      - name: Smoke-test native portable archive without external Deno
+        if: success() && startsWith(github.ref, 'refs/tags/') && runner.arch == 'ARM64'
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Upload assets (macos-arm64)
         if: success() && startsWith(github.ref, 'refs/tags/')
@@ -188,6 +207,9 @@ jobs:
           go mod tidy -diff
           go test -v ./...
 
+      - name: Stage checksum-pinned portable Deno runtimes
+        run: python3 scripts/prepare_deno.py linux
+
       - name: Validate GoReleaser configuration
         uses: goreleaser/goreleaser-action@v7
         with:
@@ -199,7 +221,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.18.3
-          args: build --snapshot --clean --config build/linux.yaml
+          args: release --snapshot --clean --skip=publish --config build/linux.yaml
 
       - name: Build release archives without publication
         uses: goreleaser/goreleaser-action@v7
@@ -210,6 +232,10 @@ jobs:
           args: release --clean --skip=publish --config build/linux.yaml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Smoke-test native portable archive without external Deno
+        if: success()
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Upload assets (linux)
         if: success() && startsWith(github.ref, 'refs/tags/')

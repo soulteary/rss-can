@@ -11,8 +11,7 @@ CGO_ENABLED=0 go test ./...
 go test -race ./internal/jssdk ./internal/rule
 ```
 
-Docker images include Deno 2.9.8. Standalone archives require a separately
-installed Deno (or RSS_CAN_DENO pointing to its executable). The service checks
+Docker images include Deno 2.9.8. v0.4.0 standalone archives bundle the same pinned runtime beside `rssc`; source-only builds require a separately installed Deno (or RSS_CAN_DENO pointing to its executable). The service checks
 runtime startup/execution before serving traffic and fails immediately if unavailable.
 
 Deno is the sole execution backend. The legacy v8go backend, its low-level

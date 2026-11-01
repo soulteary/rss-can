@@ -18,6 +18,11 @@ builds:
 archives:
   - formats: [zip]
     files:
+      - src: build/runtime/{{ .Os }}_{{ .Arch }}/deno
+        dst: deno
+        info:
+          mode: 0755
+      - build/deno-runtime.json
       - LICENSE
       - README.md
       - README_CN.md

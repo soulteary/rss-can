@@ -22,3 +22,6 @@ dist
 
 # Python release verification caches
 __pycache__/
+
+# Downloaded release runtimes
+build/runtime/

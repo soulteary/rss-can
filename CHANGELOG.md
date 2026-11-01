@@ -1,6 +1,13 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 — 2026-11-02
+
+See the [bilingual release notes](docs/releases/v0.4.0.md) and [upgrade guide](docs/upgrading.md).
+
+- Ship checksum-pinned Deno 2.9.8 with all four Linux/macOS archives; validate executable permissions and start native archives without an external runtime.
+- Adopt Fiber/chromedp, bounded application lifecycle and resource admission, immutable rule snapshots, feed telemetry and admin hardening.
+- Preserve feed field, date/category, pagination and URL provenance contracts; reject incomplete detail extraction.
+- Refresh cache-kit v2.1.1 and redis-kit v1.8.1 and optimized parser/Markdown/feed dependencies.
 
 - Reject incomplete feeds when configured detail links, upstream requests or selectors fail; keep inline metadata overrides and empty-element content fallback.
 - Apply rule cookies/proxies to SSR listings, pagination and details, scope cookies to the original host, and isolate document caches by request options.
@@ -10,7 +17,7 @@
 - Derive mutable startup configuration from existing default constants to avoid conflicting defaults.
 
 - Use a single persistent Deno worker by default, with fresh request contexts and timeout recovery.
-- Build release binaries without CGO; include Deno 2.9.8 in Docker images and CI. Standalone installations require Deno on PATH or RSS_CAN_DENO.
+- Build release binaries without CGO; include Deno 2.9.8 in Docker images and CI. Portable archives include Deno beside rssc; source builds need Deno on PATH or RSS_CAN_DENO.
 - Remove the legacy v8go backend and Go module dependency; Deno is the sole JavaScript runtime.
 
 ## v0.3.12 — 2026-10-27

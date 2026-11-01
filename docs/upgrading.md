@@ -3,23 +3,23 @@
 ## Which distribution am I running? / 先确认版本
 
 Published **v0.3.12** archives and images use the historical embedded runtime.
-They do not require Deno. Current source and future releases built from it use
+They do not require Deno. **v0.4.0** and current source use
 Deno **2.9.8**, with CGO disabled in Go release binaries. Changes under
-`CHANGELOG.md` → `Unreleased` do not change an existing published tag.
+a later `CHANGELOG.md` section do not change an existing published tag.
 Never replace a published release or its images to apply these changes.
 
-已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。当前源码以及由它构建的后续版本
-使用 Deno **2.9.8**。`Unreleased` 中的改动不会自动进入已发布版本；升级时使用新版本
+已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。**v0.4.0** 和当前源码
+使用 Deno **2.9.8**。后续源码中的改动不会自动进入已发布版本；升级时使用新版本
 或明确的源码构建镜像，不覆盖历史发布物。
 
 ## Standalone / 独立二进制
 
-Install Deno 2.9.8 for the same OS/architecture as `rssc`. The executable lookup
+v0.4.0 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup
 order is `RSS_CAN_DENO`, an executable `deno` beside `rssc`, then `deno` on PATH.
 An explicit override that does not work is an error; it is never silently ignored.
 The startup error explains how to supply the dependency.
 
-安装与 `rssc` 平台、架构相符的 Deno 2.9.8。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
+v0.4.0 四平台归档内置与 `rssc` 匹配的 Deno 2.9.8。完整解压并保留同目录 `deno` 的可执行权限，不能只复制 Go 二进制；启动时无需联网下载。Linux 归档需要 glibc，musl/Alpine 主机请使用 Debian 容器。源码单独构建仍需安装 Deno。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
 下可执行的 `deno`、PATH。显式指定的路径无效会报错，不会偷偷改用另一个运行时。
 
 ```sh
@@ -40,11 +40,10 @@ docker run --rm -p 8080:8080 -e RSS_REDIS=false rss-can:local
 ```
 
 The image includes pinned Deno and example rules. Mount custom rules at `/rules`.
-Do not assume a standalone archive includes Deno: its Go binary, rules, notices
-and this guide are packaged together; the runtime remains a separate install.
+v0.4.0 standalone archives also include Deno, rules, notices and this guide.
+Release CI validates the four upstream runtime hashes and starts native archives with an empty PATH.
 
-源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。独立归档附带升级说明，
-但不附带 Deno，需要单独安装或放在 `rssc` 同目录。
+源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。v0.4.0 独立归档也附带 Deno、规则和升级说明，发布前校验四平台运行时摘要，并以空 PATH 启动本机归档。
 
 ## Rule behavior / 规则行为
 
@@ -107,7 +106,13 @@ its link/selector or upstream access instead of accepting truncated content.
 先备份规则和部署配置，检查运行时启动、就绪接口及实际使用的订阅。对需要登录、代理、
 详情提取的规则单独验证。升级后出现 502 时查看日志定位详情 hook，修正规则或上游访问。
 
-## Architecture hardening in source builds
+## Rollback / 回退
+
+Keep the old v0.3.12 archive or fixed image tag and a backup of rules/configuration. Stop v0.4.0 before restoring the old executable/image and deployment settings; keep its original embedded runtime rather than mixing files between archives. No persistent configuration format migration is required by this release. Newly introduced settings/features do not work in v0.3.12; restore rules verified with that version. Clear disposable feed/document caches if responses differ after rollback; do not flush a Redis instance shared with other applications.
+
+保留 v0.3.12 原归档/固定镜像与规则、配置备份。先停 v0.4.0，再恢复旧程序、部署设置及旧版验证过的规则，不要混用归档文件。本次无需迁移持久化配置格式，但新配置和新功能在旧版不可用。必要时清理本应用可丢弃的缓存，不可清空共享 Redis。
+
+## Architecture hardening in v0.4.0
 
 Rule evaluation, CSR injection and browser cache identity now share an immutable
 copy of the loaded rule. Editing a rule file does not change an in-flight

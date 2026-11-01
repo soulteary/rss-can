@@ -2,6 +2,7 @@
 """Verify all release archives before publication or after downloading a Release."""
 import argparse
 import hashlib
+import json
 import pathlib
 import re
 import subprocess
@@ -54,6 +55,14 @@ def inspect_binary(binary, system, arch, tag, commit, go_version, cgo_enabled="0
         validate_metadata(metadata, system, arch, tag, commit, go_version, cgo_enabled)
 
 
+def inspect_deno(binary, system, arch):
+    from prepare_deno import load_manifest
+    manifest = load_manifest(pathlib.Path(__file__).resolve().parent.parent)
+    expected = manifest['platforms'][f'{system}_{arch}']['binary_sha256']
+    if hashlib.sha256(binary).hexdigest() != expected:
+        raise ValueError(f'bundled Deno checksum mismatch: {system}/{arch}')
+
+
 def verify(directory, tag, commit, go_version, cgo_enabled="0"):
     if not re.fullmatch(r"[0-9a-f]{40}", commit):
         raise ValueError("expected the full source commit SHA")
@@ -83,12 +92,18 @@ def verify(directory, tag, commit, go_version, cgo_enabled="0"):
     if cgo_enabled == "0":
         required |= {"third_party/licenses/deno.txt", "docs/deno-prototype.md", "docs/upgrading.md"}
     required |= {f"third_party/licenses/{name}.txt" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown")}
+    portable = tuple(map(int, tag[1:].split("."))) >= (0, 4, 0)
+    if portable:
+        required |= {"deno", "build/deno-runtime.json"}
     for name, (system, arch, _) in archives.items():
         path = directory / name
         if name.endswith(".zip"):
             with zipfile.ZipFile(path) as package:
                 names = package.namelist()
                 binary = package.read("rssc")
+                if portable:
+                    runtime = package.read("deno")
+                    executable = bool((package.getinfo("deno").external_attr >> 16) & 0o111)
         else:
             with tarfile.open(path) as package:
                 members = package.getmembers()
@@ -96,11 +111,18 @@ def verify(directory, tag, commit, go_version, cgo_enabled="0"):
                     raise ValueError(f"links are not allowed in {name}")
                 names = [member.name for member in members]
                 binary = package.extractfile("rssc").read()
+                if portable:
+                    runtime = package.extractfile("deno").read()
+                    executable = bool(package.getmember("deno").mode & 0o111)
         if len(set(names)) != len(names) or any(".." in pathlib.PurePosixPath(entry).parts or entry.startswith("/") for entry in names):
             raise ValueError(f"unsafe or duplicate archive entries in {name}")
         missing = required - set(names)
         if missing or not any(entry.startswith("rules/") and entry.endswith(".js") for entry in names):
             raise ValueError(f"archive missing runtime files in {name}: {missing}")
+        if portable:
+            if not executable:
+                raise ValueError(f"bundled Deno is not executable: {name}")
+            inspect_deno(runtime, system, arch)
         inspect_binary(binary, system, arch, tag, commit, go_version, cgo_enabled)
         print(f"Verified {name}: {system}/{arch}, {tag}, {commit}")
     return expected

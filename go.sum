@@ -36,8 +36,8 @@ github.com/redis/go-redis/v9 v9.23.0 h1:/TTVdJa8BRNsybwwGGnmiYktHNlUXtbOQxlWpHBP
 github.com/redis/go-redis/v9 v9.23.0/go.mod h1:EWP2UUk+XDaI1s5nQB5mablZN6vccXlmBQTyfnF87D0=
 github.com/shamaton/msgpack/v3 v3.2.3 h1:0r0aZtrXDFOPpwWJTEOpFq+Ih/JmMLm0pqLN5mSilrw=
 github.com/shamaton/msgpack/v3 v3.2.3/go.mod h1:sgBYvEiyz8JR1NC3yGRoPVME9xXovpnh3l/plW1nfRo=
-github.com/soulteary/cache-kit/v2 v2.1.0 h1:lDnyw18bY8y7UaiPV6BoxdtfeAUoBelyzMkUpwg9k30=
-github.com/soulteary/cache-kit/v2 v2.1.0/go.mod h1:dMmR1yt0wGhjTeSw1kIZz5UGyUz6kE4QiI3oSyAPTmc=
+github.com/soulteary/cache-kit/v2 v2.1.1 h1:el8I5izaWGMz0Wn5mz/KQpV2KCvP9hTFep8ElF4OXrY=
+github.com/soulteary/cache-kit/v2 v2.1.1/go.mod h1:OiXrYFVeZKwGNWdyf+CnLgdrlt934Eg2K92hb/01Ia0=
 github.com/soulteary/cascadia v1.0.0 h1:EKoZu9OmE9jz/6wfwJFpGwG0ynE3FcecegZYCjRSHnE=
 github.com/soulteary/cascadia v1.0.0/go.mod h1:7arpchZ3j0E9OlpuqHJ9sfaN4iWAp7aIPX/QTtvPKk4=
 github.com/soulteary/feeds v1.3.0 h1:flHq3sbYbvQUSmT8Ha0d5o0ScO0ruo+7ON5pBsYztwQ=
@@ -46,8 +46,8 @@ github.com/soulteary/goquery v1.14.0 h1:UhRxlbM7QXnyzNtQew5512XG5jjbbQDmNnMIL5O4
 github.com/soulteary/goquery v1.14.0/go.mod h1:MHmEwtzzZR23aR0hN/pDBsj4ulKP4/zBq8ldqNoaMMM=
 github.com/soulteary/html-to-markdown/v2 v2.0.1 h1:EJfx87aPtBRqicgtjlKCY+lktcKl7NKioQlZRVpryBg=
 github.com/soulteary/html-to-markdown/v2 v2.0.1/go.mod h1:6lDLgxRjrUsaTJ7YLrV1gOZhiOuxyXcn0L7+Ip6OHQQ=
-github.com/soulteary/redis-kit v1.8.0 h1:8nILkb49Q3eLWcuFE+DfyNqX9kFeyuHKoCDvngXgK+k=
-github.com/soulteary/redis-kit v1.8.0/go.mod h1:k/lvXA9ecjKhSvNJrGlQ7K0ijp727OYfecG1Mxadv5A=
+github.com/soulteary/redis-kit v1.8.1 h1:9BCtZNqH3N4CO38ZNMCrvBxTlKAjOFqcLvh7gK5UHHo=
+github.com/soulteary/redis-kit v1.8.1/go.mod h1:k/lvXA9ecjKhSvNJrGlQ7K0ijp727OYfecG1Mxadv5A=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
 github.com/tinylib/msgp v1.6.5 h1:iAH6XTP7BpzErjBZlujJQXxA+GmRi2YWs6M4KdLtNbE=

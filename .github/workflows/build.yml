@@ -98,12 +98,20 @@ jobs:
           version: v2.18.3
           args: release --snapshot --clean --skip=publish --config build/darwin-amd64.yaml
 
+      - name: Smoke-test native amd64 snapshot before the next clean
+        if: success() && !startsWith(github.ref, 'refs/tags/') && runner.arch == 'X64'
+        run: python3 scripts/smoke_release_archive.py dist
+
       - name: Validate darwin-arm64 release build without publication
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: goreleaser/goreleaser-action@v7
         with:
           version: v2.18.3
           args: release --snapshot --clean --skip=publish --config build/darwin-arm64.yaml
+
+      - name: Smoke-test native arm64 snapshot before the next clean
+        if: success() && !startsWith(github.ref, 'refs/tags/') && runner.arch == 'ARM64'
+        run: python3 scripts/smoke_release_archive.py dist
 
       - name: Build release archives without publication
         uses: goreleaser/goreleaser-action@v7
@@ -116,7 +124,7 @@ jobs:
           CGO_ENABLED: 0
 
       - name: Smoke-test native portable archive without external Deno
-        if: success() && runner.arch == 'X64'
+        if: success() && startsWith(github.ref, 'refs/tags/') && runner.arch == 'X64'
         run: python3 scripts/smoke_release_archive.py dist
 
       - name: Upload assets (macos-amd64)
@@ -141,7 +149,7 @@ jobs:
           CGO_ENABLED: 0
 
       - name: Smoke-test native portable archive without external Deno
-        if: success() && runner.arch == 'ARM64'
+        if: success() && startsWith(github.ref, 'refs/tags/') && runner.arch == 'ARM64'
         run: python3 scripts/smoke_release_archive.py dist
 
       - name: Upload assets (macos-arm64)

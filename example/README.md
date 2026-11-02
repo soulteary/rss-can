@@ -17,7 +17,9 @@ docker compose -f example/3.enable-csr-render/docker-compose.yml up -d
 
 Compose resolves the read-only `../../rules:/rules:ro` bind relative to the selected Compose file. It uses this checkout's actual sample rules instead of silently creating an empty per-example `rules` directory. To use custom trusted rules, replace the bind source with their real directory; preserve regular files rather than symlinks. Ensure every configured rule passes the new validation before replacing a deployment.
 
-挂载路径按各 Compose 文件所在目录解析，实际读取仓库 `rules`，不再自动创建空规则目录。自定义规则请改为真实目录，并保留只读挂载。Deno 会启动独立进程，部署环境需允许执行进程；CSR/MIX 仍需 Chrome，Deno 并不替代浏览器。
+挂载路径按各 Compose 文件所在目录解析，实际读取仓库 `rules`，不再自动创建空规则目录。自定义规则请改为真实目录，并保留只读挂载。Deno 会启动独立进程，部署环境需允许执行进程；CSR/MIX 仍需 Chrome，Deno 并不替代浏览器。第三个示例等待浏览器的 `/json/version` 健康检查通过后才启动 RSS 服务，避免容器刚启动时首个浏览器请求连接被拒绝。
+
+The CSR profile waits for the browser CDP discovery endpoint to return HTTP 200 before starting RSS-Can; a running container alone does not establish browser readiness.
 
 ## Upgrade and verify / 升级验收
 

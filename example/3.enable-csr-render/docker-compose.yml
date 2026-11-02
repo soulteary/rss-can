@@ -3,6 +3,9 @@ version: "3"
 services:
   rssc:
     image: soulteary/rss-can:v0.4.0
+    depends_on:
+      browserless:
+        condition: service_healthy
     environment:
       - RSS_HEADLESS_SERVER=http://browserless:3000
       - RSS_SERVER=redis:6379
@@ -14,6 +17,16 @@ services:
   # You can replaced with any headless docker image, such as rod
   browserless:
     image: browserless/chrome:1-puppeteer-19.2.2
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3000/json/version', r => { r.resume(); process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));"
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
 
   # If Redis Cache is enabled, then any version of Redis is necessary,
   # or a cloud server can be used instead

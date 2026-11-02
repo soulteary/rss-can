@@ -160,3 +160,5 @@ Cache-enabled document requests share in-flight work; `DisableCache` retains ind
 Source builds now share immutable rule snapshots, bound upstream HTTP work (16 active and 64 waiting; overload returns 503), bound Redis operations with circuit recovery, and inject a FeedService. See the [upgrade guide](docs/upgrading.md#architecture-hardening-in-source-builds) for behavior and limits.
 
 Source builds also add a 64 MiB memory-cache budget, transactional rule reload, generation/page/item/output limits, shared browser extraction and independently owned application shutdown. Empty or invalid rule sets now prevent startup or reload; see the [upgrade guide](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle).
+
+Deployment profiles: [Compose examples and upgrade checks](example/README.md).

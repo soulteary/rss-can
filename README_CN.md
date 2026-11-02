@@ -161,3 +161,5 @@ This project is licensed under the [MIT License](https://github.com/soulteary/RS
 当前源码新增规则快照一致性、全局 HTTP 抓取预算（16 个执行、64 个等待，满载返回 503）、Redis 操作超时与熔断，以及可注入的 FeedService。行为边界见[升级指南](docs/upgrading.md#architecture-hardening-in-source-builds)。
 
 进一步的源码构建改进包括：64 MiB 内存缓存预算、事务式规则重载、完整生成并发预算、页面/条目/输出大小限制、浏览器任务合并和应用实例独立关停。空规则集及无效规则现在会阻止启动或重载；具体限制见[升级指南](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle)。
+
+部署方式：[Compose 示例与升级验收](example/README.md)。

@@ -11,6 +11,57 @@ import tempfile
 import zipfile
 
 
+# The v0.5.0 user workflows must remain usable after extracting an archive.
+# Keep this list explicit: broad docs/example globs can package local secrets.
+TEAM_RELEASE_FILES = frozenset({
+    '.github/coverage.svg',
+    '.github/goreportcard.svg',
+    '.github/go-test-report.md',
+    '.github/goreportcard-report.md',
+    '.github/images/hp.jpg',
+    '.github/images/feeds.jpg',
+    'docs/secure-deployment.md',
+    'docs/stargate-access.md',
+    'docs/stargate-setup.md',
+    'docs/fetch-policy.md',
+    'docs/feed-content-safety.md',
+    'docs/feed-snapshots.md',
+    'docs/observability.md',
+    'docs/testing.md',
+    'docs/feeds-performance.md',
+    'docs/goquery-performance.md',
+    'docs/html-to-markdown-performance.md',
+    'docs/benchmarks/feed-load.md',
+    'docs/benchmarks/README.md',
+    'docs/benchmarks/deno-v8go.md',
+    'docs/benchmarks/deno-worker.md',
+    'docs/benchmarks/2026-10-28-coverage.json',
+    'docs/benchmarks/2026-10-28-deno-v8go.json',
+    'docs/benchmarks/2026-10-28-deno-worker-soak.json',
+    'docs/benchmarks/2026-10-28-deno-worker.json',
+    'docs/benchmarks/2026-10-28-feed-load.json',
+    'docs/benchmarks/2026-10-28-v8go-soak.json',
+    'example/README.md',
+    'example/1.standalone/docker-compose.yml',
+    'example/2.with-redis-cache/docker-compose.yml',
+    'example/3.enable-csr-render/docker-compose.yml',
+    'example/4.with-stargate/README.md',
+    'example/4.with-stargate/compose.yml',
+    'example/4.with-stargate/nginx.conf.template',
+    'example/4.with-stargate/setup.py',
+    'example/4.with-stargate/verify.py',
+    'example/4.with-stargate/rss_operator.py',
+    'example/4.with-stargate/.gitignore',
+})
+
+
+def private_release_path(name):
+    parts = pathlib.PurePosixPath(name).parts
+    return any(part == ".runtime" or part == ".env" or
+               (part.startswith(".env.") and part != ".env.example")
+               for part in parts) or "stargate-integration-plan.zh-CN.md" in parts
+
+
 def archive_names(tag):
     if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
         raise ValueError("expected a stable version tag such as v0.3.12")
@@ -95,6 +146,9 @@ def verify(directory, tag, commit, go_version, cgo_enabled="0"):
     portable = tuple(map(int, tag[1:].split("."))) >= (0, 4, 0)
     if portable:
         required |= {"deno", "build/deno-runtime.json"}
+    team_release = tuple(map(int, tag[1:].split("."))) >= (0, 5, 0)
+    if team_release:
+        required |= TEAM_RELEASE_FILES
     for name, (system, arch, _) in archives.items():
         path = directory / name
         if name.endswith(".zip"):
@@ -116,6 +170,8 @@ def verify(directory, tag, commit, go_version, cgo_enabled="0"):
                     executable = bool(package.getmember("deno").mode & 0o111)
         if len(set(names)) != len(names) or any(".." in pathlib.PurePosixPath(entry).parts or entry.startswith("/") for entry in names):
             raise ValueError(f"unsafe or duplicate archive entries in {name}")
+        if team_release and any(private_release_path(entry) for entry in names):
+            raise ValueError(f"private deployment files in {name}")
         missing = required - set(names)
         if missing or not any(entry.startswith("rules/") and entry.endswith(".js") for entry in names):
             raise ValueError(f"archive missing runtime files in {name}: {missing}")

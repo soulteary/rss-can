@@ -1,6 +1,6 @@
 # Authorized feed snapshots
 
-Source builds keep a bounded, process-local cache of complete feed representations.
+v0.5.0 and later, and current source builds, keep a bounded, process-local cache of complete feed representations.
 The HTTP authentication/authorization middleware still runs on **every** request,
 including requests carrying `If-None-Match`. A snapshot is content, never a cached
 permission decision. Do not expose the feed handler outside that middleware.

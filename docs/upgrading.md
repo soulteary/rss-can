@@ -3,31 +3,149 @@
 ## Which distribution am I running? / 先确认版本
 
 Published **v0.3.12** archives and images use the historical embedded runtime.
-They do not require Deno. **v0.4.0** and current source use
+They do not require Deno. **v0.4.0**, **v0.5.0** and current source use
 Deno **2.9.8**, with CGO disabled in Go release binaries. Changes under
 a later `CHANGELOG.md` section do not change an existing published tag.
 Never replace a published release or its images to apply these changes.
 
-已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。**v0.4.0** 和当前源码
+已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。**v0.4.0**、**v0.5.0** 和当前源码
 使用 Deno **2.9.8**。后续源码中的改动不会自动进入已发布版本；升级时使用新版本
 或明确的源码构建镜像，不覆盖历史发布物。
 
-Team access, public fetch policy, the source wizard and `doctor` are currently
-source-only features. Published `v0.4.0` silently ignores their mode settings.
-Use the [verified source-image procedure](secure-deployment.md#build-and-verify-current-source)
-before enabling them; do not substitute the historical image in a team deployment.
+Team access, public fetch policy, the source wizard and `doctor` are available in
+**v0.5.0 and later**. Historical v0.4.0 silently ignores their mode settings.
+Use a matching release or the [verified source-image procedure](secure-deployment.md#build-and-verify-current-source), never the old image for team traffic.
 
-团队鉴权、公网抓取策略、来源向导和 `doctor` 目前仅在当前源码中提供。
-正式 `v0.4.0` 会静默忽略相关模式配置；多人部署须先构建并验收源码镜像。
+团队鉴权、公网抓取策略、来源向导和 `doctor` 从 **v0.5.0** 开始提供。
+历史 v0.4.0 会静默忽略相关配置，不能承接团队流量。
+
+<a id="upgrade-v050"></a>
+
+## Upgrading from v0.4.0 to v0.5.0 / 从 v0.4.0 升级到 v0.5.0
+
+v0.5.0 keeps Deno 2.9.8 and the same portable archive layout. Extract the whole
+archive, retaining the executable sibling `deno`. The new team mode is optional:
+without `RSS_ACCESS_MODE=team`, standalone mode continues to use trusted,
+operator-installed rules. Upgrading the binary does not make a standalone feed
+private. Historical v0.4.0 ignores the new access/fetch settings entirely.
+
+Before switching traffic:
+
+1. Back up the current image digest/archive, deployment settings and rule files.
+   If upgrading a source-based team deployment, also back up its authorization
+   database and private environment files while the service is stopped. Preserve
+   ownership and permissions; do not copy these secrets into the image build
+   context, Git repository or diagnostic output.
+2. Use the v0.5.0 archive/image for your platform, or build a reviewed checkout.
+   Containers now run as UID/GID **65532**. Mount rules read-only and make them
+   readable to that user; provide writable private state for team mode, and a
+   bounded writable `/tmp` when using a read-only root filesystem. Do not solve
+   permission errors by making secrets world-readable or running as root.
+3. Decide the freshness policy. Output snapshots are now enabled by default:
+   `RSS_SNAPSHOT_TTL=30` and `RSS_SNAPSHOT_MAX_STALE=3600` (seconds). Readers may
+   receive the last successful feed while a refresh runs or fails, within that
+   bound. `RSS_SNAPSHOT_MAX_STALE=0` requires successful refresh after expiry;
+   `RSS_SNAPSHOT_TTL=0` disables output snapshots but retains the document cache. A rule's `DisableCache` still
+   bypasses caches. See [snapshot behavior](feed-snapshots.md).
+4. Review representative RSS, Atom and JSON feeds. [HTML sanitization](feed-content-safety.md)
+   now applies to **all** rules: CSS, scripts, embeds and other active markup are
+   removed; images become alternative text; JSON summaries are plain text.
+   This changes output for feeds relying on images or custom styling. There is
+   no per-rule sanitizer bypass.
+5. Update management clients: `/config/*` writes require **POST** and
+   `X-RSS-Admin-Action: 1`, plus the existing authorization and same-origin checks.
+   GET no longer mutates configuration. A proxy must not inject the action
+   header for arbitrary callers or give every signed-in user the admin token.
+6. Run `rssc doctor` with the deployment's environment and mounts, verify
+   `/_/ready/`, then test the actual rules, details, cookies/proxies and reader
+   workflows you use. Feed generations share a 64-HTTP-request/64-MiB upstream
+   budget in addition to existing per-page and concurrency limits. Test both
+   fresh and cached responses; use the same credentials to verify 304 handling.
+
+For **team mode**, follow [team access](stargate-access.md) and the
+[Stargate deployment example](../example/4.with-stargate/README.md) before moving
+traffic. It enforces public SSR-only destinations, including redirect/DNS checks;
+private network targets, executable user rules, browser rendering and upstream
+proxy/cookie configuration are not wizard capabilities. Keep trusted legacy
+integrations in a separate, private standalone deployment when needed.
+
+Set the exact HTTPS public origin and trusted proxy socket addresses, a Warden
+URL/API key and a private access-store path. The state directory must be owned
+by the service user with mode `0700`; the store is `0600`. Only one service
+process may write a store: stop the old instance before opening it in the new
+one. Do not delete its advisory lock file while a service is running. The store
+is bound to its Warden issuer; changing directory authorities needs an explicit
+permission migration. An existing legacy rule is not automatically readable in
+team mode: register its owner/ACL or create a source through the wizard.
+
+Verify unauthenticated and unassigned reads fail, ordinary users cannot access
+management, and revoked reader credentials and disabled Warden users lose access
+on their next request. Authorization also runs before cache hits and 304s. Keep
+backend, Redis and CDP ports private; expose only the authenticated gateway.
+
+Manual refresh now bypasses and replaces upstream document caches even when
+output snapshots are disabled. It retains request budgets, retry backoff and
+cancellation. Source edits/rollbacks use revision-isolated page caches; a failed
+refresh preserves eligible last-success content rather than publishing a partial
+feed. No cache flush is needed for the new key namespace. Caches remain disposable,
+whereas the authorization database contains ownership, credentials and source
+history and must be preserved.
+
+v0.5.0 延续 Deno 2.9.8 和归档布局，完整解压并保留同目录可执行的 `deno`。
+团队模式是可选项；未设置 `RSS_ACCESS_MODE=team` 时仍为独立模式，仅信任管理员安装的
+规则。升级程序不会自动把已有订阅变为私有；历史 v0.4.0 会忽略新的鉴权及抓取配置。
+
+升级前备份镜像摘要/归档、环境和规则；已有源码团队部署还需停机备份权限数据库与私密
+环境文件。容器以 UID/GID 65532 运行，规则只读且对该用户可读，团队状态目录权限为
+`0700`、数据库为 `0600`，只读根文件系统需提供有容量限制的可写 `/tmp`。
+不能通过开放秘密文件权限或改用 root 解决挂载问题。
+
+默认输出快照保鲜 30 秒，允许额外 3600 秒旧内容；`RSS_SNAPSHOT_MAX_STALE=0` 禁止
+过期快照响应，`RSS_SNAPSHOT_TTL=0` 关闭输出快照但保留页面缓存。HTML 清理作用于全部规则：删除 CSS、
+脚本及嵌入内容，图片转为替代文本，JSON 摘要为纯文本，无单规则绕过开关。
+管理写接口须改为 POST 并显式携带 `X-RSS-Admin-Action: 1`；代理不得为普通请求自动注入
+此头或管理员凭据。运行 `rssc doctor`、检查就绪，并验证实际订阅、缓存、分页/详情与
+Cookie/代理。每次生成共用 64 次 HTTP 请求、64 MiB 上游响应预算。
+
+团队部署须配置 HTTPS 来源、精确可信代理、Warden 和私有权限文件，并保持单进程写入；
+切换前停旧实例，运行中不可删除锁文件。权限库绑定 Warden，不能直接换成另一身份目录。
+已有规则不会自动公开，须登记所有者和 ACL。团队模式强制公网 SSR；浏览器、内网及带
+代理/Cookie 的可信规则需要独立私有部署。验收未登录/未授权拒绝、普通用户不能管理、
+阅读器撤销和 Warden 禁用立即生效，以及缓存和 304 前仍鉴权。只公开网关，保持后端、
+Redis 和 CDP 私有。
+
+手动刷新现在重新抓取并更新底层页面缓存，即使已关闭输出快照；仍遵守预算、重试退避和
+取消。来源修改/恢复版本采用隔离缓存，不会复用旧版本页面。缓存可重建，无需统一清空；
+包含来源、历史、权限和阅读器凭据的数据库必须保留。
+
+### Safe rollback / 安全回退
+
+For standalone deployments, stop v0.5.0 and restore the exact prior image/archive,
+settings and compatible rules. Retain the new backups separately. Do not mix
+executables from different archives or flush Redis shared with other applications.
+
+**Do not route team traffic to v0.4.0 or earlier.** Those versions ignore team
+settings and cannot enforce the new ACLs or use managed sources/credentials.
+Keep the team gateway closed while restoring a compatible team-capable build and
+its matching private state backup. Do not overwrite or discard the newer store
+merely to make an older binary start; preserve it for recovery and migrate
+permissions explicitly if necessary. Restoring a database backup can restore
+previously revoked grants or old ownership: reconcile revocations and re-test
+access before reopening the gateway.
+
+独立部署回退时先停新版，再恢复原镜像/完整归档、配置和兼容规则，另存新版备份。
+团队流量不可切到 v0.4.0 或更旧版本：它们忽略团队配置，无法执行 ACL 或使用托管来源。
+恢复兼容的团队版本和对应私密状态期间，关闭网关；不要覆盖或丢弃新权限库来强行启动旧版。
+恢复备份可能带回已撤销凭据或旧所有权，重新核对撤销记录与权限并验收后再开放。
 
 ## Standalone / 独立二进制
 
-v0.4.0 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup
+v0.4.0 and v0.5.0 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup
 order is `RSS_CAN_DENO`, an executable `deno` beside `rssc`, then `deno` on PATH.
 An explicit override that does not work is an error; it is never silently ignored.
 The startup error explains how to supply the dependency.
 
-v0.4.0 四平台归档内置与 `rssc` 匹配的 Deno 2.9.8。完整解压并保留同目录 `deno` 的可执行权限，不能只复制 Go 二进制；启动时无需联网下载。Linux 归档需要 glibc，musl/Alpine 主机请使用 Debian 容器。源码单独构建仍需安装 Deno。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
+v0.4.0 和 v0.5.0 四平台归档内置与 `rssc` 匹配的 Deno 2.9.8。完整解压并保留同目录 `deno` 的可执行权限，不能只复制 Go 二进制；启动时无需联网下载。Linux 归档需要 glibc，musl/Alpine 主机请使用 Debian 容器。源码单独构建仍需安装 Deno。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
 下可执行的 `deno`、PATH。显式指定的路径无效会报错，不会偷偷改用另一个运行时。
 
 ```sh
@@ -44,14 +162,14 @@ Chrome is needed for CSR/mixed rules. Configure its endpoint with
 
 ```sh
 docker build -f docker/Dockerfile -t rss-can:local .
-docker run --rm -p 8080:8080 -e RSS_REDIS=false rss-can:local
+docker run --rm -p 127.0.0.1:8080:8080 -e RSS_REDIS=false rss-can:local
 ```
 
 The image includes pinned Deno and example rules. Mount custom rules at `/rules`.
-v0.4.0 standalone archives also include Deno, rules, notices and this guide.
+v0.4.0 and v0.5.0 standalone archives also include Deno, rules, notices and this guide.
 Release CI validates the four upstream runtime hashes and starts native archives with an empty PATH.
 
-源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。v0.4.0 独立归档也附带 Deno、规则和升级说明，发布前校验四平台运行时摘要，并以空 PATH 启动本机归档。
+源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。v0.4.0 和 v0.5.0 独立归档也附带 Deno、规则和升级说明，发布前校验四平台运行时摘要，并以空 PATH 启动本机归档。
 
 ## Rule behavior / 规则行为
 
@@ -114,7 +232,7 @@ its link/selector or upstream access instead of accepting truncated content.
 先备份规则和部署配置，检查运行时启动、就绪接口及实际使用的订阅。对需要登录、代理、
 详情提取的规则单独验证。升级后出现 502 时查看日志定位详情 hook，修正规则或上游访问。
 
-## Rollback / 回退
+## Historical v0.4.0 to v0.3.12 rollback / 历史版本回退
 
 Keep the old v0.3.12 archive or fixed image tag and a backup of rules/configuration. Stop v0.4.0 before restoring the old executable/image and deployment settings; keep its original embedded runtime rather than mixing files between archives. No persistent configuration format migration is required by this release. Newly introduced settings/features do not work in v0.3.12; restore rules verified with that version. Clear disposable feed/document caches if responses differ after rollback; do not flush a Redis instance shared with other applications.
 
@@ -349,7 +467,7 @@ HTTP(S) URL; an invalid first base does not activate later base elements.
 The configured original URL remains the Cookie authorization origin. Redirects
 or document bases do not grant its credentials to a different host.
 
-Document cache keys now use v3 and browser extraction keys use v6. Their
+Document cache keys use v4 in v0.5.0 and browser extraction keys use v6. Their
 versioned records include provenance; obsolete, malformed, unsuccessful or
 oversized records are treated as misses and refetched. Decoded HTML/CSR data is
 still capped at 10 MiB. Encoded records allow bounded JSON escaping/metadata

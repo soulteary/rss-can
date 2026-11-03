@@ -1,4 +1,5 @@
 import hashlib
+import fnmatch
 import io
 import json
 import pathlib
@@ -18,12 +19,16 @@ class VerifyReleaseTests(unittest.TestCase):
     tag = "v0.3.12"
     commit = "a" * 40
 
-    def fixture(self, directory, omit=None, binaries=None):
+    def fixture(self, directory, omit=None, binaries=None, extra=None):
         files = {name: b"fixture" for name in ["rssc", "LICENSE", "README.md", "README_CN.md", "CREDITS.md", "DEPENDENCIES.md", "CHANGELOG.md",
                  f"docs/releases/{self.tag}.md", "docs/deno-prototype.md", "docs/upgrading.md", "rules/example/feed.js", "internal/jssdk/js/jquery.LICENSE", "internal/jssdk/js/moment.LICENSE"]}
         files.update({f"third_party/licenses/{name}.txt": b"license" for name in ("cache2go", "cascadia", "feeds", "goquery", "html-to-markdown", "deno")})
         if tuple(map(int, self.tag[1:].split("."))) >= (0, 4, 0):
             files.update({"deno": b"runtime", "build/deno-runtime.json": b"{}"})
+        if tuple(map(int, self.tag[1:].split("."))) >= (0, 5, 0):
+            files.update({name: b"fixture" for name in release.TEAM_RELEASE_FILES})
+        if extra:
+            files.update(extra)
         if omit:
             del files[omit]
         checksums = {}
@@ -151,6 +156,46 @@ class PortableRuntimeTests(VerifyReleaseTests):
             self.assertEqual(self.inspect_runtime.call_count, 4)
             self.assertEqual({call.args[1:] for call in self.inspect_runtime.call_args_list},
                              {('linux', 'amd64'), ('linux', 'arm64'), ('darwin', 'amd64'), ('darwin', 'arm64')})
+
+
+class TeamReleaseTests(PortableRuntimeTests):
+    tag = "v0.5.0"
+
+    @patch.object(release, "inspect_binary")
+    def test_missing_team_workflow_files_are_rejected(self, inspect):
+        for missing in ("docs/stargate-access.md", "docs/secure-deployment.md",
+                        "example/4.with-stargate/setup.py",
+                        "example/4.with-stargate/nginx.conf.template"):
+            with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temporary:
+                root = pathlib.Path(temporary)
+                self.fixture(root, omit=missing)
+                with self.assertRaisesRegex(ValueError, "missing runtime files"):
+                    release.verify(root, self.tag, self.commit, "go1.27.3")
+
+    @patch.object(release, "inspect_binary")
+    def test_archives_reject_local_credentials_and_unpublished_plan(self, inspect):
+        for secret in (".env.team", "example/4.with-stargate/.env.production",
+                       "example/4.with-stargate/.runtime/operator.key",
+                       "docs/stargate-integration-plan.zh-CN.md"):
+            with self.subTest(secret=secret), tempfile.TemporaryDirectory() as temporary:
+                root = pathlib.Path(temporary)
+                self.fixture(root, extra={secret: b"harmless exclusion marker"})
+                with self.assertRaisesRegex(ValueError, "private deployment files"):
+                    release.verify(root, self.tag, self.commit, "go1.27.3")
+
+    def test_all_archive_configs_package_only_public_workflow_files(self):
+        root = pathlib.Path(__file__).resolve().parent.parent
+        for config in (root / "build").glob("*.yaml"):
+            # The workflow payload is an explicit list, independent of local files.
+            entries = {line.removeprefix("      - ").strip()
+                       for line in config.read_text().splitlines()
+                       if line.startswith("      - ")}
+            self.assertLessEqual(release.TEAM_RELEASE_FILES, entries, str(config))
+            for private in (".env.team", "example/4.with-stargate/.env.team",
+                            "example/4.with-stargate/.runtime/operator.key",
+                            "docs/stargate-integration-plan.zh-CN.md"):
+                self.assertFalse(any(fnmatch.fnmatchcase(private, entry) for entry in entries),
+                                 f"{config} would package {private}")
 
 
 if __name__ == "__main__":

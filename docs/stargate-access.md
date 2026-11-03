@@ -1,16 +1,18 @@
 # Stargate identity and private feed access
 
-**Requires current source:** published `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features described here. It silently ignores the new configuration variables. [Build and verify the current source image](secure-deployment.md#build-and-verify-current-source) first; do not add team settings to the historical standalone image.
+**Version requirement:** the team access, public fetch policy, source wizard and `doctor` features described here require **v0.5.0 or later**, or a reviewed current source build. Historical `v0.4.0` silently ignores the new configuration variables and must not be used for team deployments. For a source deployment, [build and verify the image](secure-deployment.md#build-and-verify-current-source) first.
 
 RSS Can has two explicit operating modes. `standalone` preserves the existing
 trusted-rule deployment. `team` requires source permissions before it serves
 feeds, including feeds reached through the old `/feed/:id/:type` addresses.
 An unknown rule is never implicitly public in team mode.
 
-This change implements the identity and access layer. It does not make arbitrary
-JavaScript safe to upload or replace network/container isolation. Keep rule
-installation restricted to operators until the fetch-policy and execution
-isolation changes have also been deployed.
+Team mode enforces public-network fetch policy and supports SSR sources only;
+CSR/MIX and inspector browsers are refused. Signed-in users can create private
+declarative sources through the [source wizard](stargate-setup.md), without
+uploading JavaScript. Executable JavaScript rules remain operator-managed.
+These controls do not replace network/container isolation or make arbitrary
+JavaScript safe to upload.
 
 ## Verified upstream contract
 
@@ -114,7 +116,9 @@ Private is the default. Set `"public":true` only when anonymous access to the
 output is intended. Changing the owner revokes all previously issued grants for
 that source. Removing a reader immediately removes the reader's grant access.
 Owners and named readers are provisioned as active local principals unless an
-operator has already disabled them.
+operator has already disabled them. A user's first successful login through the
+trusted gateway also provisions a local principal after Warden confirms the
+account is active. Neither path re-enables an operator-disabled principal.
 
 `GET /api/sources` and `/feed` return only the caller's readable sources. They
 require a trusted `X-Auth-User` plus an active Warden record. Administrative
@@ -214,8 +218,10 @@ authorized before revocation may finish; every new request checks fresh state.
   requests rather than reverting to anonymous routes.
 - Warden errors fail closed for private reads; public sources remain explicitly
   public. Cache fallbacks do not substitute for authorization checks.
-- Do not reuse one authorization file across replicas. Shared-database support,
-  delegated source editors, and automatic rule creation are separate work.
+- Do not reuse one authorization file across replicas. Shared-database support
+  and delegated source editors are not supported. Users can create declarative
+  managed sources; installing executable JavaScript rules remains an operator
+  task.
 
 ## Tests
 

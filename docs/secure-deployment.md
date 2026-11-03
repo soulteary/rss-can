@@ -8,15 +8,23 @@ private environment files, builds RSS Can from source, and wires the HTTPS
 gateway and private backend network. The commands below are for operators
 maintaining their own container wiring.
 
-The security behavior below applies to **current source**, not published
-`v0.4.0`. That historical image ignores `RSS_ACCESS_MODE` and
+The security behavior below applies to **v0.5.0 and later**, and current source
+builds, not historical `v0.4.0`. That historical image ignores `RSS_ACCESS_MODE` and
 `RSS_FETCH_POLICY`; setting them does not add authentication or SSRF protection.
 It also predates the POST-only administrative API and log redaction described
-below. The standalone Compose examples intentionally retain that release for
-compatibility and must not be used as a team deployment.
+below. The standalone Compose examples now use v0.5.0 but do not enable team identity;
+use the Stargate example for a shared deployment.
 
-From a reviewed checkout containing these changes, build a separately named
-image. Do not overwrite a historical release tag:
+For the released image, pull the pinned version and verify that its diagnostics
+complete successfully before configuring real credentials:
+
+```sh
+docker pull soulteary/rss-can:v0.5.0
+docker run --rm --network none -e RSS_REDIS=false soulteary/rss-can:v0.5.0 rssc doctor
+```
+
+Alternatively, from a reviewed checkout, build and verify a separately named
+source image. Do not overwrite a published release tag:
 
 ```sh
 docker build -f docker/Dockerfile --build-arg COMMIT="$(git rev-parse HEAD)" -t rss-can-source:local .
@@ -35,7 +43,7 @@ file `.env.team`, using unquoted `KEY=value` lines (Docker retains literal
 quotes). Create it with `umask 077`, require mode `0600`, and never commit
 credentials. `.env.team` is excluded from Git and the Docker build context. Set
 `RSS_ACCESS_STORE=/state/access.json` and
-`RSS_REDIS=false` unless a private Redis is configured. Run the verified image:
+`RSS_REDIS=false` unless a private Redis is configured. Run the verified release image (or substitute the separately verified source image):
 
 ```sh
 docker run --name rss-can-team --user 65532:65532 \
@@ -44,7 +52,7 @@ docker run --name rss-can-team --user 65532:65532 \
   --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
   --env-file .env.team -p 127.0.0.1:8080:8080 \
   -v "$(pwd)/state:/state" -v "$(pwd)/rules:/rules:ro" \
-  rss-can-source:local
+  soulteary/rss-can:v0.5.0
 ```
 
 Connect the authenticated reverse proxy through a private path and set
@@ -56,7 +64,7 @@ rejected before sending real traffic. Run `doctor` with the same environment
 and mounts when diagnosing the deployed configuration; failure must be fixed,
 not bypassed by switching back to the old image.
 
-Source container images run as UID/GID 65532. The example Compose files bind only to
+v0.5.0 and current source container images run as UID/GID 65532. The standalone Compose files bind only to
 127.0.0.1, mount rules read-only, drop Linux capabilities, disable privilege
 escalation, and provide a bounded writable temporary directory. These are
 single-user examples, not an authorization boundary for multi-user hosting.
@@ -111,12 +119,14 @@ contact their host: do not use the inspector for sensitive authenticated pages.
 
 ## Deployment verification
 
-Run `docker compose config` for the chosen example, build the source image, then
-start it with a read-only root filesystem and a writable /tmp as shown in the
-examples. Confirm UID 65532, readiness, a feed request, shutdown, and denied
+For standalone examples, run `docker compose config`, then start the verified
+release or source image with a read-only root filesystem and a writable `/tmp`.
+For the Stargate example, run `python3 verify.py` and then `python3 verify.py --live`
+from its directory instead: expanded Compose output contains credentials and
+must not be printed. Confirm UID 65532, readiness, a feed request, shutdown, and denied
 administrative GET. Verify backend/control ports are inaccessible externally.
 Pin the complete tested release set and image digests in your deployment lock
 file. The examples use a release tag for readability, not a supply-chain lock.
-The historical browser example remains a compatibility example for trusted
+The standalone browser example remains a compatibility example for trusted
 sources; its CDP endpoint must remain private. Neither a Docker internal network
 nor page request interception alone proves malicious-browser isolation.

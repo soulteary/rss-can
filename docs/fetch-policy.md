@@ -1,6 +1,6 @@
 # Fetch policy and execution boundaries
 
-**Availability:** these policies require the current source build. Published `v0.4.0` ignores `RSS_FETCH_POLICY` and `RSS_ACCESS_MODE`. Follow the [source deployment and verification guide](secure-deployment.md#build-and-verify-current-source) before relying on them.
+**Availability:** these policies are included in v0.5.0 and later, and current source builds. Historical `v0.4.0` ignores `RSS_FETCH_POLICY` and `RSS_ACCESS_MODE`; it cannot provide these controls. Follow the [deployment and verification guide](secure-deployment.md#build-and-verify-current-source) before relying on them.
 
 The default `RSS_FETCH_POLICY=trusted` preserves existing operator-owned rules,
 including private HTTP origins, proxies and remote browsers. Do not expose rule

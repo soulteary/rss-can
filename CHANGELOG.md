@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.0 — 2026-11-04
+
+See the [bilingual release notes](docs/releases/v0.5.0.md) and [v0.4.0 upgrade steps](docs/upgrading.md#upgrade-v050).
+
+- Add optional Stargate/Warden team identity, explicit source ACLs, bounded persistent authorization storage and revocable read-only reader credentials; authenticate every private read before serving cached content or 304 responses.
+- Add a public-website source wizard with preview, revision checks, rollback, deletion and manual refresh, plus read-only `rssc doctor` diagnostics and a guided private-backend Stargate deployment.
+- Enforce public SSR fetch policy in team mode, validate redirects and resolved destinations, and share 64-request/64-MiB upstream budgets across each generation. Standalone mode retains trusted operator-owned rules.
+- Add bounded authorized feed snapshots, conditional responses and per-owner scheduling. Default freshness is 30 seconds with up to 3600 additional stale seconds; `RSS_SNAPSHOT_TTL=0` disables snapshots.
+- Make manual refresh bypass and replace page caches, isolate managed source revisions, prevent older concurrent writes from overwriting newer successful fetches, and release preparation permits after panics.
+- Sanitize HTML in every feed format, remove active/resource-loading markup, replace images with alternative text and preserve plain-text JSON summaries without inserting spaces inside inline text.
+- Require POST plus an explicit action header for administrative mutations, redact sensitive request details, run containers as UID/GID 65532, and isolate Deno worker caches in private temporary directories.
+- Tighten browser/selector resource limits, startup validation, source ownership checks and fail-closed proxy configuration; retain private legacy standalone operation and pinned Deno 2.9.8 packaging.
+
+[Compare v0.4.0…v0.5.0](https://github.com/soulteary/rss-can/compare/v0.4.0...v0.5.0).
+
 ## v0.4.0 — 2026-11-02
 
 See the [bilingual release notes](docs/releases/v0.4.0.md) and [upgrade guide](docs/upgrading.md).

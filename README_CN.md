@@ -1,5 +1,7 @@
 # RSS Can / RSS 罐头
 
+**团队安全功能目前需要构建当前源码。** 已发布的 `v0.4.0` 不支持团队鉴权、公网抓取策略或来源向导，会静默忽略相关环境变量。配置 Stargate 前，请先按[源码部署与验收步骤](docs/secure-deployment.md#build-and-verify-current-source)构建并验证镜像。
+
 与 Stargate 共同供多人使用时，请启用[团队访问模式](docs/stargate-access.md)，
 为每个来源设置权限，并为阅读器签发可撤销的只读凭据。
 通过[来源向导和 `rssc doctor`](docs/stargate-setup.md)，可以预览、保存和维护来源，无需编写 JavaScript 规则。
@@ -56,9 +58,10 @@
 
 ```
 docker pull soulteary/rss-can:v0.4.0
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.4.0
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.4.0
 ```
 
+此命令运行历史独立部署版本，不是团队部署。需要 CPU/内存限制及只读根文件系统时，请使用[独立部署 Compose 示例](example/README.md)。
 
 Docker Hub 镜像支持 Linux AMD64/ARM64。镜像已包含示例规则；仅使用内存缓存时添加 `-e RSS_REDIS=false`。二进制归档包含 `rssc`、`rules/`、文档和许可证，可使用随附的 SHA-256 文件校验。
 

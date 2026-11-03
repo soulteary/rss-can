@@ -12,6 +12,14 @@ Never replace a published release or its images to apply these changes.
 使用 Deno **2.9.8**。后续源码中的改动不会自动进入已发布版本；升级时使用新版本
 或明确的源码构建镜像，不覆盖历史发布物。
 
+Team access, public fetch policy, the source wizard and `doctor` are currently
+source-only features. Published `v0.4.0` silently ignores their mode settings.
+Use the [verified source-image procedure](secure-deployment.md#build-and-verify-current-source)
+before enabling them; do not substitute the historical image in a team deployment.
+
+团队鉴权、公网抓取策略、来源向导和 `doctor` 目前仅在当前源码中提供。
+正式 `v0.4.0` 会静默忽略相关模式配置；多人部署须先构建并验收源码镜像。
+
 ## Standalone / 独立二进制
 
 v0.4.0 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup

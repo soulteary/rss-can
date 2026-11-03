@@ -1,5 +1,7 @@
 # Stargate identity and private feed access
 
+**Requires current source:** published `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features described here. It silently ignores the new configuration variables. [Build and verify the current source image](secure-deployment.md#build-and-verify-current-source) first; do not add team settings to the historical standalone image.
+
 RSS Can has two explicit operating modes. `standalone` preserves the existing
 trusted-rule deployment. `team` requires source permissions before it serves
 feeds, including feeds reached through the old `/feed/:id/:type` addresses.
@@ -47,8 +49,8 @@ RSS_ACCESS_STORE=/var/lib/rss-can/access.json
 RSS_PUBLIC_ORIGIN=https://rss.example.com
 RSS_TRUSTED_PROXIES=172.25.0.10/32
 RSS_WARDEN_URL=http://warden:8081
-RSS_WARDEN_API_KEY=<dedicated-api-key>
-RSS_ADMIN_TOKEN=<at-least-32-random-characters>
+RSS_WARDEN_API_KEY="<dedicated-api-key>"
+RSS_ADMIN_TOKEN="<at-least-32-random-characters>"
 ```
 
 `RSS_PUBLIC_ORIGIN` is an HTTPS origin with no path or trailing slash. Use an

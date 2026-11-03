@@ -1,5 +1,7 @@
 # RSS Can / RSS 罐头
 
+**Team security features require a current source build.** Published `v0.4.0` does not implement team access, public fetch policy, or the source wizard, and silently ignores their environment variables. Follow the [source deployment and verification steps](docs/secure-deployment.md#build-and-verify-current-source) before configuring Stargate.
+
 For a shared Stargate deployment, use [team access mode](docs/stargate-access.md)
 to give each source explicit permissions and issue revocable reader credentials.
 The [source wizard and `rssc doctor`](docs/stargate-setup.md) provide a guided
@@ -57,9 +59,10 @@ Pull the docker image and mount the `Feed rules` file in the project to the dock
 
 ```
 docker pull soulteary/rss-can:v0.4.0
-docker run --rm -it -p 8080:8080 -v `pwd`/rules:/rules soulteary/rss-can:v0.4.0
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.4.0
 ```
 
+This is the historical standalone release, not a team deployment. For bounded CPU/memory and a read-only root filesystem, use the [standalone Compose examples](example/README.md).
 
 The Docker Hub image supports Linux AMD64/ARM64. Images include example rules; add `-e RSS_REDIS=false` for memory-only caching. Binary archives include `rssc`, `rules/`, documentation and license notices. Verify downloads with the accompanying SHA-256 files.
 

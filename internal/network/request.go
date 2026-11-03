@@ -130,12 +130,15 @@ func GetRemoteDocumentContext(ctx context.Context, url string, charset string, e
 	if disableCache || !cacher.IsEnabledContext(ctx) {
 		return getRemoteDocument(ctx, url, charset, expire, disableCache, options...)
 	}
-	key := policyDocumentKey(ctx, documentKey(url, charset, expire, options...))
+	key := DocumentCacheKey(ctx, policyDocumentKey(ctx, documentKey(url, charset, expire, options...)))
 	flights := &documentFlights
 	if client := scopedClient(ctx); client != nil {
 		flights = &client.flights
 	}
 	key = cacher.Scope(ctx) + ":" + configForContext(ctx).UserAgent + ":" + key
+	if CacheRefresh(ctx) {
+		key += ":refresh"
+	}
 	result, err, shared := flights.Do(ctx, key, configForContext(ctx).ServerTimeout, func(work context.Context) (define.RemoteBodySanitized, error) {
 		return getRemoteDocument(work, url, charset, expire, false, options...), nil
 	})
@@ -154,7 +157,7 @@ func documentKey(url, charset string, expire int, options ...RequestOptions) str
 }
 
 func getRemoteDocument(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) (result define.RemoteBodySanitized) {
-	key := policyDocumentKey(ctx, documentKey(url, charset, expire, options...))
+	key := DocumentCacheKey(ctx, policyDocumentKey(ctx, documentKey(url, charset, expire, options...)))
 	if scopedClient(ctx) != nil {
 		key += fmt.Sprintf(":ua:%x", sha256.Sum256([]byte(configForContext(ctx).UserAgent)))
 	}
@@ -171,7 +174,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		}
 	}()
 
-	if cacher.IsEnabledContext(ctx) && !disableCache {
+	if cacher.IsEnabledContext(ctx) && !disableCache && !CacheRefresh(ctx) {
 		cache, found, err := cacher.GetWithinLimit(ctx, key, limits.MaxDocumentCacheBytes)
 		if err == nil && found {
 			var cached define.RemoteBodySanitized
@@ -186,6 +189,8 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 	if err := ctx.Err(); err != nil {
 		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), now, "")
 	}
+	commit, finish := BeginCacheWrite(ctx, cacher.Scope(ctx)+":"+key)
+	defer finish()
 	began := time.Now()
 	telemetry.Default.Add("fetch_requests_total", 1)
 	defer func() {
@@ -238,7 +243,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		if encodeErr != nil || len(encoded) > limits.MaxDocumentCacheBytes || !validCachedDocument(result) {
 			return result
 		}
-		err = cacher.SetWithTTL(ctx, key, string(encoded), ttl)
+		err = commit(func() error { return cacher.SetWithTTL(ctx, key, string(encoded), ttl) })
 		if err != nil {
 			logger.Instance.Warn("Unable to use cache")
 		}

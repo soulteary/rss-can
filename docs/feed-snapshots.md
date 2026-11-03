@@ -91,3 +91,19 @@ On 2026-11-03, the fixture benchmark on Apple M5 / macOS arm64 with
 (median 126.3 µs, approximately 15,853 B/op, 88 allocations). These results include
 configuration fingerprinting but no network or browser work; concurrent builds
 were active on the host. Reproduce on deployment hardware before sizing capacity.
+
+### Explicit refresh and document caches
+
+An authorized manual refresh bypasses upstream document cache reads and replaces
+successful entries under the existing keys. Later ordinary reads and snapshot
+regeneration therefore use the refreshed page. Failed refreshes preserve the
+previous document cache and last successful representation. Concurrent older
+fetches cannot overwrite a newer successful refresh. A manual request arriving
+during an ordinary generation waits for it, then performs an explicit refresh;
+it does not report an ordinary cached page as freshly fetched. Admission, retry
+backoff, request deadlines and shutdown cancellation still apply.
+
+Managed source document caches also include the captured source revision. Editing
+or rolling back a source cannot reuse a page from a previous revision. Revision
+hashes contain no source content or credentials. Legacy rule keys are unchanged.
+`DisableCache` continues to disable both cache reads and writes.

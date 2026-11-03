@@ -38,6 +38,8 @@ type snapshotEntry struct {
 	waiters          int
 	failures         int
 	cancel           context.CancelFunc
+	forced           bool
+	drained          chan struct{}
 }
 
 // Snapshots owns bounded in-memory representations and refresh lifetimes.
@@ -137,13 +139,24 @@ func (s *Snapshots) representation(ctx context.Context, id, format string, force
 		}
 		return Representation{}, &Error{Stage: stage, Cause: err}
 	}
-	rule, found := s.service.dependencies.Lookup(id)
+	var rule define.RuleCache
+	var config define.JavaScriptConfig
+	var found bool
+	func() {
+		defer release()
+		rule, found = s.service.dependencies.Lookup(id)
+		if !found {
+			return
+		}
+		if rule.Managed {
+			ctx = network.WithDocumentRevision(ctx, rule.Body)
+			resolve = network.WithDocumentRevision(resolve, rule.Body)
+		}
+		config, err = s.service.dependencies.Configure(resolve, rule)
+	}()
 	if !found {
-		release()
 		return Representation{}, &Error{Stage: MissingRule, Cause: errors.New("rule not found")}
 	}
-	config, err := s.service.dependencies.Configure(resolve, rule)
-	release()
 	if resolve.Err() != nil {
 		return Representation{}, &Error{Stage: Timeout, Cause: resolve.Err()}
 	}
@@ -168,6 +181,7 @@ func (s *Snapshots) representation(ctx context.Context, id, format string, force
 	if config.Expire > 0 && time.Duration(config.Expire) <= ttl/time.Second {
 		ttl = min(ttl, time.Duration(config.Expire)*time.Second)
 	}
+retryAfterFlight:
 	now := s.now()
 	s.mu.Lock()
 	if s.closed || s.life.Err() != nil {
@@ -194,9 +208,14 @@ func (s *Snapshots) representation(ctx context.Context, id, format string, force
 		return value, nil
 	}
 	if e.done == nil && e.waiters == 0 && !now.Before(e.retryAt) {
+		e.forced = force
 		e.done = make(chan struct{})
 		e.err = nil
-		work, stop := context.WithCancel(context.WithoutCancel(ctx))
+		workContext := context.WithoutCancel(ctx)
+		if force {
+			workContext = network.WithCacheRefresh(workContext)
+		}
+		work, stop := context.WithCancel(workContext)
 		stopLife := context.AfterFunc(s.life, stop)
 		e.cancel = stop
 		s.work.Add(1)
@@ -223,26 +242,44 @@ func (s *Snapshots) representation(ctx context.Context, id, format string, force
 		return Representation{}, err
 	}
 	done := e.done
+	needsForcedFlight := force && !e.forced
+	if e.waiters == 0 {
+		e.drained = make(chan struct{})
+	}
+	drained := e.drained
 	e.waiters++
 	s.mu.Unlock()
-	defer func() {
+	releaseWaiter := func() {
 		s.mu.Lock()
 		e.waiters--
+		if e.waiters == 0 {
+			close(e.drained)
+		}
 		if e.waiters == 0 && e.done != nil && e.value.FetchedAt.IsZero() {
 			e.cancel()
 		}
 		s.mu.Unlock()
-	}()
+	}
 	select {
 	case <-ctx.Done():
+		releaseWaiter()
 		return Representation{}, &Error{Stage: Timeout, Cause: ctx.Err()}
 	case <-done:
-		if ctx.Err() != nil {
-			return Representation{}, &Error{Stage: Timeout, Cause: ctx.Err()}
-		}
 		s.mu.Lock()
 		value, err := e.value, e.err
 		s.mu.Unlock()
+		releaseWaiter()
+		if needsForcedFlight {
+			select {
+			case <-ctx.Done():
+				return Representation{}, &Error{Stage: Timeout, Cause: ctx.Err()}
+			case <-drained:
+			}
+			goto retryAfterFlight
+		}
+		if ctx.Err() != nil {
+			return Representation{}, &Error{Stage: Timeout, Cause: ctx.Err()}
+		}
 		if err != nil {
 			return Representation{}, err
 		}

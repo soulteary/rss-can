@@ -222,7 +222,7 @@ func (a *AccessController) refreshManaged(feeds FeedGenerator) fiber.Handler {
 		if snapshots, ok := feeds.(refreshableFeeds); ok {
 			representation, err = snapshots.Refresh(ctx, id, "rss")
 		} else {
-			_, err = feeds.Generate(ctx, id, "rss")
+			_, err = feeds.Generate(network.WithCacheRefresh(ctx), id, "rss")
 			representation.FetchedAt = time.Now()
 		}
 		if err != nil {

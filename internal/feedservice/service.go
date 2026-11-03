@@ -99,6 +99,9 @@ func (s *Service) Generate(ctx context.Context, id, format string) (string, erro
 	if !found {
 		return "", &Error{Stage: MissingRule, Cause: errors.New("rule not found")}
 	}
+	if snapshot.Managed {
+		ctx = network.WithDocumentRevision(ctx, snapshot.Body)
+	}
 	config, err := s.dependencies.Configure(ctx, snapshot)
 	if canceled := deadline(); canceled != nil {
 		return "", canceled

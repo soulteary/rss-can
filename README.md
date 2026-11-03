@@ -2,6 +2,8 @@
 
 **Team security features require a current source build.** Published `v0.4.0` does not implement team access, public fetch policy, or the source wizard, and silently ignores their environment variables. Follow the [source deployment and verification steps](docs/secure-deployment.md#build-and-verify-current-source) before configuring Stargate.
 
+For the simplest supported team setup, use the [source-based Stargate Compose guide](example/4.with-stargate/README.md).
+
 For a shared Stargate deployment, use [team access mode](docs/stargate-access.md)
 to give each source explicit permissions and issue revocable reader credentials.
 The [source wizard and `rssc doctor`](docs/stargate-setup.md) provide a guided

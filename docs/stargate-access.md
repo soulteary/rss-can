@@ -43,14 +43,20 @@ The service writes a `0600` authorization file and a persistent advisory lock
 file there. The lock is automatically released by the OS on process exit; do
 not delete the lock file while a process is running.
 
-```sh
+Write the following as a Docker `--env-file` (for example, `team.env`). Replace
+the angle-bracket placeholders with real values, without retaining the brackets
+or adding shell quotes; Docker env files treat quotes as part of the value.
+For a guided setup that writes these files and configures the gateway, use the
+[source-based Stargate deployment](../example/4.with-stargate/README.md).
+
+```dotenv
 RSS_ACCESS_MODE=team
 RSS_ACCESS_STORE=/var/lib/rss-can/access.json
 RSS_PUBLIC_ORIGIN=https://rss.example.com
 RSS_TRUSTED_PROXIES=172.25.0.10/32
 RSS_WARDEN_URL=http://warden:8081
-RSS_WARDEN_API_KEY="<dedicated-api-key>"
-RSS_ADMIN_TOKEN="<at-least-32-random-characters>"
+RSS_WARDEN_API_KEY=<dedicated-api-key>
+RSS_ADMIN_TOKEN=<at-least-32-random-characters>
 ```
 
 `RSS_PUBLIC_ORIGIN` is an HTTPS origin with no path or trailing slash. Use an

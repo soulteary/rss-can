@@ -2,6 +2,8 @@
 
 **团队安全功能目前需要构建当前源码。** 已发布的 `v0.4.0` 不支持团队鉴权、公网抓取策略或来源向导，会静默忽略相关环境变量。配置 Stargate 前，请先按[源码部署与验收步骤](docs/secure-deployment.md#build-and-verify-current-source)构建并验证镜像。
 
+已有 Stargate/Warden 时，推荐从[源码版 Compose 部署向导](example/4.with-stargate/README.md)开始，由脚本生成配置并连接私有网关。
+
 与 Stargate 共同供多人使用时，请启用[团队访问模式](docs/stargate-access.md)，
 为每个来源设置权限，并为阅读器签发可撤销的只读凭据。
 通过[来源向导和 `rssc doctor`](docs/stargate-setup.md)，可以预览、保存和维护来源，无需编写 JavaScript 规则。

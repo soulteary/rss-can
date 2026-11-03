@@ -2,6 +2,12 @@
 
 ## Build and verify current source
 
+For an existing Stargate/Warden stack, start with the [guided source-based
+Compose deployment](../example/4.with-stargate/README.md). Its setup generates
+private environment files, builds RSS Can from source, and wires the HTTPS
+gateway and private backend network. The commands below are for operators
+maintaining their own container wiring.
+
 The security behavior below applies to **current source**, not published
 `v0.4.0`. That historical image ignores `RSS_ACCESS_MODE` and
 `RSS_FETCH_POLICY`; setting them does not add authentication or SSRF protection.
@@ -25,7 +31,8 @@ following the [team configuration](stargate-access.md#team-configuration).
 
 For a team deployment, prepare a private state directory owned by UID/GID 65532
 (mode `0700`). Store the team environment from that guide in an operator-only
-file `team.env`, with `RSS_ACCESS_STORE=/state/access.json` and
+file `team.env`, using unquoted `KEY=value` lines (Docker retains literal
+quotes), with `RSS_ACCESS_STORE=/state/access.json` and
 `RSS_REDIS=false` unless a private Redis is configured. Run the verified image:
 
 ```sh

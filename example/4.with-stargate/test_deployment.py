@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -104,6 +105,16 @@ class DeploymentTest(unittest.TestCase):
                 changed[key] = value
                 with self.assertRaises(ValueError):
                     setup.validate_settings(changed)
+
+    def test_documented_cli_help_from_example_directory(self):
+        # Importing stdlib operator must never resolve to a local operator.py.
+        # Use a fresh interpreter because this process has already imported it.
+        for script in ("setup.py", "rss_operator.py"):
+            with self.subTest(script=script):
+                result = subprocess.run([sys.executable, script, "--help"],
+                                        cwd=setup.HERE, capture_output=True,
+                                        text=True, timeout=10, check=True)
+                self.assertIn("usage:", result.stdout)
 
     def test_builder_context_excludes_deployment_secrets(self):
         patterns = (setup.HERE.parent.parent / ".dockerignore").read_text().splitlines()

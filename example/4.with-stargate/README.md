@@ -135,7 +135,7 @@ redacted logs and protected metrics for operational diagnostics.
 Use the stable Warden user ID, not an email that may be reassigned:
 
 ```sh
-python3 operator.py /api/access/principals \
+python3 rss_operator.py /api/access/principals \
   --data '{"subject":"YOUR_WARDEN_USER_ID","disabled":false}'
 ```
 
@@ -144,11 +144,11 @@ principals with active Warden accounts can use this UI. New sources are private.
 You can also register an existing reviewed rule through the operator channel:
 
 ```sh
-python3 operator.py /api/access/sources \
+python3 rss_operator.py /api/access/sources \
   --data '{"id":"geekpark","owner":"YOUR_WARDEN_USER_ID","readers":[]}'
 ```
 
-`operator.py` authenticates with the generated client certificate and sends the
+`rss_operator.py` authenticates with the generated client certificate and sends the
 explicit mutation header. It never reads or prints the backend admin token.
 Ordinary SSO users cannot reach `/api/access/*`, `/config/*`, `/inspector` or
 metrics on the public listener. Keep the operator private key and CA key out of

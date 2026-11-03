@@ -156,9 +156,9 @@ func New(ctx context.Context, config Config) (*App, error) {
 		return nil, fmt.Errorf("load rules: %w", err)
 	}
 	app.feeds = feedservice.New(config.Server.Timeout, feedservice.Dependencies{
-		Lookup: app.rules.Lookup,
+		Lookup: app.lookupSource,
 		Configure: func(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
-			return app.rules.Configure(app.resources(ctx), snapshot)
+			return app.configureSource(ctx, snapshot)
 		},
 		Fetch: func(ctx context.Context, config define.JavaScriptConfig) define.BodyParsed {
 			if !fn.IsVaildHeadlessAddr(config.Headless) {
@@ -181,9 +181,10 @@ func New(ctx context.Context, config Config) (*App, error) {
 		accessController = &server.AccessController{Config: *config.Server.Access, Store: accessStore, Directory: access.WardenChecker{URL: config.Server.Access.WardenURL, APIKey: config.Server.Access.WardenAPIKey}}
 	}
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
-		Feeds: app.feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
+		Feeds: app.feeds, Snapshot: app.sourceSnapshots, Metadata: app.sourceMetadata, Configure: app.configureSource,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
-		Access: accessController,
+		Access:  accessController,
+		Preview: app.previewSource,
 	})
 	keepAccess = true
 	return app, nil

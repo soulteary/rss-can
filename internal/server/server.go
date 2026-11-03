@@ -21,6 +21,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
 	"github.com/soulteary/RSS-Can/internal/rule"
+	"github.com/soulteary/RSS-Can/internal/source"
 )
 
 func GetFeedPath() string {
@@ -74,6 +75,7 @@ type Dependencies struct {
 	CacheCheck   func(context.Context) cacher.Status
 	BindContext  func(context.Context) (context.Context, func(), error)
 	Access       *AccessController
+	Preview      func(context.Context, source.Spec) ([]define.InfoItem, error)
 }
 
 // Serve reports listener/shutdown failures to its owner instead of calling
@@ -152,11 +154,18 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 			// old unprotected feed routes when team mode was requested.
 			route.Use(func(c fiber.Ctx) error { return accessFailure(c, errors.New("access controller missing")) })
 		} else {
+			controller.Preview = dependencies.Preview
 			view.access = controller
 			route.Get(options.FeedPath+"/:id/:type/", controller.requireFeed(false), apiRSSWithService(dependencies.Feeds))
 			route.Get("/s/:selector/:secret/:type", controller.requireFeed(true), apiRSSWithService(dependencies.Feeds))
 			route.Get(options.FeedPath, controller.requireSubject(), view.listPage())
 			route.Get("/api/sources", controller.requireSubject(), controller.listSources())
+			route.Get("/api/grants", controller.requireSubject(), controller.listGrants())
+			route.Get("/sources", controller.requireSubject(), sourceWizard())
+			route.Post("/api/sources/preview", controller.requireSubject(), controller.previewManaged())
+			route.Post("/api/sources", controller.requireSubject(), controller.saveManaged(false))
+			route.Post("/api/sources/:id", controller.requireSubject(), controller.saveManaged(true))
+			route.Post("/api/sources/:id/rollback", controller.requireSubject(), controller.rollbackManaged())
 			route.Post("/api/sources/:id/grants", controller.requireSubject(), controller.createGrant())
 			route.Post("/api/grants/:id/revoke", controller.requireSubject(), controller.revokeGrant())
 			route.Post("/api/access/sources", admin, accessMutation(), controller.putSource(func(id string) bool { _, ok := dependencies.Snapshot()[id]; return ok }))

@@ -36,8 +36,9 @@ func MixupBodyParsed(code ErrorCode, status string, date time.Time, data []InfoI
 }
 
 type RuleCache struct {
-	Body []byte
-	Time time.Time
-	Sign string
-	File string
+	Managed bool
+	Body    []byte
+	Time    time.Time
+	Sign    string
+	File    string
 }

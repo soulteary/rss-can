@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
+	"net/url"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -53,6 +55,13 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 			Author:      &feeds.Author{Name: data.Author},
 			Description: data.Description,
 			Link:        &feeds.Link{Href: data.Link},
+		}
+		if config.TextOnly {
+			feedItem.Description = html.EscapeString(data.Description)
+			parsed, err := url.Parse(data.Link)
+			if err != nil || parsed.Hostname() == "" || parsed.User != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+				return "", fmt.Errorf("declarative source contains an unsafe link")
+			}
 		}
 
 		if data.Date != "" {

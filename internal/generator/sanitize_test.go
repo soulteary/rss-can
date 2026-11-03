@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -132,10 +133,16 @@ func TestFeedHTMLBudgetCancellationAndDepth(t *testing.T) {
 	if _, err := sanitizeFragment(ctx, "text", "", 100); !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
 	}
+	var attributes strings.Builder
+	attributes.WriteString("<p ")
+	for i := range 129 {
+		fmt.Fprintf(&attributes, "a%d=\"x\" ", i)
+	}
+	attributes.WriteString(">text</p>")
 	for _, tc := range []struct {
 		raw    string
 		budget int
-	}{{"&&&&", 10}, {`<p title="&&&&">text</p>`, 20}, {"text", -1}, {strings.Repeat("<p>", 129), 10000}, {strings.Repeat("x", limits.MaxFeedBytes+1), limits.MaxFeedBytes}, {`<p title="` + strings.Repeat("x", 64<<10) + `">text</p>`, limits.MaxFeedBytes}, {`<p ` + strings.Repeat(`a="x" `, 129) + `>text</p>`, limits.MaxFeedBytes}} {
+	}{{"&&&&", 10}, {`<p title="&&&&">text</p>`, 20}, {"text", -1}, {strings.Repeat("<p>", 129), 10000}, {strings.Repeat("x", limits.MaxFeedBytes+1), limits.MaxFeedBytes}, {`<p title="` + strings.Repeat("x", 64<<10) + `">text</p>`, limits.MaxFeedBytes}, {attributes.String(), limits.MaxFeedBytes}} {
 		if _, err := sanitizeFragment(context.Background(), tc.raw, "https://example.org", tc.budget); err == nil {
 			t.Fatalf("budget accepted %d bytes", len(tc.raw))
 		}

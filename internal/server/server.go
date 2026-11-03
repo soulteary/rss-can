@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -13,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v3/middleware/compress"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 	"github.com/gofiber/fiber/v3/middleware/static"
+	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/fn"
@@ -54,6 +56,7 @@ type Options struct {
 	AdminToken      string
 	Headless        string
 	Proxy           string
+	Access          *access.Config
 }
 
 func DefaultOptions() Options {
@@ -70,6 +73,7 @@ type Dependencies struct {
 	RuntimeCheck func(context.Context) error
 	CacheCheck   func(context.Context) cacher.Status
 	BindContext  func(context.Context) (context.Context, func(), error)
+	Access       *AccessController
 }
 
 // Serve reports listener/shutdown failures to its owner instead of calling
@@ -139,10 +143,29 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 			return c.Next()
 		})
 	}
-	route.Get(options.FeedPath+"/:id/:type/", apiRSSWithService(dependencies.Feeds))
 	view := pageView{options: options, snapshot: dependencies.Snapshot, configure: dependencies.Configure, metadata: dependencies.Metadata}
-	route.Get(options.FeedPath, view.listPage())
 	admin := adminOnlyWithToken(options.AdminToken)
+	if options.Access != nil {
+		controller := dependencies.Access
+		if controller == nil {
+			// Misconfigured embedders must fail closed, never silently expose the
+			// old unprotected feed routes when team mode was requested.
+			route.Use(func(c fiber.Ctx) error { return accessFailure(c, errors.New("access controller missing")) })
+		} else {
+			view.access = controller
+			route.Get(options.FeedPath+"/:id/:type/", controller.requireFeed(false), apiRSSWithService(dependencies.Feeds))
+			route.Get("/s/:selector/:secret/:type", controller.requireFeed(true), apiRSSWithService(dependencies.Feeds))
+			route.Get(options.FeedPath, controller.requireSubject(), view.listPage())
+			route.Get("/api/sources", controller.requireSubject(), controller.listSources())
+			route.Post("/api/sources/:id/grants", controller.requireSubject(), controller.createGrant())
+			route.Post("/api/grants/:id/revoke", controller.requireSubject(), controller.revokeGrant())
+			route.Post("/api/access/sources", admin, accessMutation(), controller.putSource(func(id string) bool { _, ok := dependencies.Snapshot()[id]; return ok }))
+			route.Post("/api/access/principals", admin, accessMutation(), controller.setPrincipal())
+		}
+	} else {
+		route.Get(options.FeedPath+"/:id/:type/", apiRSSWithService(dependencies.Feeds))
+		route.Get(options.FeedPath, view.listPage())
+	}
 	route.Get("/config/:type/:value/", admin, func(c fiber.Ctx) error {
 		c.Set("Allow", "POST")
 		return c.SendStatus(405)

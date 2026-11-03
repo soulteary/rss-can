@@ -53,6 +53,7 @@ type pageView struct {
 	configure func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
 	metadata  func() map[string]rule.Metadata
 	admission *listAdmission
+	access    *AccessController
 }
 
 func defaultPageView() pageView {
@@ -107,6 +108,12 @@ func (v pageView) renderListPage(ctx context.Context, content []byte) ([]byte, e
 		// Standalone compatibility path. Production always injects metadata from
 		// the repository's last successfully validated transaction.
 		for id, snapshot := range v.snapshot() {
+			if v.access != nil {
+				subject, _ := ctx.Value(accessSubjectKey{}).(string)
+				if _, ok := v.access.Store.CanRead(subject, id); !ok {
+					continue
+				}
+			}
 			if err := ctx.Err(); err != nil {
 				return nil, err
 			}
@@ -129,6 +136,12 @@ func (v pageView) renderListPage(ctx context.Context, content []byte) ([]byte, e
 	}
 	ordered := make([]string, 0, len(entries))
 	for id := range entries {
+		if v.access != nil {
+			subject, _ := ctx.Value(accessSubjectKey{}).(string)
+			if _, ok := v.access.Store.CanRead(subject, id); !ok {
+				continue
+			}
+		}
 		ordered = append(ordered, id)
 	}
 	slices.Sort(ordered)

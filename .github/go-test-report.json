@@ -1,31 +1,45 @@
 {
   "schema_version": "1.0",
   "tests": {
-    "total": 316,
-    "passed": 303,
+    "total": 442,
+    "passed": 428,
     "failed": 0,
-    "skipped": 13
+    "skipped": 14
   },
   "coverage": {
-    "covered_statements": 2900,
-    "total_statements": 3526,
-    "percentage": 82.25,
+    "covered_statements": 4642,
+    "total_statements": 5563,
+    "percentage": 83.44,
     "threshold": 0
   },
   "packages": [
     {
       "name": ".",
-      "status": "no_tests",
-      "tests": 0,
+      "status": "pass",
+      "tests": 1,
       "failed": 0,
-      "coverage": 0
+      "coverage": 2.78
+    },
+    {
+      "name": "internal/access",
+      "status": "pass",
+      "tests": 26,
+      "failed": 0,
+      "coverage": 82.07
     },
     {
       "name": "internal/application",
       "status": "pass",
-      "tests": 14,
+      "tests": 30,
       "failed": 0,
-      "coverage": 91.76
+      "coverage": 89.72
+    },
+    {
+      "name": "internal/browsertest",
+      "status": "pass",
+      "tests": 4,
+      "failed": 0,
+      "coverage": 87.1
     },
     {
       "name": "internal/cacher",
@@ -58,9 +72,9 @@
     {
       "name": "internal/feedservice",
       "status": "pass",
-      "tests": 6,
+      "tests": 28,
       "failed": 0,
-      "coverage": 83.08
+      "coverage": 89.9
     },
     {
       "name": "internal/fn",
@@ -72,16 +86,16 @@
     {
       "name": "internal/generator",
       "status": "pass",
-      "tests": 7,
+      "tests": 19,
       "failed": 0,
-      "coverage": 89.8
+      "coverage": 88.52
     },
     {
       "name": "internal/jssdk",
       "status": "pass",
-      "tests": 34,
+      "tests": 37,
       "failed": 0,
-      "coverage": 90.98
+      "coverage": 91.1
     },
     {
       "name": "internal/limits",
@@ -100,23 +114,23 @@
     {
       "name": "internal/network",
       "status": "pass",
-      "tests": 31,
+      "tests": 44,
       "failed": 0,
-      "coverage": 89.94
+      "coverage": 90.42
     },
     {
       "name": "internal/parser",
       "status": "pass",
-      "tests": 75,
+      "tests": 78,
       "failed": 0,
-      "coverage": 73.35
+      "coverage": 73.75
     },
     {
       "name": "internal/rule",
       "status": "pass",
       "tests": 26,
       "failed": 0,
-      "coverage": 92.39
+      "coverage": 92.16
     },
     {
       "name": "internal/rulefile",
@@ -128,9 +142,16 @@
     {
       "name": "internal/server",
       "status": "pass",
-      "tests": 30,
+      "tests": 51,
       "failed": 0,
-      "coverage": 79.79
+      "coverage": 80.49
+    },
+    {
+      "name": "internal/source",
+      "status": "pass",
+      "tests": 5,
+      "failed": 0,
+      "coverage": 94.34
     },
     {
       "name": "internal/telemetry",

@@ -85,3 +85,18 @@ func TestDocumentComplexityBudget(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionalSelectorsRemainDeclarative(t *testing.T) {
+	s := goodSpec()
+	s.DateSelector = "time"
+	s.DescriptionSelector = "p.summary"
+	s.PagerSelector = "a.next"
+	s.MaxPages = 2
+	c, err := s.Config()
+	if err != nil || c.DateTime != "css:time" || c.Description != "css:p.summary" || c.Pager != "a.next" || c.PagerLimit != 2 {
+		t.Fatalf("optional fields: %+v %v", c, err)
+	}
+	if _, err := Parse([]byte("invalid")); err == nil {
+		t.Fatal("invalid JSON accepted")
+	}
+}

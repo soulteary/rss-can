@@ -36,6 +36,10 @@ func run() error {
 	logger.Instance.Infof("version: %v commit: %v build: %v", version.Version, version.Commit, version.BuildDate)
 	config, err := application.ConfigFromGlobals()
 	if err != nil {
+		if doctor {
+			diagnostic := application.ConfigurationDiagnostic(err)
+			fmt.Fprintf(os.Stdout, "FAIL %s: %s\n", diagnostic.Name, diagnostic.Message)
+		}
 		return err
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

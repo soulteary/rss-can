@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/network"
 )
 
 func TestDoctorReportsFailuresWithoutSecretsOrServer(t *testing.T) {
@@ -26,6 +28,36 @@ func TestDoctorReportsFailuresWithoutSecretsOrServer(t *testing.T) {
 	}
 	if failed < 2 {
 		t.Fatal("missing failures")
+	}
+}
+
+func TestDoctorRejectsPublicProxyCombination(t *testing.T) {
+	cfg := Config{Cache: cacher.Config{MemoryEnabled: true}, JavaScript: jssdk.RuntimeConfig{Binary: "/missing/deno"}}
+	cfg.Network.Policy = network.PublicPolicy()
+	cfg.Network.Proxy = "http://proxy.example:8080"
+	found := false
+	for _, r := range Diagnose(t.Context(), cfg) {
+		if r.Name == "fetch-policy" {
+			found = true
+			if r.OK {
+				t.Fatal("invalid public proxy reported healthy")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("fetch policy check missing")
+	}
+}
+
+func TestDoctorConfigurationHintNeverEchoesInput(t *testing.T) {
+	for _, input := range []string{"RSS_JS_WORKERS bad-secret", "RSS_FETCH_POLICY private-secret", "RSS_SNAPSHOT_TTL token-secret", "password=secret"} {
+		hint := ConfigurationDiagnostic(errors.New(input))
+		if hint.OK || strings.Contains(hint.Message, "secret") {
+			t.Fatal("configuration error leaked input")
+		}
+		if strings.HasPrefix(input, "RSS_JS_WORKERS") && !strings.Contains(hint.Message, "RSS_JS_WORKERS") {
+			t.Fatal("missing actionable variable hint")
+		}
 	}
 }
 

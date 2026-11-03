@@ -20,6 +20,14 @@ func sourceBody(name string) string {
 }
 func TestSourceWizardCreateEditRollbackAndProtectOwnership(t *testing.T) {
 	app, a, _ := accessApp(t)
+	rootResponse, err := app.Test(requestAs("GET", "/", "", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rootResponse.Body.Close()
+	if rootResponse.StatusCode != 302 || rootResponse.Header.Get("Location") != "/sources" {
+		t.Fatal("team root does not lead to source setup")
+	}
 	a.Preview = func(context.Context, source.Spec) ([]define.InfoItem, error) {
 		return []define.InfoItem{{Title: "News", Link: "https://example.org/post"}}, nil
 	}

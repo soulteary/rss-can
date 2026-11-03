@@ -197,6 +197,10 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 	route.Get("/_/ready/", readiness(dependencies.RuntimeCheck, dependencies.CacheCheck))
 	route.Get("/_/metrics/", admin, apiMetrics())
 	route.Use("/assets", static.New("/", static.Config{FS: ServerAssets()}))
-	route.Get("/", view.welcomePage())
+	if options.Access != nil {
+		route.Get("/", func(c fiber.Ctx) error { return c.Redirect().Status(302).To("/sources") })
+	} else {
+		route.Get("/", view.welcomePage())
+	}
 	return route
 }

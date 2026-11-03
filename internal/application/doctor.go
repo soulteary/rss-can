@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/access"
@@ -15,6 +16,21 @@ type Diagnostic struct {
 	Name    string
 	OK      bool
 	Message string
+}
+
+// ConfigurationDiagnostic selects only fixed hints. Never echo error text,
+// because configuration providers may include credentials in their errors.
+func ConfigurationDiagnostic(err error) Diagnostic {
+	message := "Check RSS_ACCESS_MODE, RSS_ACCESS_STORE, RSS_PUBLIC_ORIGIN, RSS_TRUSTED_PROXIES and Warden settings."
+	if err != nil {
+		for _, hint := range []struct{ match, text string }{{"RSS_JS_WORKERS", "Set RSS_JS_WORKERS to an integer between 1 and 16."}, {"RSS_FETCH_POLICY", "Set RSS_FETCH_POLICY to public or trusted; team mode requires public."}, {"RSS_SNAPSHOT_TTL", "Set RSS_SNAPSHOT_TTL to an integer between 0 and 3600 seconds."}, {"RSS_SNAPSHOT_MAX_STALE", "Set RSS_SNAPSHOT_MAX_STALE to an integer between 0 and 86400 seconds."}, {"RSS_ACCESS_MODE", "Set RSS_ACCESS_MODE to standalone or team."}, {"RSS_TRUSTED_PROXIES", "Set RSS_TRUSTED_PROXIES to explicit proxy CIDRs."}, {"RSS_PUBLIC_ORIGIN", "Set RSS_PUBLIC_ORIGIN to an HTTPS origin without a path."}} {
+			if strings.Contains(err.Error(), hint.match) {
+				message = hint.text
+				break
+			}
+		}
+	}
+	return Diagnostic{Name: "configuration", OK: false, Message: message}
 }
 
 // Diagnose is a read-only startup check: it never starts the HTTP listener or

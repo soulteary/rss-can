@@ -70,7 +70,7 @@ func TestManagedStorageCapacityIsPerSubject(t *testing.T) {
 	st := state{Sources: map[string]Source{}}
 	spec := managedSpec().Normalized()
 	spec.URL = "https://example.org/?q=" + strings.Repeat("x", 8000)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 6; i++ {
 		copySpec := spec
 		st.Sources[fmt.Sprint(i)] = Source{ID: fmt.Sprint(i), Owner: "alice", Spec: &copySpec, Previous: []source.Spec{spec, spec, spec, spec, spec}, Revision: 6}
 	}

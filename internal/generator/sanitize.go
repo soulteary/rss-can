@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/soulteary/RSS-Can/internal/limits"
 	xhtml "golang.org/x/net/html"
@@ -256,6 +258,7 @@ func safeFeedLink(raw, base string, mail bool) (string, bool) {
 func plainFeedSummary(ctx context.Context, fragment string) (string, error) {
 	z := xhtml.NewTokenizer(strings.NewReader(fragment))
 	var out strings.Builder
+	boundary := false
 	for {
 		if err := ctx.Err(); err != nil {
 			return "", err
@@ -269,9 +272,24 @@ func plainFeedSummary(ctx context.Context, fragment string) (string, error) {
 		}
 		token := z.Token()
 		if kind == xhtml.TextToken {
+			if boundary && out.Len() > 0 && token.Data != "" {
+				last, _ := utf8.DecodeLastRuneInString(out.String())
+				first, _ := utf8.DecodeRuneInString(token.Data)
+				if !unicode.IsSpace(last) && !unicode.IsSpace(first) {
+					out.WriteByte(' ')
+				}
+			}
 			out.WriteString(token.Data)
-		} else if kind == xhtml.EndTagToken || token.Data == "br" || token.Data == "hr" {
-			out.WriteByte(' ')
+			if token.Data != "" {
+				boundary = false
+			}
+		} else if kind == xhtml.StartTagToken || kind == xhtml.SelfClosingTagToken || kind == xhtml.EndTagToken {
+			// Inline formatting does not create word boundaries. Block tags and
+			// explicit breaks do, including an opening block after inline text.
+			switch token.Data {
+			case "blockquote", "br", "dd", "div", "dl", "dt", "h1", "h2", "h3", "h4", "h5", "h6", "hr", "li", "ol", "p", "pre", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul":
+				boundary = true
+			}
 		}
 	}
 	return strings.TrimSpace(out.String()), nil

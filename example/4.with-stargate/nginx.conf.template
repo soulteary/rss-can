@@ -1,0 +1,169 @@
+user nginx;
+worker_processes auto;
+pid /tmp/nginx.pid;
+error_log /dev/null crit;
+events { worker_connections 1024; }
+http {
+    access_log off;
+    server_tokens off;
+    client_max_body_size 64k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+    send_timeout 15s;
+    keepalive_timeout 15s;
+    client_body_temp_path /tmp/client-body;
+    proxy_temp_path /tmp/proxy;
+    fastcgi_temp_path /tmp/fastcgi;
+    uwsgi_temp_path /tmp/uwsgi;
+    scgi_temp_path /tmp/scgi;
+    proxy_cache off;
+    proxy_buffering off;
+    # Socket peer IP only: client-supplied forwarding headers never define a key.
+    limit_req_zone $binary_remote_addr zone=rss_requests:10m rate=10r/s;
+    limit_conn_zone $binary_remote_addr zone=rss_connections:10m;
+    limit_req_status 429;
+    limit_conn_status 429;
+
+    upstream rsscan { server @@BACKEND_APP_IP@@:8080; }
+    upstream stargate { server @@STARGATE_ADDRESS@@; }
+
+    server {
+        listen 8443 ssl default_server;
+        server_name _;
+        ssl_certificate /etc/rss-server.crt;
+        ssl_certificate_key /etc/rss-server.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        return 444;
+    }
+
+    server {
+        listen 8443 ssl;
+        server_name @@RSS_DOMAIN@@;
+        ssl_certificate /etc/rss-server.crt;
+        ssl_certificate_key /etc/rss-server.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Referrer-Policy no-referrer always;
+        limit_conn rss_connections 32;
+        error_page 429 = @rate_limited;
+        location @rate_limited {
+            add_header Retry-After 1 always;
+            add_header Strict-Transport-Security "max-age=31536000" always;
+            add_header Referrer-Policy no-referrer always;
+            return 429;
+        }
+
+        location = /_stargate_auth {
+            internal;
+            proxy_pass http://stargate/_auth;
+            proxy_pass_request_body off;
+            proxy_pass_request_headers off;
+            proxy_set_header Content-Length "";
+            proxy_set_header Accept application/json;
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header Host @@AUTH_HOST@@;
+            proxy_set_header X-Forwarded-Host @@RSS_DOMAIN@@;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-Uri $request_uri;
+            proxy_set_header X-Forwarded-Method $request_method;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_connect_timeout 2s;
+            proxy_read_timeout 3s;
+        }
+
+        location @login {
+            return 302 @@AUTH_ORIGIN@@/_login?callback=@@RSS_DOMAIN@@;
+        }
+
+        # The ticket is validated by Stargate for this destination host.
+        location = /_session_exchange {
+            limit_req zone=rss_requests burst=30 nodelay;
+            proxy_pass http://stargate/_session_exchange;
+            proxy_pass_request_headers off;
+            proxy_set_header Host @@RSS_DOMAIN@@;
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header X-Forwarded-Host @@RSS_DOMAIN@@;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-For $remote_addr;
+        }
+
+        # Browser routes get identity only from a successful auth subrequest.
+        location ~ "^/(?:$|sources/?$|feed/?$|api/(?:sources|grants)(?:/|$))" {
+            limit_req zone=rss_requests burst=30 nodelay;
+            auth_request /_stargate_auth;
+            auth_request_set $rss_subject $upstream_http_x_auth_user;
+            auth_request_set $rss_session_cookie $upstream_http_set_cookie;
+            add_header Set-Cookie $rss_session_cookie always;
+            add_header Strict-Transport-Security "max-age=31536000" always;
+            add_header Referrer-Policy no-referrer always;
+            error_page 401 = @login;
+            proxy_pass http://rsscan;
+            proxy_pass_request_headers off;
+            proxy_set_header Host @@RSS_DOMAIN@@;
+            proxy_set_header X-Auth-User $rss_subject;
+            proxy_set_header Content-Type $http_content_type;
+            proxy_set_header Accept $http_accept;
+            proxy_set_header Origin $http_origin;
+            proxy_set_header Sec-Fetch-Site $http_sec_fetch_site;
+            proxy_set_header X-RSS-Admin-Action $http_x_rss_admin_action;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Request-ID $request_id;
+            proxy_read_timeout 15s;
+        }
+
+        # Machine routes never redirect to SSO. RSS Can checks every token.
+        location ~ "^/(?:s/[A-Za-z0-9_-]{22}/[A-Za-z0-9_-]{43}/(?:rss|atom|json)|feed/[^/]+/(?:rss|atom|json))/?$" {
+            limit_req zone=rss_requests burst=30 nodelay;
+            proxy_pass http://rsscan;
+            proxy_pass_request_headers off;
+            proxy_set_header Host @@RSS_DOMAIN@@;
+            proxy_set_header Authorization $http_authorization;
+            proxy_set_header If-None-Match $http_if_none_match;
+            proxy_set_header If-Modified-Since $http_if_modified_since;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Request-ID $request_id;
+            proxy_read_timeout 15s;
+        }
+
+        location ^~ /assets/ {
+            limit_req zone=rss_requests burst=100 nodelay;
+            proxy_pass http://rsscan;
+            proxy_pass_request_headers off;
+            proxy_set_header Host @@RSS_DOMAIN@@;
+        }
+
+        # No ordinary SSO user can reach operator endpoints on this listener.
+        location / { return 404; }
+    }
+
+    # Published only on host loopback; a dedicated client certificate is also
+    # required. Admin token injection exists exclusively inside this server.
+    server {
+        listen 9443 ssl;
+        server_name @@RSS_DOMAIN@@;
+        ssl_certificate /etc/rss-server.crt;
+        ssl_certificate_key /etc/rss-server.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_client_certificate /etc/rss-operator-ca.crt;
+        ssl_verify_client on;
+        ssl_verify_depth 1;
+        limit_conn rss_connections 8;
+        add_header Referrer-Policy no-referrer always;
+        location ~ ^/(?:api/access/|config/|_/(?:health|ready|metrics)/) {
+            limit_req zone=rss_requests burst=10 nodelay;
+            proxy_pass http://rsscan;
+            proxy_pass_request_headers off;
+            include /etc/rss-admin-token.conf;
+            proxy_set_header Host @@RSS_DOMAIN@@:8444;
+            proxy_set_header Content-Type $http_content_type;
+            proxy_set_header Accept $http_accept;
+            proxy_set_header Origin $http_origin;
+            proxy_set_header Sec-Fetch-Site $http_sec_fetch_site;
+            proxy_set_header X-RSS-Admin-Action $http_x_rss_admin_action;
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Request-ID $request_id;
+            proxy_read_timeout 35s;
+        }
+        location / { return 404; }
+    }
+}

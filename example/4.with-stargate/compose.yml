@@ -1,0 +1,94 @@
+name: rss-can-stargate
+
+x-rss-image: &rss-image
+  image: rss-can-stargate:local
+  build:
+    context: ../..
+    dockerfile: docker/Dockerfile
+
+services:
+  permissions:
+    <<: *rss-image
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["chmod 0700 /data && chown 65532:65532 /data"]
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]
+    security_opt: [no-new-privileges:true]
+    volumes:
+      - access-data:/data
+
+  rsscan:
+    <<: *rss-image
+    user: "65532:65532"
+    init: true
+    restart: unless-stopped
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+    env_file:
+      - path: .runtime/rss.env
+        format: raw
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 2
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,mode=1777,size=64m
+    volumes:
+      - ../../rules:/rules:ro
+      - access-data:/var/lib/rss-can
+    networks:
+      backend:
+        ipv4_address: ${BACKEND_APP_IP:?run setup.py}
+      auth:
+      egress:
+
+  gateway:
+    image: ${NGINX_IMAGE:?run setup.py to pin the official Nginx digest}
+    entrypoint: ["nginx", "-c", "/etc/nginx/nginx.conf", "-g", "daemon off;"]
+    restart: unless-stopped
+    depends_on:
+      rsscan:
+        condition: service_started
+    ports:
+      - "443:8443"
+      - "127.0.0.1:8444:9443"
+    read_only: true
+    cap_drop: [ALL]
+    # The master reads private keys and starts unprivileged nginx workers.
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 64
+    mem_limit: 128m
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,mode=1777,size=32m
+    volumes:
+      - ./.runtime/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./.runtime/admin-token.conf:/etc/rss-admin-token.conf:ro
+      - ./.runtime/server.crt:/etc/rss-server.crt:ro
+      - ./.runtime/server.key:/etc/rss-server.key:ro
+      - ./.runtime/operator-ca.crt:/etc/rss-operator-ca.crt:ro
+    networks:
+      backend:
+        ipv4_address: ${BACKEND_GATEWAY_IP:?run setup.py}
+      auth:
+        ipv4_address: ${AUTH_GATEWAY_IP:?run setup.py}
+
+networks:
+  backend:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${BACKEND_SUBNET:?run setup.py}
+  auth:
+    external: true
+    name: ${AUTH_NETWORK:?run setup.py}
+  egress:
+
+volumes:
+  access-data:

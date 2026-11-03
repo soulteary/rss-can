@@ -35,8 +35,8 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		Created: now,
 	}
 
-	if config.URL != "" {
-		rssFeed.Link = &feeds.Link{Href: config.URL}
+	if sourceURL, ok := safeFeedLink(config.URL, "", false); ok {
+		rssFeed.Link = &feeds.Link{Href: sourceURL}
 	}
 
 	if config.Name != "" {
@@ -45,16 +45,34 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 
 	// Relative dates are evaluated once per feed, never cached across requests.
 	dates := make(map[string]time.Time)
+	htmlBudget := limits.MaxFeedBytes
 	for _, data := range data.Body {
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
+		description, err := sanitizeFragment(ctx, data.Description, config.URL, htmlBudget)
+		if err != nil {
+			return "", fmt.Errorf("sanitize feed description: %w", err)
+		}
+		htmlBudget -= len(description)
+		if rssType == define.FEED_TYPE_JSON {
+			description, err = plainFeedSummary(ctx, description)
+			if err != nil {
+				return "", fmt.Errorf("sanitize feed summary: %w", err)
+			}
+		}
+		content, err := sanitizeFragment(ctx, data.Content, config.URL, htmlBudget)
+		if err != nil {
+			return "", fmt.Errorf("sanitize feed content: %w", err)
+		}
+		htmlBudget -= len(content)
+		link, _ := safeFeedLink(data.Link, config.URL, false)
 		feedItem := feeds.Item{
 			Title:       data.Title,
 			Category:    data.Category,
 			Author:      &feeds.Author{Name: data.Author},
-			Description: data.Description,
-			Link:        &feeds.Link{Href: data.Link},
+			Description: description,
+			Link:        &feeds.Link{Href: link},
 		}
 		if config.TextOnly {
 			feedItem.Description = html.EscapeString(data.Description)
@@ -82,7 +100,7 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		}
 
 		if data.Content != "" {
-			feedItem.Content = data.Content
+			feedItem.Content = content
 		}
 
 		rssFeed.Items = append(rssFeed.Items, &feedItem)

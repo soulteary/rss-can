@@ -14,7 +14,7 @@ services:
     mem_limit: 512m
     cpus: 2
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m,uid=65532,gid=65532,mode=700
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     volumes:
       - ../../rules:/rules:ro
 

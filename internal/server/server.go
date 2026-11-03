@@ -20,6 +20,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
@@ -140,6 +141,12 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 			}
 			defer done()
 			c.SetContext(ctx)
+			return c.Next()
+		})
+	}
+	if options.Access != nil {
+		route.Use(func(c fiber.Ctx) error {
+			c.SetContext(network.WithFetchPolicy(c.Context(), network.PublicPolicy()))
 			return c.Next()
 		})
 	}

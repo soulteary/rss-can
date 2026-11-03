@@ -16,6 +16,11 @@ import (
 func TestTeamModeCannotSelectTrustedFetchPolicy(t *testing.T) {
 	t.Setenv("RSS_ACCESS_MODE", "team")
 	t.Setenv("RSS_FETCH_POLICY", "trusted")
+	t.Setenv("RSS_ACCESS_STORE", "/tmp/unused-access.json")
+	t.Setenv("RSS_PUBLIC_ORIGIN", "https://rss.example")
+	t.Setenv("RSS_TRUSTED_PROXIES", "127.0.0.1/32")
+	t.Setenv("RSS_WARDEN_URL", "https://warden.example")
+	t.Setenv("RSS_WARDEN_API_KEY", "test-key")
 	config, err := ConfigFromGlobals()
 	if err != nil {
 		t.Fatal(err)

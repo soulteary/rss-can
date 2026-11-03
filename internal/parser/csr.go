@@ -149,6 +149,9 @@ func resolveBrowserURL(ctx context.Context, address string) (string, error) {
 // withBrowserPage owns an isolated browser context and its connection. It never
 // closes the shared remote browser. Cleanup also runs after errors or timeouts.
 func withBrowserPage(ctx context.Context, container, proxyAddr, targetURL, cookies string, publicOnly bool, action func(context.Context) error) (err error) {
+	if network.PolicyForContext(ctx).PublicOnly() {
+		return fmt.Errorf("browser execution is disabled by public fetch policy")
+	}
 	telemetry.Default.Add("browser_requests_total", 1)
 	began := time.Now()
 	telemetry.Default.Add("browser_queued", 1)
@@ -357,6 +360,9 @@ func ParsePageByBrowser(config define.JavaScriptConfig, container string, proxyA
 }
 
 func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConfig, container string, proxyAddr string, useMixParser bool) define.BodyParsed {
+	if network.PolicyForContext(ctx).PublicOnly() {
+		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, "browser execution is disabled by public fetch policy", time.Now(), nil)
+	}
 	if err := ctx.Err(); err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
 	}

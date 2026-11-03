@@ -5,8 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v3"
+	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/feedservice"
+	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/network"
+	"net/http"
+	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -166,5 +172,50 @@ func TestSourceRefreshRequiresOwnerAndCarriesScope(t *testing.T) {
 	status, body = call("alice")
 	if status != 503 || strings.Contains(body, "secret") {
 		t.Fatal("refresh error leaked details")
+	}
+}
+
+func TestSourceRefreshWithoutSnapshotsReplacesDocumentCache(t *testing.T) {
+	logger.Initialize()
+	_, a, _ := accessApp(t)
+	var page atomic.Value
+	page.Store("old")
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte(page.Load().(string))) }))
+	defer upstream.Close()
+	cache := cacher.New(cacher.Config{MemoryEnabled: true, MemoryTTL: time.Hour})
+	defer cache.Close()
+	ctx := cacher.WithCache(t.Context(), cache)
+	fetch := func(ctx context.Context) define.RemoteBodySanitized {
+		return network.GetRemoteDocumentContext(ctx, upstream.URL, "", 3600, false)
+	}
+	if initial := fetch(ctx); initial.Body != "old" {
+		t.Fatal(initial)
+	}
+	page.Store("new")
+	var body string
+	svc := feedservice.New(time.Second, feedservice.Dependencies{
+		Lookup: func(string) (define.RuleCache, bool) { return define.RuleCache{}, true },
+		Configure: func(context.Context, define.RuleCache) (define.JavaScriptConfig, error) {
+			return define.JavaScriptConfig{}, nil
+		},
+		Fetch: func(requestCtx context.Context, _ define.JavaScriptConfig) define.BodyParsed {
+			result := fetch(cacher.WithCache(requestCtx, cache))
+			body = result.Body
+			return define.BodyParsed{Code: result.Code, Status: result.Status}
+		},
+		Serialize: func(context.Context, define.JavaScriptConfig, define.BodyParsed, string) (string, error) {
+			return "ok", nil
+		},
+	})
+	app := fiber.New()
+	app.Post("/api/sources/:id/refresh", a.requireSubject(), a.refreshManaged(svc))
+	req := requestAs("POST", "/api/sources/private-a/refresh", "alice", "{}")
+	req.Header.Set("Origin", "https://rss.example")
+	status, response := testResponse(t, app, req)
+	if status != 200 || body != "new" {
+		t.Fatalf("status=%d body=%q response=%s", status, body, response)
+	}
+	if cached := fetch(ctx); cached.Body != "new" {
+		t.Fatalf("cache reverted: %+v", cached)
 	}
 }

@@ -94,6 +94,9 @@ func (s *Snapshots) Refresh(ctx context.Context, id, format string) (Representat
 }
 
 func (s *Snapshots) representation(ctx context.Context, id, format string, force bool) (Representation, error) {
+	// HTTP adapters may provide strings backed by reusable request buffers.
+	id = strings.Clone(id)
+	format = strings.Clone(format)
 	ctx = network.WithFetchBudget(ctx)
 	if err := ctx.Err(); err != nil {
 		return Representation{}, &Error{Stage: Timeout, Cause: err}

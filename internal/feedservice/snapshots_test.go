@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -422,5 +423,34 @@ func BenchmarkSnapshotCold(b *testing.B) {
 		if _, err := s.Representation(b.Context(), fmt.Sprint(i), "rss"); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func TestSnapshotRefreshOwnsBorrowedFormat(t *testing.T) {
+	s, f := newSnapshotFixture(t, SnapshotOptions{TTL: time.Minute, MaxStale: time.Hour})
+	first := snapshotGet(t, s, t.Context(), "source")
+	entered, release := make(chan struct{}), make(chan struct{})
+	f.setFetch(func(ctx context.Context) define.BodyParsed {
+		close(entered)
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return define.BodyParsed{Body: []define.InfoItem{{Title: "second", Link: "https://example.org/2"}}}
+	})
+	f.advance(2 * time.Minute)
+	buffer := []byte("rss")
+	format := unsafe.String(unsafe.SliceData(buffer), len(buffer))
+	stale, err := s.Representation(t.Context(), "source", format)
+	if err != nil || !stale.Stale {
+		t.Fatalf("stale refresh: %+v %v", stale, err)
+	}
+	<-entered
+	copy(buffer, "zzz")
+	close(release)
+	waitRefresh(t, s)
+	next := snapshotGet(t, s, t.Context(), "source")
+	if next.Stale || !next.FetchedAt.After(first.FetchedAt) {
+		t.Fatalf("request reuse corrupted refresh format: %+v", next)
 	}
 }

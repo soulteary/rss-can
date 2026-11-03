@@ -1,12 +1,68 @@
 # Secure deployment and administrative actions
 
-Source builds run as UID/GID 65532. The example Compose files bind only to
+## Build and verify current source
+
+For an existing Stargate/Warden stack, start with the [guided source-based
+Compose deployment](../example/4.with-stargate/README.md). Its setup generates
+private environment files, builds RSS Can from source, and wires the HTTPS
+gateway and private backend network. The commands below are for operators
+maintaining their own container wiring.
+
+The security behavior below applies to **current source**, not published
+`v0.4.0`. That historical image ignores `RSS_ACCESS_MODE` and
+`RSS_FETCH_POLICY`; setting them does not add authentication or SSRF protection.
+It also predates the POST-only administrative API and log redaction described
+below. The standalone Compose examples intentionally retain that release for
+compatibility and must not be used as a team deployment.
+
+From a reviewed checkout containing these changes, build a separately named
+image. Do not overwrite a historical release tag:
+
+```sh
+docker build -f docker/Dockerfile --build-arg COMMIT="$(git rev-parse HEAD)" -t rss-can-source:local .
+docker run --rm --network none -e RSS_REDIS=false rss-can-source:local rssc doctor
+```
+
+The second command must finish successfully and print diagnostic results,
+including `OK` lines; merely seeing a running HTTP server is not success.
+The old release does not implement this command. Record the resulting image ID
+and commit, then deploy that exact image. Do not replace it with `v0.4.0` when
+following the [team configuration](stargate-access.md#team-configuration).
+
+For a team deployment, prepare a private state directory owned by UID/GID 65532
+(mode `0700`). Store the team environment from that guide in an operator-only
+file `.env.team`, using unquoted `KEY=value` lines (Docker retains literal
+quotes). Create it with `umask 077`, require mode `0600`, and never commit
+credentials. `.env.team` is excluded from Git and the Docker build context. Set
+`RSS_ACCESS_STORE=/state/access.json` and
+`RSS_REDIS=false` unless a private Redis is configured. Run the verified image:
+
+```sh
+docker run --name rss-can-team --user 65532:65532 \
+  --read-only --cap-drop ALL --security-opt no-new-privileges:true \
+  --pids-limit 128 --memory 512m --cpus 2 \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
+  --env-file .env.team -p 127.0.0.1:8080:8080 \
+  -v "$(pwd)/state:/state" -v "$(pwd)/rules:/rules:ro" \
+  rss-can-source:local
+```
+
+Connect the authenticated reverse proxy through a private path and set
+`RSS_TRUSTED_PROXIES` to its actual socket source address; do not expose the
+backend to clients or broaden trust to compensate for a wrong address. Verify
+`/_/ready/` succeeds, an unauthenticated feed request is denied, an authorized
+user can access only an assigned source, and a revoked reader credential is
+rejected before sending real traffic. Run `doctor` with the same environment
+and mounts when diagnosing the deployed configuration; failure must be fixed,
+not bypassed by switching back to the old image.
+
+Source container images run as UID/GID 65532. The example Compose files bind only to
 127.0.0.1, mount rules read-only, drop Linux capabilities, disable privilege
 escalation, and provide a bounded writable temporary directory. These are
 single-user examples, not an authorization boundary for multi-user hosting.
 The temporary mount uses standard sticky mode `1777`, allowing the numeric
 service user to create directories without engine-specific tmpfs `uid`/`gid`
-options. The companion runtime-hardening change gives each Deno worker a private
+options. Current source gives each Deno worker a private
 `0700` cache subdirectory and removes it on exit; the shared `/tmp` mount is not
 itself an execution-isolation boundary.
 A mounted rule must be readable by UID 65532; do not make secrets world-readable
@@ -39,7 +95,7 @@ trusted authentication middleware sets them. A successful Stargate login does
 not grant administrator privileges: only an explicitly authorized operations
 route may inject RSS_ADMIN_TOKEN, and the token must never reach a browser.
 Stargate's native integration and per-source authorization are documented in the
-separate access-control change; do not exempt legacy feed paths from access
+[team access guide](stargate-access.md); do not exempt legacy feed paths from access
 checks just to make a reader follow a login redirect.
 
 ## Logging and preview privacy

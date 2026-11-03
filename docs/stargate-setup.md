@@ -1,5 +1,7 @@
 # Create and maintain a personal feed
 
+**Requires current source:** published `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features described here. It silently ignores the new configuration variables. [Build and verify the current source image](secure-deployment.md#build-and-verify-current-source) first; do not add team settings to the historical standalone image.
+
 After enabling [team access](stargate-access.md), open `/sources` through the
 authenticated gateway. A first successful Warden-backed login provisions a
 local principal; it never re-enables an operator-disabled account.

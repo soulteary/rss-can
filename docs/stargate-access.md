@@ -1,5 +1,7 @@
 # Stargate identity and private feed access
 
+**Requires current source:** published `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features described here. It silently ignores the new configuration variables. [Build and verify the current source image](secure-deployment.md#build-and-verify-current-source) first; do not add team settings to the historical standalone image.
+
 RSS Can has two explicit operating modes. `standalone` preserves the existing
 trusted-rule deployment. `team` requires source permissions before it serves
 feeds, including feeds reached through the old `/feed/:id/:type` addresses.
@@ -41,7 +43,16 @@ The service writes a `0600` authorization file and a persistent advisory lock
 file there. The lock is automatically released by the OS on process exit; do
 not delete the lock file while a process is running.
 
-```sh
+Write the following as a Docker `--env-file` (for example, `.env.team`). Replace
+the angle-bracket placeholders with real values, without retaining the brackets
+or adding shell quotes; Docker env files treat quotes as part of the value.
+Create `.env.team` with `umask 077`, keep its mode at `0600`, and never commit
+credentials. The `.env.*` naming keeps it out of both Git and the Docker build
+context; do not rename it to an unexcluded name such as `team.env`.
+For a guided setup that writes these files and configures the gateway, use the
+[source-based Stargate deployment](../example/4.with-stargate/README.md).
+
+```dotenv
 RSS_ACCESS_MODE=team
 RSS_ACCESS_STORE=/var/lib/rss-can/access.json
 RSS_PUBLIC_ORIGIN=https://rss.example.com

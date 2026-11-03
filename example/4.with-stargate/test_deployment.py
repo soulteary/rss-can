@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -105,6 +106,16 @@ class DeploymentTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     setup.validate_settings(changed)
 
+    def test_documented_cli_help_from_example_directory(self):
+        # Importing stdlib operator must never resolve to a local operator.py.
+        # Use a fresh interpreter because this process has already imported it.
+        for script in ("setup.py", "rss_operator.py"):
+            with self.subTest(script=script):
+                result = subprocess.run([sys.executable, script, "--help"],
+                                        cwd=setup.HERE, capture_output=True,
+                                        text=True, timeout=10, check=True)
+                self.assertIn("usage:", result.stdout)
+
     def test_builder_context_excludes_deployment_secrets(self):
         patterns = (setup.HERE.parent.parent / ".dockerignore").read_text().splitlines()
         def excluded(path):
@@ -116,11 +127,18 @@ class DeploymentTest(unittest.TestCase):
                 if fnmatch.fnmatchcase(path, pattern.lstrip("!")):
                     value = not negative
             return value
-        for path in (".env", ".env.production", ".runtime/server.key", "example/4.with-stargate/.env", "example/4.with-stargate/.runtime/operator-ca.key", "example/4.with-stargate/.env.production"):
+        for path in (".env", ".env.team", ".env.production", ".runtime/server.key", "example/4.with-stargate/.env", "example/4.with-stargate/.runtime/operator-ca.key", "example/4.with-stargate/.env.production", "example/4.with-stargate/.env.team"):
             with self.subTest(path=path):
                 self.assertTrue(excluded(path), "private deployment files would enter the build context")
         self.assertFalse(excluded("example/4.with-stargate/.env.example"))
         self.assertFalse(excluded("example/4.with-stargate/README.md"))
+
+    def test_manual_team_credentials_are_git_ignored(self):
+        root = setup.HERE.parent.parent
+        paths = [".env.team", "example/4.with-stargate/.env.team"]
+        result = subprocess.run(["git", "check-ignore", "--no-index", *paths],
+                                cwd=root, capture_output=True, text=True, check=True)
+        self.assertEqual(set(result.stdout.splitlines()), set(paths))
 
     @unittest.skipUnless(os.environ.get("RSS_TEST_DOCKER") == "1", "set RSS_TEST_DOCKER=1 for the real Docker context check")
     def test_real_builder_context_excludes_deployment_secrets(self):
@@ -129,6 +147,8 @@ class DeploymentTest(unittest.TestCase):
         (sample / ".runtime").mkdir(parents=True)
         (sample / ".runtime/test-secret").write_text("harmless exclusion marker")
         (sample / ".env").write_text("harmless exclusion marker")
+        (sample / ".env.team").write_text("harmless exclusion marker")
+        (context / ".env.team").write_text("harmless exclusion marker")
         (sample / "README.md").write_text("public control file")
         shutil.copyfile(setup.HERE.parent.parent / ".dockerignore", context / ".dockerignore")
         (context / "Dockerfile").write_text("FROM scratch\nCOPY . /context\n")
@@ -142,6 +162,8 @@ class DeploymentTest(unittest.TestCase):
                 names = set(tar.getnames())
             self.assertIn("context/example/4.with-stargate/README.md", names)
             self.assertNotIn("context/example/4.with-stargate/.env", names)
+            self.assertNotIn("context/.env.team", names)
+            self.assertNotIn("context/example/4.with-stargate/.env.team", names)
             self.assertFalse(any("/.runtime" in name for name in names))
         finally:
             if container:

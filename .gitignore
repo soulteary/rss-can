@@ -25,3 +25,8 @@ __pycache__/
 
 # Downloaded release runtimes
 build/runtime/
+
+# Local deployment credentials (keep only placeholder examples in Git).
+.env
+.env.*
+!.env.example

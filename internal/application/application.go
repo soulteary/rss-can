@@ -33,6 +33,7 @@ type Config struct {
 	BrowserTimeout time.Duration
 	Browser        parser.BrowserOptions
 	ConfigCacheTTL time.Duration
+	Snapshots      feedservice.SnapshotOptions
 }
 
 // ConfigFromGlobals is a startup-only compatibility boundary for CLI/env options.
@@ -63,13 +64,34 @@ func ConfigFromGlobals() (Config, error) {
 	}
 	serverOptions := server.DefaultOptions()
 	serverOptions.Access = accessConfig
+	snapshotTTL, err := snapshotDuration("RSS_SNAPSHOT_TTL", 30, 3600)
+	if err != nil {
+		return Config{}, err
+	}
+	maxStale, err := snapshotDuration("RSS_SNAPSHOT_MAX_STALE", 3600, 86400)
+	if err != nil {
+		return Config{}, err
+	}
 	return Config{
+		Snapshots:  feedservice.SnapshotOptions{TTL: snapshotTTL, MaxStale: maxStale},
 		Server:     serverOptions,
 		Cache:      cacher.Config{RedisEnabled: define.REDIS, MemoryEnabled: define.IN_MEMORY_CACHE, RedisAddr: define.REDIS_SERVER, RedisPassword: define.REDIS_PASS, RedisDB: define.REDIS_DB, MemoryTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)},
 		JavaScript: jssdk.RuntimeConfig{Binary: os.Getenv("RSS_CAN_DENO"), Workers: workers, Timeout: time.Duration(define.JS_EXECUTE_TIMEOUT) * time.Millisecond},
 		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER, Policy: policy},
 		Browser:    parser.BrowserOptions{Debug: define.CSR_DEBUG, IgnoreCertificateErrors: define.CSR_IGNORE_CERT_ERRORS}, BrowserTimeout: fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT), ConfigCacheTTL: time.Duration(ttl) * time.Second,
 	}, nil
+}
+
+func snapshotDuration(name string, fallback, maximum int) (time.Duration, error) {
+	seconds := fallback
+	if raw := os.Getenv(name); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 0 || n > maximum {
+			return 0, fmt.Errorf("%s must be an integer between 0 and %d", name, maximum)
+		}
+		seconds = n
+	}
+	return time.Duration(seconds) * time.Second, nil
 }
 
 type App struct {
@@ -79,6 +101,7 @@ type App struct {
 	client    *network.Client
 	rules     *rule.Repository
 	feeds     *feedservice.Service
+	snapshots *feedservice.Snapshots
 	routes    *fiber.App
 	life      context.Context
 	cancel    context.CancelFunc
@@ -196,8 +219,19 @@ func New(ctx context.Context, config Config) (*App, error) {
 	if accessStore != nil {
 		accessController = &server.AccessController{Config: *config.Server.Access, Store: accessStore, Directory: access.WardenChecker{URL: config.Server.Access.WardenURL, APIKey: config.Server.Access.WardenAPIKey}}
 	}
+	var feeds server.FeedGenerator = app.feeds
+	if config.Snapshots.TTL > 0 {
+		app.snapshots, err = feedservice.NewSnapshots(life, app.feeds, config.Snapshots)
+		if err != nil {
+			cancel()
+			_ = app.runtime.Close()
+			_ = app.cache.Close()
+			return nil, err
+		}
+		feeds = app.snapshots
+	}
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
-		Feeds: app.feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
+		Feeds: feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
 		Access: accessController,
 	})
@@ -231,6 +265,9 @@ func (a *App) Close() error {
 		a.cancel()
 		a.mu.Unlock()
 		a.requests.Wait()
+		if a.snapshots != nil {
+			_ = a.snapshots.Close()
+		}
 		a.work.Wait()
 		a.closeErr = errors.Join(a.runtime.Close(), a.cache.Close())
 		if a.access != nil {

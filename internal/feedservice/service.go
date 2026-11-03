@@ -19,6 +19,7 @@ type Stage string
 
 const (
 	Admission     Stage = "admission"
+	RateLimited   Stage = "rate_limited"
 	InvalidFormat Stage = "format"
 	MissingRule   Stage = "lookup"
 	Configuration Stage = "configuration"

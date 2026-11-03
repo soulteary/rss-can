@@ -6,7 +6,15 @@ services:
     environment:
       - RSS_SERVER=redis:6379
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 2
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
     volumes:
       - ../../rules:/rules:ro
 

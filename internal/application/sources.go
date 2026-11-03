@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -13,10 +14,17 @@ import (
 	"github.com/soulteary/RSS-Can/internal/source"
 )
 
+type managedRuleEnvelope struct {
+	Revision uint64      `json:"revision"`
+	Spec     source.Spec `json:"spec"`
+}
+
 func (a *App) lookupSource(id string) (define.RuleCache, bool) {
 	if a.access != nil {
 		if src, ok := a.access.Managed(id); ok {
-			body, err := src.Spec.Bytes()
+			// The revision must participate in the fingerprint: reverting to an
+			// earlier spec still creates a new generation, not an old cache hit.
+			body, err := json.Marshal(managedRuleEnvelope{Revision: src.Revision, Spec: *src.Spec})
 			if err != nil {
 				return define.RuleCache{}, false
 			}
@@ -30,11 +38,11 @@ func (a *App) configureSource(ctx context.Context, snapshot define.RuleCache) (d
 	if !snapshot.Managed {
 		return a.rules.Configure(a.resources(ctx), snapshot)
 	}
-	spec, err := source.Parse(snapshot.Body)
-	if err != nil {
-		return define.JavaScriptConfig{}, err
+	var envelope managedRuleEnvelope
+	if err := json.Unmarshal(snapshot.Body, &envelope); err != nil || envelope.Revision == 0 {
+		return define.JavaScriptConfig{}, fmt.Errorf("invalid managed source snapshot")
 	}
-	config, err := spec.Config()
+	config, err := envelope.Spec.Config()
 	config.File = snapshot.File
 	return config, err
 }

@@ -48,6 +48,13 @@ func TestManagedSnapshotsStayPinnedAcrossEdits(t *testing.T) {
 	if app.sourceMetadata()[src.ID].Name != "Changed" {
 		t.Fatal("managed metadata missing")
 	}
+	if _, err := app.access.RollbackManaged("alice", src.ID, 2); err != nil {
+		t.Fatal(err)
+	}
+	rolled, _ := app.lookupSource(src.ID)
+	if string(rolled.Body) == string(snapshot.Body) || rolled.Sign == snapshot.Sign {
+		t.Fatal("rollback reused a previous snapshot fingerprint")
+	}
 	if _, ok := app.lookupSource("site"); !ok {
 		t.Fatal("legacy source lost")
 	}

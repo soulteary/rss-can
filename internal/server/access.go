@@ -82,6 +82,9 @@ func (a *AccessController) requireSubject() fiber.Handler {
 
 func (a *AccessController) requireFeed(machine bool) fiber.Handler {
 	return func(c fiber.Ctx) error {
+		// Denials, including hidden-resource 404s, must not be retained by a
+		// shared cache or turned into a conditional success response.
+		c.Set("Cache-Control", "private, no-store")
 		if a == nil || a.Store == nil {
 			return accessFailure(c, errors.New("access is unavailable"))
 		}

@@ -4,6 +4,11 @@ Source builds run as UID/GID 65532. The example Compose files bind only to
 127.0.0.1, mount rules read-only, drop Linux capabilities, disable privilege
 escalation, and provide a bounded writable temporary directory. These are
 single-user examples, not an authorization boundary for multi-user hosting.
+The temporary mount uses standard sticky mode `1777`, allowing the numeric
+service user to create directories without engine-specific tmpfs `uid`/`gid`
+options. The companion runtime-hardening change gives each Deno worker a private
+`0700` cache subdirectory and removes it on exit; the shared `/tmp` mount is not
+itself an execution-isolation boundary.
 A mounted rule must be readable by UID 65532; do not make secrets world-readable
 as a workaround. Use a dedicated group/mount ownership where credentials exist.
 

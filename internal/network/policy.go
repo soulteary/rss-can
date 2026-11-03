@@ -191,13 +191,27 @@ func policyHTTPClient(ctx context.Context, timeout time.Duration, proxy string) 
 	if p.PublicOnly() && proxy != "" {
 		return nil, nil, ErrFetchPolicy
 	}
-	tr := http.DefaultTransport.(*http.Transport).Clone()
+	var tr *http.Transport
 	if p.PublicOnly() {
-		tr.Proxy = nil
-		tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
-			return policyDialContext(ctx, network, address, net.DefaultResolver.LookupNetIP, (&net.Dialer{}).DialContext)
+		// Do not inherit custom TLS dialers or disabled verification from the global
+		// DefaultTransport: they could bypass the validated-address dial path.
+		tr = &http.Transport{ForceAttemptHTTP2: true, MaxIdleConns: 100, IdleConnTimeout: 90 * time.Second, TLSHandshakeTimeout: 10 * time.Second, ExpectContinueTimeout: time.Second}
+		settings := configForContext(ctx)
+		lookup := settings.LookupNetIP
+		if lookup == nil {
+			lookup = net.DefaultResolver.LookupNetIP
 		}
-	} else if proxy != "" {
+		dial := settings.DialContext
+		if dial == nil {
+			dial = (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext
+		}
+		tr.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+			return policyDialContext(ctx, network, address, lookup, dial)
+		}
+	} else {
+		tr = http.DefaultTransport.(*http.Transport).Clone()
+	}
+	if !p.PublicOnly() && proxy != "" {
 		u, _ := url.Parse(proxy)
 		tr.Proxy = http.ProxyURL(u)
 	}

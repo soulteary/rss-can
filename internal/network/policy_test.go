@@ -173,3 +173,37 @@ func TestPublicPolicyRejectsForbiddenOptionsBeforeCacheHit(t *testing.T) {
 		}
 	}
 }
+
+func TestPublicTransportDoesNotInheritUnrestrictedTLSDialer(t *testing.T) {
+	original := http.DefaultTransport
+	altered := http.DefaultTransport.(*http.Transport).Clone()
+	altered.DialTLSContext = func(context.Context, string, string) (net.Conn, error) { return nil, errors.New("unrestricted dialer") }
+	http.DefaultTransport = altered
+	t.Cleanup(func() { http.DefaultTransport = original })
+	ctx := WithFetchPolicy(t.Context(), PublicPolicy())
+	_, transport, err := policyHTTPClient(ctx, time.Second, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer transport.CloseIdleConnections()
+	if transport.DialTLSContext != nil || transport.DialTLS != nil || transport.TLSClientConfig != nil {
+		t.Fatal("public policy inherited TLS overrides")
+	}
+}
+func TestPublicInjectedResolverStillChecksAddresses(t *testing.T) {
+	dialed := false
+	client := NewClient(Config{Policy: PublicPolicy(), LookupNetIP: func(context.Context, string, string) ([]netip.Addr, error) {
+		return []netip.Addr{netip.MustParseAddr("127.0.0.1")}, nil
+	}, DialContext: func(context.Context, string, string) (net.Conn, error) {
+		dialed = true
+		return nil, errors.New("unexpected dial")
+	}})
+	ctx := WithClient(t.Context(), client)
+	code, _, response := HttpGetContext(ctx, "http://source.example", "")
+	if response != nil {
+		_ = response.Body.Close()
+	}
+	if code == 0 || dialed {
+		t.Fatal("injected resolver bypassed public address validation")
+	}
+}

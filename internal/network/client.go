@@ -3,6 +3,8 @@ package network
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/netip"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/coalesce"
@@ -17,6 +19,10 @@ type Config struct {
 	UserAgent                                 string
 	Proxy                                     string
 	Policy                                    FetchPolicy
+	// Optional trusted embedder dependencies. Public policy still validates all
+	// resolved addresses before DialContext is called. These are not rule options.
+	LookupNetIP func(context.Context, string, string) ([]netip.Addr, error)
+	DialContext func(context.Context, string, string) (net.Conn, error)
 }
 type Client struct {
 	config  Config

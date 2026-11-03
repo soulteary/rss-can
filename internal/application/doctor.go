@@ -10,6 +10,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/server"
 )
 
 type Diagnostic struct {
@@ -23,6 +24,9 @@ type Diagnostic struct {
 func ConfigurationDiagnostic(err error) Diagnostic {
 	message := "Check RSS_ACCESS_MODE, RSS_ACCESS_STORE, RSS_PUBLIC_ORIGIN, RSS_TRUSTED_PROXIES and Warden settings."
 	if err != nil {
+		if strings.Contains(err.Error(), "RSS_HTTP_FEED_PATH") {
+			return Diagnostic{Name: "configuration", OK: false, Message: "Set RSS_HTTP_FEED_PATH to a static path outside reserved application routes (for example /feed)."}
+		}
 		for _, hint := range []struct{ match, text string }{{"RSS_JS_WORKERS", "Set RSS_JS_WORKERS to an integer between 1 and 16."}, {"RSS_FETCH_POLICY", "Set RSS_FETCH_POLICY to public or trusted; team mode requires public."}, {"RSS_SNAPSHOT_TTL", "Set RSS_SNAPSHOT_TTL to an integer between 0 and 3600 seconds."}, {"RSS_SNAPSHOT_MAX_STALE", "Set RSS_SNAPSHOT_MAX_STALE to an integer between 0 and 86400 seconds."}, {"RSS_ACCESS_MODE", "Set RSS_ACCESS_MODE to standalone or team."}, {"RSS_TRUSTED_PROXIES", "Set RSS_TRUSTED_PROXIES to explicit proxy CIDRs."}, {"RSS_PUBLIC_ORIGIN", "Set RSS_PUBLIC_ORIGIN to an HTTPS origin without a path."}} {
 			if strings.Contains(err.Error(), hint.match) {
 				message = hint.text
@@ -48,6 +52,7 @@ func Diagnose(ctx context.Context, config Config) []Diagnostic {
 	}
 	serverOK := config.Server.Timeout > 0 && config.Server.FeedPath != "" && config.Server.RuleDirectory != ""
 	add("server", serverOK, "Server configuration is valid.", "Set a positive timeout, feed path and rule directory.")
+	add("feed-path", server.ValidateFeedPath(config.Server.FeedPath, config.Server.Access != nil) == nil, "Feed path does not shadow application routes.", "Use a static feed path outside reserved routes, for example /feed.")
 	policy, policyErr := network.ParseFetchPolicy(config.Network.Policy.Mode)
 	if config.Server.Access != nil {
 		policy = network.PublicPolicy()

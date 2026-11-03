@@ -336,10 +336,12 @@ func (s *Store) BindIssuer(issuer string) error {
 	})
 }
 
+// PutSource changes source access only. Managed content and its revision are
+// owned by CreateManaged/UpdateManaged, never by an ACL replacement request.
 func (s *Store) PutSource(src Source) error {
 	src.Readers = append([]string(nil), src.Readers...)
 	src = cloneSource(src)
-	if !validID(src.ID) || !validID(src.Owner) || len(src.Readers) > 256 {
+	if !validID(src.ID) || !validID(src.Owner) || len(src.Readers) > 256 || src.Spec != nil || len(src.Previous) != 0 || src.Revision != 0 {
 		return ErrInvalid
 	}
 	for _, r := range src.Readers {
@@ -348,6 +350,9 @@ func (s *Store) PutSource(src Source) error {
 		}
 	}
 	return s.update(func(st *state) error {
+		if old, exists := st.Sources[src.ID]; exists {
+			src.Spec, src.Previous, src.Revision = old.Spec, old.Previous, old.Revision
+		}
 		// Moving ownership revokes all outstanding grants, including grants
 		// belonging to readers who might also be present in the new ACL.
 		if old, ok := st.Sources[src.ID]; ok && old.Owner != src.Owner {
@@ -373,7 +378,9 @@ func (s *Store) PutSource(src Source) error {
 				st.Grants[id] = g
 			}
 		}
-		return nil
+		// A transfer or expanded reader list can exceed the recipient's managed
+		// byte quota. Reject before persistence, preserving healthy old state.
+		return managedCapacity(*st)
 	})
 }
 

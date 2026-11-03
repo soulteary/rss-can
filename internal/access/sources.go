@@ -132,6 +132,7 @@ const MaxManagedBytesTotal = 4 << 20
 
 func managedCapacity(st state) error {
 	byOwner := map[string]int{}
+	countByOwner := map[string]int{}
 	total := 0
 	for _, src := range st.Sources {
 		if src.Spec == nil {
@@ -140,6 +141,10 @@ func managedCapacity(st state) error {
 		encoded, err := json.Marshal(src)
 		if err != nil {
 			return ErrInvalid
+		}
+		countByOwner[src.Owner]++
+		if countByOwner[src.Owner] > MaxManagedSourcesPerSubject {
+			return ErrSourceLimit
 		}
 		byOwner[src.Owner] += len(encoded)
 		total += len(encoded)

@@ -135,6 +135,12 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 		route.Use(compress.New())
 	}
 	route.Use(Logger(logger.Instance), recover.New())
+	if err := ValidateFeedPath(options.FeedPath, options.Access != nil); err != nil {
+		route.Use(func(c fiber.Ctx) error {
+			return c.Status(503).JSON(fiber.Map{"msg": "invalid feed route configuration"})
+		})
+		return route
+	}
 	if dependencies.BindContext != nil {
 		route.Use(func(c fiber.Ctx) error {
 			ctx, done, err := dependencies.BindContext(c.Context())

@@ -218,3 +218,9 @@ disable/re-enable, ownership transfer, concurrent reads and Warden identity
 matching. HTTP tests cover trusted proxy identity, role-header spoofing,
 directory filtering, legacy routes, CSRF origin checks, reader credentials and
 fail-closed dependency behavior.
+
+### Updating access without changing source content
+
+The operator source-access endpoint updates ownership, public visibility and readers only. For managed sources it preserves the current specification, revision and rollback history. Ownership transfers revoke outstanding reader grants and advance the authorization version; the new owner can continue editing from the existing revision. A transfer that exceeds the destination owner's source count or storage quota is rejected without changing ownership.
+
+The feed path must be a static absolute path outside built-in route namespaces. `/config`, `/inspector`, `/assets` and `/_` are reserved in every mode; team mode also reserves `/api`, `/sources` and `/s` (including their subpaths, case-insensitively). Use `/feed` for a custom deployment. Invalid configurations fail startup with a safe `RSS_HTTP_FEED_PATH` diagnostic; direct server embedders receive HTTP 503 instead of shadowed application routes.

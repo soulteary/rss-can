@@ -433,6 +433,7 @@ func ParsePageByBrowserContext(ctx context.Context, config define.JavaScriptConf
 // browserData shares only captured page data. Each caller decodes using its own
 // context, so a departing caller cannot cancel the other callers' detail work.
 func browserData(ctx context.Context, key string, cacheEnabled bool, timeout time.Duration, expire int, fetchData func(context.Context) (string, error), validators ...func(string) error) (string, error) {
+	key = network.DocumentCacheKey(ctx, key)
 	maxBytes := limits.MaxPageBytes
 	if len(validators) > 0 {
 		maxBytes = limits.MaxDocumentCacheBytes
@@ -449,7 +450,7 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 		return nil
 	}
 	load := func(work context.Context) (string, error) {
-		if cacheEnabled {
+		if cacheEnabled && !network.CacheRefresh(work) {
 			if cached, found, err := cacher.GetWithinLimit(work, key, maxBytes); err == nil && found {
 				if validate(cached) == nil {
 					return cached, nil
@@ -460,6 +461,8 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 		if err := work.Err(); err != nil {
 			return "", err
 		}
+		commit, finish := network.BeginCacheWrite(work, cacher.Scope(work)+":"+key)
+		defer finish()
 		data, err := fetchData(work)
 		if err != nil {
 			return "", err
@@ -474,7 +477,7 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 			if expire <= 0 {
 				expire = define.IN_MEMORY_EXPIRATION
 			}
-			if err := cacher.SetWithTTL(work, key, data, fn.ExpireBySecond(expire)); err != nil {
+			if err := commit(func() error { return cacher.SetWithTTL(work, key, data, fn.ExpireBySecond(expire)) }); err != nil {
 				logger.Instance.Warn("Unable to use cache")
 			}
 		}
@@ -486,7 +489,11 @@ func browserData(ctx context.Context, key string, cacheEnabled bool, timeout tim
 		return load(work)
 	}
 	// Application scope prevents one cache/runtime instance from joining another.
-	data, err, shared := browserFlights.Do(ctx, cacher.Scope(ctx)+":"+network.Scope(ctx)+":"+key, timeout, load)
+	flightKey := cacher.Scope(ctx) + ":" + network.Scope(ctx) + ":" + key
+	if network.CacheRefresh(ctx) {
+		flightKey += ":refresh"
+	}
+	data, err, shared := browserFlights.Do(ctx, flightKey, timeout, load)
 	if shared {
 		telemetry.Default.Add("browser_shared_total", 1)
 	}

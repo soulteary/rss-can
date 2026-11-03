@@ -34,7 +34,7 @@ go test -race ./internal/coalesce ./internal/telemetry ./internal/define ./inter
 - 95%: cmd, coalesce, define, fn, limits, logger, telemetry, workscope.
 - 90%: rule.
 - 85%: application, generator.
-- 80%: cacher, feedservice, jssdk, rulefile.
+- 80%: access, cacher, feedservice, jssdk, rulefile.
 - 75%: network, server.
 - 70%: parser.
 

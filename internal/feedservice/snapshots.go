@@ -94,9 +94,9 @@ func (s *Snapshots) Refresh(ctx context.Context, id, format string) (Representat
 }
 
 func (s *Snapshots) representation(ctx context.Context, id, format string, force bool) (Representation, error) {
-	// HTTP route parameters may borrow a request buffer. Refresh work can
-	// outlive the handler that supplied them, so capture owned strings.
-	id, format = strings.Clone(id), strings.Clone(format)
+	// HTTP adapters may provide strings backed by reusable request buffers.
+	id = strings.Clone(id)
+	format = strings.Clone(format)
 	ctx = network.WithFetchBudget(ctx)
 	if err := ctx.Err(); err != nil {
 		return Representation{}, &Error{Stage: Timeout, Cause: err}

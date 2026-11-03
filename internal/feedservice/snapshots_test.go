@@ -322,6 +322,39 @@ func TestSnapshotsRefreshIsScopedAndBypassesFreshness(t *testing.T) {
 	}
 }
 
+func TestSnapshotsRecoverDependencyPanicAndReleaseWaiters(t *testing.T) {
+	for _, stage := range []string{"fetch", "serialize"} {
+		t.Run(stage, func(t *testing.T) {
+			s, f := newSnapshotFixture(t, SnapshotOptions{})
+			serialize := s.service.dependencies.Serialize
+			if stage == "fetch" {
+				f.setFetch(func(context.Context) define.BodyParsed { panic("must-not-leak-private-source") })
+			} else {
+				s.service.dependencies.Serialize = func(context.Context, define.JavaScriptConfig, define.BodyParsed, string) (string, error) {
+					panic("must-not-leak-private-source")
+				}
+			}
+			_, err := s.Representation(t.Context(), "source", "rss")
+			if err == nil || strings.Contains(err.Error(), "must-not-leak") {
+				t.Fatalf("unsafe panic recovery: %v", err)
+			}
+			waitRefresh(t, s)
+			s.fair.mu.Lock()
+			active, queued := s.fair.active, s.fair.queued
+			s.fair.mu.Unlock()
+			if active != 0 || queued != 0 {
+				t.Fatal("panic leaked execution slots")
+			}
+			f.setFetch(nil)
+			s.service.dependencies.Serialize = serialize
+			f.advance(time.Minute)
+			if v := snapshotGet(t, s, t.Context(), "source"); v.Body == "" {
+				t.Fatal("worker did not recover after panic")
+			}
+		})
+	}
+}
+
 func TestSnapshotsErrorBoundaries(t *testing.T) {
 	for _, tc := range []struct {
 		name   string

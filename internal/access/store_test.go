@@ -82,7 +82,7 @@ func TestStoreAuthorizationAndPersistence(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer s2.Close()
-	if _, v, err := s2.ResolveGrant(g.ID, secret, "rss", time.Now()); err != nil || v <= before {
+	if _, v, err := s2.ResolveGrant(g.ID, secret, "rss", time.Now()); err != nil || v != before {
 		t.Fatalf("reopen: version %d err %v", v, err)
 	}
 	if err = s2.RevokeGrant("alice", g.ID); !errors.Is(err, ErrDenied) {

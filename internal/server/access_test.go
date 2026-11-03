@@ -261,3 +261,18 @@ func TestTeamMissingControllerFailsClosed(t *testing.T) {
 		t.Fatal("missing controller exposed feed")
 	}
 }
+
+func TestTeamGrantQuotaReturnsActionableError(t *testing.T) {
+	app, a, _ := accessApp(t)
+	for i := 0; i < access.MaxGrantsPerSubject; i++ {
+		if _, _, err := a.Store.CreateGrant("alice", "private-a", []string{"rss"}, time.Now().Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	request := requestAs("POST", "/api/sources/private-a/grants", "alice", `{"formats":["rss"]}`)
+	request.Header.Set("Origin", "https://rss.example")
+	status, body := testResponse(t, app, request)
+	if status != http.StatusTooManyRequests || !strings.Contains(body, "GRANT_LIMIT") {
+		t.Fatalf("quota response: %d %s", status, body)
+	}
+}

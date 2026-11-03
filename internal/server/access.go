@@ -257,6 +257,9 @@ func (a *AccessController) createGrant() fiber.Handler {
 		if errors.Is(err, access.ErrDenied) {
 			return c.SendStatus(404)
 		}
+		if errors.Is(err, access.ErrGrantLimit) {
+			return c.Status(http.StatusTooManyRequests).JSON(fiber.Map{"code": "GRANT_LIMIT", "msg": "reader credential limit reached; revoke an unused credential"})
+		}
 		if err != nil {
 			return c.Status(400).JSON(fiber.Map{"msg": "grant creation failed"})
 		}

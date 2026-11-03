@@ -173,7 +173,11 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 		route.Get(options.FeedPath+"/:id/:type/", apiRSSWithService(dependencies.Feeds))
 		route.Get(options.FeedPath, view.listPage())
 	}
-	route.Get("/config/:type/:value/", admin, apiConfigWithReload(dependencies.Reload))
+	route.Get("/config/:type/:value/", admin, func(c fiber.Ctx) error {
+		c.Set("Allow", "POST")
+		return c.SendStatus(405)
+	})
+	route.Post("/config/:type/:value/", admin, adminMutation(), apiConfigWithReload(dependencies.Reload))
 	route.Get("/inspector/:url/", admin, inspectorProxyWithOptions(options))
 	route.Get("/inspector", admin, inspectorHome())
 	route.Post("/inspector", admin, inspectorPrepare())

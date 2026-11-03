@@ -165,3 +165,7 @@ Source builds now share immutable rule snapshots, bound upstream HTTP work (16 a
 Source builds also add a 64 MiB memory-cache budget, transactional rule reload, generation/page/item/output limits, shared browser extraction and independently owned application shutdown. Empty or invalid rule sets now prevent startup or reload; see the [upgrade guide](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle).
 
 Deployment profiles: [Compose examples and upgrade checks](example/README.md).
+
+### Administrative API hardening
+
+Source builds require POST plus `X-RSS-Admin-Action: 1` for `/config/*` mutations. GET returns 405. Docker source builds run as UID/GID 65532; examples bind to loopback and mount rules read-only. See [secure deployment](docs/secure-deployment.md).

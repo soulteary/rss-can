@@ -16,7 +16,7 @@ import (
 func main() {
 	logger.Initialize()
 	if err := run(); err != nil {
-		logger.Instance.Errorf("RSS CAN stopped: %v", err)
+		logStartupFailure()
 		os.Exit(1)
 	}
 }
@@ -39,4 +39,9 @@ func run() error {
 		return err
 	}
 	return app.Run(ctx)
+}
+
+// Startup failures can include rule source snippets or private upstream URLs.
+func logStartupFailure() {
+	logger.Instance.Error("RSS CAN stopped; check configuration and dependency readiness")
 }

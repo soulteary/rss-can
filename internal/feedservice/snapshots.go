@@ -273,7 +273,7 @@ func (s *Snapshots) refresh(ctx context.Context, key [32]byte, entry *snapshotEn
 	previous := entry.value
 	s.mu.Unlock()
 	now := s.now()
-	body, err := s.run(ctx, owner, config, format, previous.ChangedAt, previous.Body)
+	body, err := s.runSafely(ctx, owner, config, format, previous.ChangedAt, previous.Body)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err == nil && (s.closed || s.life.Err() != nil || ctx.Err() != nil) {
@@ -311,6 +311,19 @@ func (s *Snapshots) refresh(ctx context.Context, key [32]byte, entry *snapshotEn
 	close(entry.done)
 	entry.done = nil
 	entry.cancel = nil
+}
+
+// Refresh executes outside the HTTP recovery middleware. A dependency panic
+// must finish this task, release its waiters and leave the process available.
+// Panic values are not exposed: they may contain source data or credentials.
+func (s *Snapshots) runSafely(ctx context.Context, owner string, config define.JavaScriptConfig, format string, previousTime time.Time, previousBody string) (body string, err error) {
+	defer func() {
+		if recover() != nil {
+			body = ""
+			err = &Error{Stage: Serialization, Cause: errors.New("feed refresh failed unexpectedly")}
+		}
+	}()
+	return s.run(ctx, owner, config, format, previousTime, previousBody)
 }
 
 func (s *Snapshots) run(ctx context.Context, owner string, config define.JavaScriptConfig, format string, previousTime time.Time, previousBody string) (string, error) {

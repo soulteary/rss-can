@@ -163,3 +163,7 @@ This project is licensed under the [MIT License](https://github.com/soulteary/RS
 进一步的源码构建改进包括：64 MiB 内存缓存预算、事务式规则重载、完整生成并发预算、页面/条目/输出大小限制、浏览器任务合并和应用实例独立关停。空规则集及无效规则现在会阻止启动或重载；具体限制见[升级指南](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle)。
 
 部署方式：[Compose 示例与升级验收](example/README.md)。
+
+### 管理接口安全变更
+
+源码构建的 `/config/*` 修改操作需要 POST 和 `X-RSS-Admin-Action: 1`，GET 返回 405。源码镜像以 UID/GID 65532 运行；示例仅绑定回环地址并只读挂载规则。详见[安全部署说明](docs/secure-deployment.md)。

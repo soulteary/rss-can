@@ -163,7 +163,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 
 	defer func() { // log when error
 		if code != define.ERROR_CODE_NULL {
-			logger.Instance.Warnf("get url:%v, code:%v status:%s", url, code, status)
+			logger.Instance.Warnf("remote document failed, code:%v", code)
 		}
 	}()
 
@@ -172,7 +172,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		if err == nil && found {
 			var cached define.RemoteBodySanitized
 			if json.Unmarshal([]byte(cache), &cached) == nil && validCachedDocument(cached) {
-				logger.Instance.Debugln("Get remote document from cache", url)
+				logger.Instance.Debugln("Get remote document from cache")
 				return cached
 			}
 			_ = cacher.DeleteWithContext(ctx, key)

@@ -118,7 +118,7 @@ func (v pageView) renderListPage(ctx context.Context, content []byte) ([]byte, e
 				if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 					return nil, err
 				}
-				logger.Instance.Errorf("Parsing rule file failed: %v", err)
+				logger.Instance.Error("Parsing rule file failed; details withheld to protect source credentials")
 				continue
 			}
 			entries[id] = rule.Metadata{Name: config.Name, File: snapshot.File, Sign: snapshot.Sign}
@@ -226,7 +226,7 @@ func (v pageView) listPage() fiber.Handler {
 			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 				return c.Status(http.StatusGatewayTimeout).JSON(fiber.Map{"msg": "rule list generation timed out"})
 			}
-			logger.Instance.Errorf("Rendering rule list failed: %v", err)
+			logger.Instance.Error("Rendering rule list failed; details withheld to protect source credentials")
 			return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "rule list generation failed"})
 		}
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
@@ -299,6 +299,9 @@ func inspectorProxyWithFetcher(fetch func(context.Context, string) (string, erro
 		})
 		// Render fetched markup in an opaque origin: event handlers and frames
 		// must not inherit the management service's origin or credentials.
+		c.Set("Referrer-Policy", "no-referrer")
+		c.Set("Cache-Control", "no-store")
+		c.Set("X-Content-Type-Options", "nosniff")
 		c.Set("Content-Security-Policy", "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' http: https:; img-src data: http: https:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'")
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
 		return c.Status(http.StatusOK).SendString(html)

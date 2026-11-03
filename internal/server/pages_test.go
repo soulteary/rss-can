@@ -48,12 +48,12 @@ func TestConfigurationRoutes(t *testing.T) {
 	previous := logger.GetLevel()
 	defer logger.SetLevel(previous)
 	app := fiber.New()
-	app.Get("/config/:type/:value/", apiConfig())
+	app.Post("/config/:type/:value/", apiConfig())
 	for _, tc := range []struct {
 		path   string
 		status int
 	}{{"/config/set-loglevel/debug/", 200}, {"/config/rules/fresh/", 200}, {"/config/rules/bad/", 404}, {"/config/unknown/value/", 404}} {
-		status, _ := testResponse(t, app, httptest.NewRequest("GET", tc.path, nil))
+		status, _ := testResponse(t, app, httptest.NewRequest("POST", tc.path, nil))
 		if status != tc.status {
 			t.Fatalf("%s: %d", tc.path, status)
 		}

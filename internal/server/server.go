@@ -143,7 +143,11 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 	view := pageView{options: options, snapshot: dependencies.Snapshot, configure: dependencies.Configure, metadata: dependencies.Metadata}
 	route.Get(options.FeedPath, view.listPage())
 	admin := adminOnlyWithToken(options.AdminToken)
-	route.Get("/config/:type/:value/", admin, apiConfigWithReload(dependencies.Reload))
+	route.Get("/config/:type/:value/", admin, func(c fiber.Ctx) error {
+		c.Set("Allow", "POST")
+		return c.SendStatus(405)
+	})
+	route.Post("/config/:type/:value/", admin, adminMutation(), apiConfigWithReload(dependencies.Reload))
 	route.Get("/inspector/:url/", admin, inspectorProxyWithOptions(options))
 	route.Get("/inspector", admin, inspectorHome())
 	route.Post("/inspector", admin, inspectorPrepare())

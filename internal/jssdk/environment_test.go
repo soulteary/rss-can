@@ -28,6 +28,7 @@ func TestDenoEnvironmentDoesNotInheritSecretsOrPermissionOverrides(t *testing.T)
 
 func TestDenoProcessReceivesSanitizedEnvironment(t *testing.T) {
 	t.Setenv("RSS_ADMIN_TOKEN", "must-not-cross-process-boundary")
+	t.Setenv("DENO_DIR", "/must-not-use-shared-cache")
 	dir := t.TempDir()
 	output := filepath.Join(dir, "environment")
 	executable := filepath.Join(dir, "worker")
@@ -46,7 +47,35 @@ func TestDenoProcessReceivesSanitizedEnvironment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(content), "must-not-cross-process-boundary") {
-		t.Fatal("application secret inherited by process")
+	if strings.Contains(string(content), "must-not-cross-process-boundary") || strings.Contains(string(content), "/must-not-use-shared-cache") {
+		t.Fatal("application secret or cache override inherited by process")
+	}
+	var cacheDir string
+	for _, line := range strings.Split(string(content), "\n") {
+		if strings.HasPrefix(line, "DENO_DIR=") {
+			cacheDir = strings.TrimPrefix(line, "DENO_DIR=")
+		}
+	}
+	if cacheDir == "" {
+		t.Fatal("missing private runtime cache")
+	}
+	if _, err := os.Stat(cacheDir); !os.IsNotExist(err) {
+		t.Fatalf("runtime cache survived exit: %v", err)
+	}
+}
+
+func TestFailedDenoStartRemovesPrivateCache(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("TMPDIR", dir)
+	runtime := &Runtime{config: RuntimeConfig{Binary: filepath.Join(dir, "missing-deno")}}
+	if _, err := startDenoProcess(WithRuntime(t.Context(), runtime)); err == nil {
+		t.Fatal("missing executable started")
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatal("failed startup leaked its private cache directory")
 	}
 }

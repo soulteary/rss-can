@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -142,7 +143,8 @@ func New(ctx context.Context, config Config) (*App, error) {
 		},
 		Fetch: func(ctx context.Context, config define.JavaScriptConfig) define.BodyParsed {
 			ctx = network.WithFetchBudget(ctx)
-			if !fn.IsVaildHeadlessAddr(config.Headless) {
+			mode := strings.ToLower(strings.TrimSpace(config.Mode))
+			if !network.PolicyForContext(ctx).PublicOnly() && (mode == define.PARSE_MODE_CSR || mode == define.PARSE_MODE_MIX) && !fn.IsVaildHeadlessAddr(config.Headless) {
 				config.Headless = app.config.Server.Headless
 			}
 			if config.Timeout <= 0 {

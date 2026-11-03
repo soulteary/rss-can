@@ -57,8 +57,18 @@ type denoResponse struct {
 func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 	telemetry.Default.Add("js_starts_total", 1)
 	binary := runtimeBinary(ctx)
+	cacheDir, err := os.MkdirTemp("", "rss-can-deno-cache-")
+	if err != nil {
+		return nil, fmt.Errorf("create Deno cache directory: %w", err)
+	}
+	started := false
+	defer func() {
+		if !started {
+			_ = os.RemoveAll(cacheDir)
+		}
+	}()
 	cmd := exec.Command(binary, "run", "--no-prompt", "--no-config", "--no-lock", "--v8-flags=--max-old-space-size=128", "data:application/javascript;base64,"+base64.StdEncoding.EncodeToString([]byte(denoRunner)))
-	cmd.Env = denoEnvironment()
+	cmd.Env = append(denoEnvironment(), "DENO_DIR="+cacheDir)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -77,9 +87,10 @@ func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 		_ = writer.Close()
 		return nil, fmt.Errorf("start Deno: %w", err)
 	}
+	started = true
 	_ = writer.Close()
 	p := &denoProcess{cmd: cmd, stdin: stdin, stdout: stdout, reader: bufio.NewReader(stdout), done: make(chan struct{})}
-	go func() { _ = cmd.Wait(); close(p.done) }()
+	go func() { _ = cmd.Wait(); _ = os.RemoveAll(cacheDir); close(p.done) }()
 	ready := make(chan error, 1)
 	go func() {
 		var message struct {

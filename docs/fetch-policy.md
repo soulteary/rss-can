@@ -49,6 +49,8 @@ current implementation does not claim to provide untrusted script hosting.
 Deno is started without application credentials or inherited proxy/Node/Deno
 permission overrides. Only temporary-directory and Windows-system location
 variables are retained, together with disabled update checks and color output.
+Each worker receives a private temporary `DENO_DIR`, removed on process exit;
+it does not inherit the parent cache directory or require a passwd/home entry.
 The embedded runner remains noninteractive and receives no read, write, network,
 environment or process-execution permissions. Its V8 old-space limit is 128 MiB;
 worker exit and existing timeout handling discard a failed process before reuse.

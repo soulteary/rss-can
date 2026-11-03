@@ -11,6 +11,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/limits"
 	"github.com/soulteary/RSS-Can/internal/network"
+	"github.com/soulteary/RSS-Can/internal/source"
 	"github.com/soulteary/goquery"
 	"golang.org/x/net/html"
 )
@@ -147,6 +148,13 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 	if len(doc.Body) > limits.MaxPageBytes {
 		return failure(fmt.Errorf("page exceeds %d bytes", limits.MaxPageBytes))
 	}
+	itemLimit := limits.MaxItems
+	if config.TextOnly {
+		if err := source.ValidateDocument(doc.Body); err != nil {
+			return failure(err)
+		}
+		itemLimit = source.MaxItems
+	}
 	// Resolve references from the fetched document, not its pre-redirect URL.
 	// Request options were captured above and keep the original cookie origin.
 	requestURL := config.URL
@@ -224,7 +232,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 			if ret.Code != define.ERROR_CODE_NULL {
 				return ret
 			}
-			if len(ret.Body) > limits.MaxItems-len(items) {
+			if len(ret.Body) > itemLimit-len(items) {
 				return failure(fmt.Errorf("feed exceeds %d items", limits.MaxItems))
 			}
 			for _, item := range ret.Body {
@@ -251,7 +259,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 			if ctx.Err() != nil {
 				return false
 			}
-			if len(items) >= limits.MaxItems {
+			if len(items) >= itemLimit {
 				itemLimitExceeded = true
 				return false
 			}
@@ -322,7 +330,7 @@ func ParseDataAndConfigBySSRContext(ctx context.Context, config define.JavaScrip
 		return failure(fmt.Errorf("feed content exceeds size limit"))
 	}
 	if itemLimitExceeded {
-		return failure(fmt.Errorf("feed exceeds %d items", limits.MaxItems))
+		return failure(fmt.Errorf("feed exceeds %d items", itemLimit))
 	}
 	if result.Code == define.ERROR_CODE_NULL {
 		if detailFailure := fillDetails(ctx, config, result.Body, selections, options); detailFailure != nil {

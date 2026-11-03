@@ -47,3 +47,16 @@ func TestManagedSnapshotsStayPinnedAcrossEdits(t *testing.T) {
 		t.Fatal("private preview target allowed")
 	}
 }
+
+func TestTeamCanStartWithoutLegacyJavaScriptRules(t *testing.T) {
+	cfg := teamConfig(t)
+	cfg.Server.RuleDirectory = t.TempDir()
+	app, err := New(t.Context(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer app.Close()
+	if len(app.sourceSnapshots()) != 0 {
+		t.Fatal("unexpected startup source")
+	}
+}

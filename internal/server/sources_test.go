@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gofiber/fiber/v3"
+	"github.com/soulteary/RSS-Can/internal/feedservice"
 	"strings"
 	"testing"
 	"time"
@@ -116,5 +118,45 @@ func TestSubjectWriteLimiterIsBoundedAndNotPerToken(t *testing.T) {
 	}
 	if !l.allow("new", now.Add(16*time.Minute)) {
 		t.Fatal("expired entries not reclaimed")
+	}
+}
+
+type refreshRecorder struct {
+	scope   access.Scope
+	calls   int
+	failure bool
+}
+
+func (r *refreshRecorder) Generate(context.Context, string, string) (string, error) { return "", nil }
+func (r *refreshRecorder) Refresh(ctx context.Context, id, format string) (feedservice.Representation, error) {
+	r.calls++
+	r.scope = access.ScopeFromContext(ctx)
+	if r.failure {
+		return feedservice.Representation{}, fmt.Errorf("secret upstream failure")
+	}
+	return feedservice.Representation{FetchedAt: time.Now(), ChangedAt: time.Now(), Stale: false}, nil
+}
+
+func TestSourceRefreshRequiresOwnerAndCarriesScope(t *testing.T) {
+	_, a, _ := accessApp(t)
+	recorder := &refreshRecorder{}
+	app := fiber.New()
+	app.Post("/api/sources/:id/refresh", a.requireSubject(), a.refreshManaged(recorder))
+	call := func(who string) (int, string) {
+		req := requestAs("POST", "/api/sources/private-a/refresh", who, "{}")
+		req.Header.Set("Origin", "https://rss.example")
+		return testResponse(t, app, req)
+	}
+	if status, _ := call("bob"); status != 404 || recorder.calls != 0 {
+		t.Fatal("non-owner refreshed source")
+	}
+	status, body := call("alice")
+	if status != 200 || !strings.Contains(body, "fetched_at") || recorder.scope.Key != "alice\x00private-a" || recorder.scope.Version == 0 {
+		t.Fatalf("bad refresh: %d %s %+v", status, body, recorder.scope)
+	}
+	recorder.failure = true
+	status, body = call("alice")
+	if status != 503 || strings.Contains(body, "secret") {
+		t.Fatal("refresh error leaked details")
 	}
 }

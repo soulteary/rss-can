@@ -55,7 +55,7 @@ type Grant struct {
 	ID        string    `json:"id"`
 	Source    string    `json:"source"`
 	Subject   string    `json:"subject"`
-	Digest    string    `json:"digest"`
+	Digest    string    `json:"digest,omitempty"`
 	Formats   []string  `json:"formats"`
 	ExpiresAt time.Time `json:"expires_at"`
 	Revoked   bool      `json:"revoked"`
@@ -191,7 +191,13 @@ func validate(st state) error {
 			}
 		}
 	}
+	if err := managedCapacity(st); err != nil {
+		return err
+	}
 	for id, g := range st.Grants {
+		if len(g.Label) > 80 || strings.ContainsAny(g.Label, "\r\n\t") {
+			return ErrInvalid
+		}
 		if id != g.ID || !validID(id) || !validID(g.Subject) || len(g.Digest) != 64 || g.ExpiresAt.IsZero() || !validFormats(g.Formats) {
 			return ErrInvalid
 		}

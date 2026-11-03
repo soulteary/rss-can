@@ -23,7 +23,8 @@ type Metadata struct{ Name, File, Sign string }
 type ConfigEvaluator func(context.Context, define.RuleCache) (define.JavaScriptConfig, error)
 
 // Repository publishes complete validated snapshots. A failed reload never
-// replaces the last good snapshot. Empty rule sets are rejected deliberately.
+// replaces the last good snapshot. Empty legacy rule sets are rejected unless
+// the caller explicitly enables managed-source-only operation.
 type Repository struct {
 	directory      string
 	reloadMu       chan struct{}
@@ -34,6 +35,7 @@ type Repository struct {
 	evaluate       ConfigEvaluator
 	cacheTTL       time.Duration
 	timeout        time.Duration
+	allowEmpty     bool
 }
 
 func NewRepository(directory string) *Repository {
@@ -44,14 +46,14 @@ func NewRepositoryWithEvaluator(directory string, evaluate ConfigEvaluator) *Rep
 }
 
 // NewRepositoryWithOptions captures cache and shared-work budgets for one app.
-func NewRepositoryWithOptions(directory string, evaluate ConfigEvaluator, ttl, timeout time.Duration) *Repository {
+func NewRepositoryWithOptions(directory string, evaluate ConfigEvaluator, ttl, timeout time.Duration, allowEmpty ...bool) *Repository {
 	if timeout <= 0 {
 		panic("rule: configuration timeout must be positive")
 	}
 	if evaluate == nil {
 		panic("rule: missing configuration evaluator")
 	}
-	return &Repository{directory: directory, reloadMu: make(chan struct{}, 1), rules: make(map[string]define.RuleCache), evaluate: evaluate, cacheTTL: ttl, timeout: timeout}
+	return &Repository{directory: directory, reloadMu: make(chan struct{}, 1), rules: make(map[string]define.RuleCache), evaluate: evaluate, cacheTTL: ttl, timeout: timeout, allowEmpty: len(allowEmpty) > 0 && allowEmpty[0]}
 }
 func cloneRule(item define.RuleCache) define.RuleCache {
 	item.Body = append([]byte(nil), item.Body...)
@@ -104,7 +106,7 @@ func (r *Repository) Reload(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	candidate, metadata, err := loadCandidate(ctx, r.directory, r.evaluate)
+	candidate, metadata, err := loadCandidate(ctx, r.directory, r.evaluate, r.allowEmpty)
 	if err != nil {
 		return err
 	}
@@ -188,7 +190,7 @@ func scanRuleGroup(ctx context.Context, group *rulefile.Directory, name string, 
 	}
 	return files, nil
 }
-func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluator) (map[string]define.RuleCache, map[string]Metadata, error) {
+func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluator, allowEmpty ...bool) (map[string]define.RuleCache, map[string]Metadata, error) {
 	root, err := rulefile.OpenDirectory(directory)
 	if err != nil {
 		return nil, nil, fmt.Errorf("scan rule directory: %w", err)
@@ -198,7 +200,7 @@ func loadCandidate(ctx context.Context, directory string, evaluate ConfigEvaluat
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(files) == 0 {
+	if len(files) == 0 && !(len(allowEmpty) > 0 && allowEmpty[0]) {
 		return nil, nil, fmt.Errorf("rule reload rejected: no JavaScript rules in %s", directory)
 	}
 	candidate := make(map[string]define.RuleCache, len(files))

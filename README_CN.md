@@ -2,6 +2,7 @@
 
 与 Stargate 共同供多人使用时，请启用[团队访问模式](docs/stargate-access.md)，
 为每个来源设置权限，并为阅读器签发可撤销的只读凭据。
+通过[来源向导和 `rssc doctor`](docs/stargate-setup.md)，可以预览、保存和维护来源，无需编写 JavaScript 规则。
 
 [![Go Test Coverage](./.github/coverage.svg)](./.github/go-test-report.md) [![Go Report Card](./.github/goreportcard.svg)](./.github/goreportcard-report.md) [![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) [![Build Artifacts](https://github.com/soulteary/rss-can/actions/workflows/build.yml/badge.svg)](https://github.com/soulteary/rss-can/actions/workflows/build.yml) [![Docker Image](https://img.shields.io/docker/pulls/soulteary/rss-can.svg)](https://hub.docker.com/r/soulteary/rss-can)
 

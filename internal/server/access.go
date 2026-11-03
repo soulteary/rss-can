@@ -82,12 +82,16 @@ func accessFailure(c fiber.Ctx, err error) error {
 
 func (a *AccessController) requireSubject() fiber.Handler {
 	return func(c fiber.Ctx) error {
+		c.Set("Cache-Control", "private, no-store")
 		subject, err := a.subject(c)
 		if err != nil {
 			return accessFailure(c, err)
 		}
 		c.Locals(subjectLocal, subject)
 		if c.Method() == "POST" || c.Method() == "PUT" || c.Method() == "PATCH" || c.Method() == "DELETE" {
+			if !a.writeOrigin(c) {
+				return c.SendStatus(403)
+			}
 			if !a.writes.allow(subject, time.Now()) {
 				c.Set("Retry-After", "5")
 				return c.Status(429).JSON(fiber.Map{"code": "RATE_LIMITED", "msg": "too many changes; retry shortly"})
@@ -219,7 +223,11 @@ func (a *AccessController) listSources() fiber.Handler {
 			}
 		}
 		sort.Slice(sources, func(i, j int) bool { return sources[i].ID < sources[j].ID })
-		return c.JSON(fiber.Map{"sources": sources})
+		views := make([]fiber.Map, 0, len(sources))
+		for _, src := range sources {
+			views = append(views, fiber.Map{"id": src.ID, "owner": src.Owner, "public": src.Public, "spec": src.Spec, "previous": src.Previous, "revision": src.Revision, "can_manage": src.Owner == subject})
+		}
+		return c.JSON(fiber.Map{"sources": views})
 	}
 }
 

@@ -69,7 +69,11 @@ func listPage() fiber.Handler { return defaultPageView().listPage() }
 func (v pageView) updateHomePage(content []byte) []byte {
 	body := bytes.ReplaceAll(content, []byte(`{%PROJECT_NAME%}`), []byte(`RSS Can / RSS 罐头`))
 	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_VERSION%}`), []byte(version.Version))
-	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_LIST_PAGE%}`), []byte(v.options.FeedPath))
+	destination := v.options.FeedPath
+	if v.options.Access != nil {
+		destination = "/sources"
+	}
+	body = bytes.ReplaceAll(body, []byte(`{%PROJECT_LIST_PAGE%}`), []byte(destination))
 	return body
 }
 

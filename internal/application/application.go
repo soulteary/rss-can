@@ -190,7 +190,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 	evaluator := func(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
 		return rule.EvaluateConfigContext(app.resources(ctx), snapshot)
 	}
-	app.rules = rule.NewRepositoryWithOptions(config.Server.RuleDirectory, evaluator, config.ConfigCacheTTL, config.Server.Timeout)
+	app.rules = rule.NewRepositoryWithOptions(config.Server.RuleDirectory, evaluator, config.ConfigCacheTTL, config.Server.Timeout, config.Server.Access != nil)
 	if err := app.rules.Reload(app.resources(ctx)); err != nil {
 		cancel()
 		_ = app.runtime.Close()

@@ -173,6 +173,8 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 			route.Post("/api/sources", controller.requireSubject(), controller.saveManaged(false))
 			route.Post("/api/sources/:id", controller.requireSubject(), controller.saveManaged(true))
 			route.Post("/api/sources/:id/rollback", controller.requireSubject(), controller.rollbackManaged())
+			route.Post("/api/sources/:id/delete", controller.requireSubject(), controller.deleteManaged())
+			route.Post("/api/sources/:id/refresh", controller.requireSubject(), controller.refreshManaged(dependencies.Feeds))
 			route.Post("/api/sources/:id/grants", controller.requireSubject(), controller.createGrant())
 			route.Post("/api/grants/:id/revoke", controller.requireSubject(), controller.revokeGrant())
 			route.Post("/api/access/sources", admin, accessMutation(), controller.putSource(func(id string) bool { _, ok := dependencies.Snapshot()[id]; return ok }))

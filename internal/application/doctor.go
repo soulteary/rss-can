@@ -8,6 +8,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
+	"github.com/soulteary/RSS-Can/internal/network"
 )
 
 type Diagnostic struct {
@@ -31,6 +32,12 @@ func Diagnose(ctx context.Context, config Config) []Diagnostic {
 	}
 	serverOK := config.Server.Timeout > 0 && config.Server.FeedPath != "" && config.Server.RuleDirectory != ""
 	add("server", serverOK, "Server configuration is valid.", "Set a positive timeout, feed path and rule directory.")
+	policy, policyErr := network.ParseFetchPolicy(config.Network.Policy.Mode)
+	if config.Server.Access != nil {
+		policy = network.PublicPolicy()
+	}
+	proxy, proxyErr := network.NormalizeProxy(config.Network.Proxy)
+	add("fetch-policy", policyErr == nil && proxyErr == nil && !(policy.PublicOnly() && proxy != ""), "Fetch policy and proxy configuration are compatible.", "Use a valid fetch policy; public/team mode cannot use a proxy.")
 	info, err := os.Stat(config.Server.RuleDirectory)
 	rulesOK := err == nil && info.IsDir()
 	if rulesOK {

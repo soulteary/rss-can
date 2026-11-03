@@ -19,7 +19,7 @@
       <label>订阅名称<input id="name" maxlength="256" placeholder="留空使用网站域名"></label>
       <label>页面结构<select id="template"><option value="article">文章列表（article）</option><option value="post">博客条目（.post）</option><option value="custom">自定义选择器</option></select></label>
       <details id="advanced"><summary>调整提取范围和刷新时间</summary>
-        <p class="hint">选择器只描述页面中的元素，不运行脚本。先预览，确认标题和链接正确。</p>
+        <p class="hint">使用简单标签、类名或 ID，例如 article.card、.title、a。暂不支持空格组合、属性或伪类选择器。先预览，再确认标题和链接。</p>
         <label>每条内容的范围<input id="item_selector" value="article" required maxlength="512"></label>
         <label>标题<input id="title_selector" value="h2" required maxlength="512"></label>
         <label>链接<input id="link_selector" value="a" required maxlength="512"></label>

@@ -74,6 +74,9 @@ func (a *App) previewSource(ctx context.Context, spec source.Spec) ([]define.Inf
 	config.DisableCache = true
 	data := rule.GetWebsiteDataWithConfigContext(ctx, config)
 	if data.Code != define.ERROR_CODE_NULL {
+		if data.Status == source.ErrDocumentBudget.Error() {
+			return nil, source.ErrDocumentBudget
+		}
 		return nil, fmt.Errorf("source preview failed")
 	}
 	if err := source.ValidateItems(data.Body); err != nil {

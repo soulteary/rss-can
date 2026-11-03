@@ -4,8 +4,10 @@ package source
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -13,6 +15,8 @@ import (
 )
 
 var ErrNoMatch = errors.New("selectors matched no items")
+var ErrSelector = errors.New("only simple tag, class and ID selectors are supported")
+var simpleSelector = regexp.MustCompile(`^(?:[A-Za-z][A-Za-z0-9-]{0,63})?(?:[.#][A-Za-z_][A-Za-z0-9_-]{0,63}){0,4}$`)
 
 // Spec contains selectors and values only. It intentionally has no JavaScript,
 // headers, cookies, proxy, browser endpoint or arbitrary hook fields.
@@ -48,7 +52,7 @@ func (s Spec) Normalized() Spec {
 }
 
 func (s Spec) Validate() error {
-	if s.Name == "" || len(s.Name) > 256 {
+	if strings.TrimSpace(s.Name) == "" || len(s.Name) > 256 {
 		return errors.New("name must contain 1–256 bytes")
 	}
 	u, err := url.Parse(s.URL)
@@ -68,8 +72,8 @@ func (s Spec) Validate() error {
 		if field.value == "" && !field.required {
 			continue
 		}
-		if len(field.value) > 512 {
-			return errors.New("selectors must not exceed 512 bytes")
+		if field.value == "" || !simpleSelector.MatchString(field.value) {
+			return fmt.Errorf("%w: %s", ErrSelector, field.name)
 		}
 		if _, err := cascadia.Compile(field.value); err != nil {
 			return errors.New("invalid CSS selector: " + field.name)

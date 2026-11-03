@@ -2,6 +2,8 @@
 
 For a shared Stargate deployment, use [team access mode](docs/stargate-access.md)
 to give each source explicit permissions and issue revocable reader credentials.
+The [source wizard and `rssc doctor`](docs/stargate-setup.md) provide a guided
+workflow without writing JavaScript rules.
 
 [![Go Test Coverage](./.github/coverage.svg)](./.github/go-test-report.md) [![Go Report Card](./.github/goreportcard.svg)](./.github/goreportcard-report.md) [![CodeQL](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml/badge.svg)](https://github.com/soulteary/RSS-Can/actions/workflows/codeql.yml) [![Build Artifacts](https://github.com/soulteary/rss-can/actions/workflows/build.yml/badge.svg)](https://github.com/soulteary/rss-can/actions/workflows/build.yml) [![Docker Image](https://img.shields.io/docker/pulls/soulteary/rss-can.svg)](https://hub.docker.com/r/soulteary/rss-can)
 

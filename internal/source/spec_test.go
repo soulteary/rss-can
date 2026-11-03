@@ -2,6 +2,7 @@ package source
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -54,5 +55,33 @@ func TestDeclarativeSpecValidation(t *testing.T) {
 	}
 	if ValidateItems(nil) == nil {
 		t.Fatal("empty result accepted")
+	}
+}
+
+func TestSelectorsCannotTriggerCombinatorBacktracking(t *testing.T) {
+	for _, selector := range []string{strings.Repeat("div:has(", 10) + "span.never" + strings.Repeat(")", 10), "span.never " + strings.Repeat("div ", 10), `div\3a has(span)`, "div > span", "a[href]", "a + a", "a,div", "a:not(div)"} {
+		s := goodSpec()
+		s.ItemSelector = selector
+		if s.Validate() == nil {
+			t.Fatalf("complex selector allowed: %q", selector)
+		}
+	}
+	for _, selector := range []string{"article.card", ".entry", "#news", "h2.title", "a.link.primary"} {
+		s := goodSpec()
+		s.ItemSelector = selector
+		if err := s.Validate(); err != nil {
+			t.Fatalf("simple selector rejected: %q: %v", selector, err)
+		}
+	}
+}
+
+func TestDocumentComplexityBudget(t *testing.T) {
+	if err := ValidateDocument(`<article><h2>Title</h2><a href="/item">Read</a></article>`); err != nil {
+		t.Fatal(err)
+	}
+	for _, body := range []string{strings.Repeat("x", MaxDocumentBytes+1), strings.Repeat("<div>", MaxDocumentDepth+1) + strings.Repeat("</div>", MaxDocumentDepth+1), strings.Repeat("<br>", MaxDocumentNodes+1)} {
+		if ValidateDocument(body) == nil {
+			t.Fatal("complex document accepted")
+		}
 	}
 }

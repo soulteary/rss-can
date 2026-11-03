@@ -48,6 +48,18 @@ func (s Spec) Normalized() Spec {
 	if s.RefreshSeconds == 0 {
 		s.RefreshSeconds = 600
 	}
+	return s.Clone()
+}
+
+func (s Spec) Clone() Spec {
+	s.Name = strings.Clone(s.Name)
+	s.URL = strings.Clone(s.URL)
+	s.ItemSelector = strings.Clone(s.ItemSelector)
+	s.TitleSelector = strings.Clone(s.TitleSelector)
+	s.LinkSelector = strings.Clone(s.LinkSelector)
+	s.DateSelector = strings.Clone(s.DateSelector)
+	s.DescriptionSelector = strings.Clone(s.DescriptionSelector)
+	s.PagerSelector = strings.Clone(s.PagerSelector)
 	return s
 }
 

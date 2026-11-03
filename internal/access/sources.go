@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/soulteary/RSS-Can/internal/source"
+	"strings"
 	"time"
 )
 
@@ -25,10 +26,17 @@ func (s *Store) Grants(subject string) []Grant {
 }
 
 func cloneSource(src Source) Source {
+	src.ID, src.Owner = strings.Clone(src.ID), strings.Clone(src.Owner)
 	src.Readers = append([]string(nil), src.Readers...)
+	for i := range src.Readers {
+		src.Readers[i] = strings.Clone(src.Readers[i])
+	}
 	src.Previous = append([]source.Spec(nil), src.Previous...)
+	for i := range src.Previous {
+		src.Previous[i] = src.Previous[i].Clone()
+	}
 	if src.Spec != nil {
-		spec := *src.Spec
+		spec := src.Spec.Clone()
 		src.Spec = &spec
 	}
 	return src
@@ -57,6 +65,7 @@ func (s *Store) ManagedSources() []Source {
 }
 
 func (s *Store) CreateManaged(subject string, spec source.Spec) (Source, error) {
+	subject = strings.Clone(subject)
 	spec = spec.Normalized()
 	if spec.Validate() != nil {
 		return Source{}, ErrInvalid
@@ -142,6 +151,7 @@ func managedCapacity(st state) error {
 }
 
 func (s *Store) EnsurePrincipal(subject string) error {
+	subject = strings.Clone(subject)
 	if !validID(subject) {
 		return ErrInvalid
 	}

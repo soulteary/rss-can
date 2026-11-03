@@ -302,6 +302,7 @@ func (s *Store) updateState(permissionsChanged bool, fn func(*state) error) erro
 }
 
 func (s *Store) SetPrincipal(subject string, disabled bool) error {
+	subject = strings.Clone(subject)
 	if !validID(subject) {
 		return ErrInvalid
 	}
@@ -322,6 +323,7 @@ func (s *Store) SetPrincipal(subject string, disabled bool) error {
 // BindIssuer prevents accidental identity rebinding when a deployment points
 // an existing permission database at a different directory authority.
 func (s *Store) BindIssuer(issuer string) error {
+	issuer = strings.Clone(issuer)
 	if issuer == "" {
 		return ErrInvalid
 	}
@@ -448,9 +450,14 @@ func randomToken(n int) (string, error) {
 
 // CreateGrant returns the secret exactly once. Only its SHA-256 digest persists.
 func (s *Store) CreateGrant(subject, source string, formats []string, expires time.Time, labels ...string) (Grant, string, error) {
+	subject, source = strings.Clone(subject), strings.Clone(source)
+	formats = append([]string(nil), formats...)
+	for i := range formats {
+		formats[i] = strings.Clone(formats[i])
+	}
 	label := ""
 	if len(labels) > 0 {
-		label = strings.TrimSpace(labels[0])
+		label = strings.Clone(strings.TrimSpace(labels[0]))
 		if len(label) > 80 || strings.ContainsAny(label, "\r\n\t") {
 			return Grant{}, "", ErrInvalid
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -23,6 +24,7 @@ func TestLiveNativeCSRFieldExpressionsAndHookMetadata(t *testing.T) {
 		}
 		t.Skip("requires isolated Chrome")
 	}
+	browsertest.Lock(t, address)
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `<html><body><article href="/self"><h2>Title</h2><a href="/post/42">read</a><span class="label">Summary</span><custom-card>Custom</custom-card></article></body></html>`)
 	}))

@@ -3,6 +3,7 @@ package application
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,6 +23,7 @@ func modeBrowser(t *testing.T) string {
 		}
 		t.Skip("requires isolated Chrome")
 	}
+	browsertest.Lock(t, endpoint)
 	return endpoint
 }
 

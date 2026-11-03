@@ -21,6 +21,10 @@ func TestRuleExportTimeoutAndRecovery(t *testing.T) {
 	if time.Since(start) > 2*time.Second {
 		t.Fatal("rule timeout did not return promptly")
 	}
+	// Timing out retires the worker. Recovery includes a cold Deno process
+	// startup, so give this separate operation its own bounded budget instead
+	// of reusing the deliberately tiny infinite-loop deadline above.
+	define.JS_EXECUTE_TIMEOUT = 1000
 	value, err := jssdk.RunCode("var value = 42;", "value", "next.js")
 	if err != nil || value != "42" {
 		t.Fatalf("execution after timeout: %q, %v", value, err)

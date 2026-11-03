@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -63,6 +64,7 @@ func readinessBrowser(t *testing.T) string {
 		}
 		t.Skip("requires isolated Chrome")
 	}
+	browsertest.Lock(t, address)
 	logger.Initialize()
 	return address
 }

@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"errors"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"io"
 	"net/http"
 	"os"
@@ -25,6 +26,7 @@ func TestLiveInspectorInterceptionKeepsPolicyAndBoundedBodies(t *testing.T) {
 		}
 		t.Skip("requires isolated Chrome")
 	}
+	browsertest.Lock(t, endpoint)
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 	err := withBrowserPage(ctx, endpoint, "", "about:blank", "", false, func(pageCtx context.Context) error {

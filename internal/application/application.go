@@ -65,6 +65,9 @@ func ConfigFromGlobals() (Config, error) {
 	}
 	serverOptions := server.DefaultOptions()
 	serverOptions.Access = accessConfig
+	if err := server.ValidateFeedPath(serverOptions.FeedPath, accessConfig != nil); err != nil {
+		return Config{}, err
+	}
 	snapshotTTL, err := snapshotDuration("RSS_SNAPSHOT_TTL", 30, 3600)
 	if err != nil {
 		return Config{}, err
@@ -117,6 +120,9 @@ type App struct {
 }
 
 func New(ctx context.Context, config Config) (*App, error) {
+	if err := server.ValidateFeedPath(config.Server.FeedPath, config.Server.Access != nil); err != nil {
+		return nil, err
+	}
 	if config.Server.Access != nil {
 		config.Network.Policy = network.PublicPolicy()
 	}

@@ -3,6 +3,7 @@ package parser
 import (
 	"context"
 	"fmt"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -141,6 +142,7 @@ func TestBrowserLifecycleAndLiveCache(t *testing.T) {
 		}
 		t.Skip("set RSS_TEST_BROWSER_URL to a Chrome remote debugging endpoint to enable browser integration tests")
 	}
+	browsertest.Lock(t, address)
 	memoryCacheForTest(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

@@ -33,6 +33,10 @@ type FeedGenerator interface {
 	Generate(context.Context, string, string) (string, error)
 }
 
+type feedRepresentations interface {
+	Representation(context.Context, string, string) (feedservice.Representation, error)
+}
+
 func apiRSS() fiber.Handler {
 	return apiRSSWithService(defaultFeedGenerator())
 }
@@ -68,7 +72,14 @@ func apiRSSWithService(service FeedGenerator) fiber.Handler {
 		if !supported {
 			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"msg": "unsupported feed type"})
 		}
-		response, err := service.Generate(c.Context(), id, rssType)
+		var response string
+		var representation feedservice.Representation
+		if snapshots, ok := service.(feedRepresentations); ok {
+			representation, err = snapshots.Representation(c.Context(), id, rssType)
+			response = representation.Body
+		} else {
+			response, err = service.Generate(c.Context(), id, rssType)
+		}
 		if err != nil {
 			logger.Instance.Error("Feed generation failed; details withheld to protect source credentials")
 			var failure *feedservice.Error
@@ -90,13 +101,50 @@ func apiRSSWithService(service FeedGenerator) fiber.Handler {
 				}
 			case feedservice.Admission:
 				status, message = http.StatusServiceUnavailable, "feed generation queue is full"
+			case feedservice.RateLimited:
+				status, message = http.StatusTooManyRequests, "feed owner queue is full"
 			case feedservice.Timeout:
 				status, message = http.StatusGatewayTimeout, "feed generation timed out"
+			}
+			if status == http.StatusServiceUnavailable || status == http.StatusTooManyRequests {
+				c.Set("Retry-After", "5")
 			}
 			return c.Status(status).JSON(fiber.Map{"msg": message})
 		}
 
 		c.Set(fiber.HeaderContentType, mimetype)
+		// A representation is not an authorization decision. This handler must
+		// remain behind the same authorization middleware as ordinary downloads.
+		if c.GetRespHeader("Cache-Control") == "" {
+			c.Set("Cache-Control", "private, no-cache")
+		}
+		if representation.ETag != "" {
+			c.Set("ETag", representation.ETag)
+			c.Set("Last-Modified", representation.ChangedAt.UTC().Format(http.TimeFormat))
+			if representation.Stale {
+				c.Set("Warning", `110 - "Response is stale"`)
+			}
+			if feedNotModified(c.Get("If-None-Match"), c.Get("If-Modified-Since"), representation) {
+				return c.Status(http.StatusNotModified).Send(nil)
+			}
+		}
 		return c.Status(http.StatusOK).SendString(response)
 	}
+}
+
+func feedNotModified(etags, modified string, representation feedservice.Representation) bool {
+	if etags != "" {
+		for _, tag := range strings.Split(etags, ",") {
+			tag = strings.TrimSpace(tag)
+			if tag == "*" || strings.TrimPrefix(tag, "W/") == strings.TrimPrefix(representation.ETag, "W/") {
+				return true
+			}
+		}
+		return false
+	}
+	if modified != "" && !representation.ChangedAt.IsZero() {
+		at, err := http.ParseTime(modified)
+		return err == nil && !representation.ChangedAt.Truncate(time.Second).After(at)
+	}
+	return false
 }

@@ -14,7 +14,9 @@ they do not depend on browser cookies or redirect a reader to HTML login.
 
 - Docker Compose 2.30+ (the example uses raw env files), Python 3.9+, OpenSSL and
   curl. Run the setup from this directory in a checkout containing the new team
-  access/source features. The existing published RSS Can image is not used.
+  access/source features (v0.5.0 or later). This example deliberately builds the
+  checkout locally instead of using a published RSS Can image. Historical
+  v0.4.0 ignores team configuration and must not be substituted.
 - An existing Docker network shared by reachable Stargate and Warden services.
   Do not attach untrusted workloads to this identity network.
 - A DNS name for RSS Can and a valid TLS certificate/private key for that name.
@@ -22,6 +24,15 @@ they do not depend on browser cookies or redirect a reader to HTML login.
 - The public HTTPS origin of your existing Stargate login, its internal HTTP
   service address, and a dedicated Warden API key. Preserve the existing
   Stargate/Warden data, session storage and authentication settings.
+
+Binary release archives include these deployment helpers, but not the complete
+Go source needed by the Compose build. If you started from an archive, obtain
+the matching source checkout first:
+
+```sh
+git clone --branch v0.5.0 --depth 1 https://github.com/soulteary/rss-can.git
+cd rss-can/example/4.with-stargate
+```
 
 Only port 443 is public. The separate operator port binds to `127.0.0.1:8444`
 and requires a generated client certificate. RSS Can has no published port;
@@ -130,18 +141,26 @@ capabilities. No Docker control socket is mounted. Nginx access/error request
 logging is disabled to avoid recording reader URL secrets; use the application's
 redacted logs and protected metrics for operational diagnostics.
 
-## 4. Provision the first local principal
+## 4. Sign in and create a source
 
-Use the stable Warden user ID, not an email that may be reassigned:
+Open `https://rss.example.com/sources` and sign in through Stargate. The first
+successful login automatically creates a local principal after Warden confirms
+the account is active. Sources created in the wizard are private by default.
+An operator-disabled local account stays disabled after login.
+
+Operators may optionally pre-provision a principal, or explicitly re-enable one
+that was disabled. Use the stable Warden user ID, not an email that may be
+reassigned:
 
 ```sh
 python3 rss_operator.py /api/access/principals \
   --data '{"subject":"YOUR_WARDEN_USER_ID","disabled":false}'
 ```
 
-Then open `https://rss.example.com/sources`. Only explicitly provisioned local
-principals with active Warden accounts can use this UI. New sources are private.
-You can also register an existing reviewed rule through the operator channel:
+The account must also remain active in Warden. The wizard creates declarative
+SSR sources; it does not accept JavaScript or enable browser rendering.
+Operators can also register an existing reviewed JavaScript rule through the
+operator channel:
 
 ```sh
 python3 rss_operator.py /api/access/sources \

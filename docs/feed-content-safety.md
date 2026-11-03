@@ -1,6 +1,6 @@
 # Feed content safety
 
-Source builds sanitize each item's HTML description and content before writing
+v0.5.0 and later, and current source builds, sanitize each item's HTML description and content before writing
 RSS, Atom or JSON Feed. XML/JSON escaping alone does not make embedded HTML safe
 when a reader renders it. This applies to trusted legacy rules as well as team
 sources; there is no per-rule bypass.

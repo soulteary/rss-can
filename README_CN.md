@@ -1,6 +1,6 @@
 # RSS Can / RSS 罐头
 
-**团队安全功能目前需要构建当前源码。** 已发布的 `v0.4.0` 不支持团队鉴权、公网抓取策略或来源向导，会静默忽略相关环境变量。配置 Stargate 前，请先按[源码部署与验收步骤](docs/secure-deployment.md#build-and-verify-current-source)构建并验证镜像。
+**v0.5.0 新增可选的团队鉴权、公网抓取策略和来源向导。** 历史 `v0.4.0` 不支持这些功能，会静默忽略相关环境变量。配置 Stargate 前，请先按[部署与验收步骤](docs/secure-deployment.md#build-and-verify-current-source)验证运行版本。
 
 已有 Stargate/Warden 时，推荐从[源码版 Compose 部署向导](example/4.with-stargate/README.md)开始，由脚本生成配置并连接私有网关。
 
@@ -29,7 +29,7 @@
 - Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
 
-当前版本：[v0.4.0](https://github.com/soulteary/rss-can/releases/tag/v0.4.0)。变更和升级须知见[发布说明](docs/releases/v0.4.0.md)。
+当前版本：[v0.5.0](https://github.com/soulteary/rss-can/releases/tag/v0.5.0)。变更和升级须知见[发布说明](docs/releases/v0.5.0.md)。
 
 ## 使用方法
 
@@ -39,33 +39,41 @@
 ./rssc
 ```
 
-### 源码构建的 JavaScript 运行时
+### JavaScript 运行时
 
-源码构建现已默认使用常驻 Deno worker（`RSS_JS_WORKERS` 默认 `1`，可配置为 `1–16`，修改后重启）。请先安装 [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** 并加入 PATH，或用 `RSS_CAN_DENO` 指定可执行文件。使用 `CGO_ENABLED=0 go build -o rssc .` 构建，无需构建标签；运行测试也需要 Deno。v0.4.0 的 Docker 镜像和四平台独立归档均内置 Deno 2.9.8；保留与 `rssc` 同目录的 `deno`，无需额外下载。历史 v0.3.12 仍使用原来的内嵌运行时。
+v0.5.0 默认使用常驻 Deno worker（`RSS_JS_WORKERS` 默认 `1`，可配置为 `1–16`，修改后重启）。请先安装 [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** 并加入 PATH，或用 `RSS_CAN_DENO` 指定可执行文件。使用 `CGO_ENABLED=0 go build -o rssc .` 构建，无需构建标签；运行测试也需要 Deno。v0.5.0 的 Docker 镜像和四平台独立归档均内置 Deno 2.9.8；保留与 `rssc` 同目录的 `deno`，无需额外下载。历史 v0.3.12 仍使用原来的内嵌运行时。
 
 服务启动时会检查所有 Deno worker 是否可用。`RSS_CAN_DENO` 优先，其次查找 `rssc` 同目录的 `deno`，最后使用 PATH。安装、迁移、代理/Cookie 和并发说明见[升级指南](docs/upgrading.md)。生命周期与部署要求见[运行时说明](docs/deno-prototype.md)。
 
 ### 订阅生成边界
 
-以下行为适用于当前源码构建：
+以下行为适用于 v0.5.0：
 
 - SSR 分页的 `PagerLimit` 表示包含当前页在内的页面总数；省略或设为 `0` 时仅解析当前页，负数会被拒绝。当前页复用已抓取的内容，重复分页链接和仅锚点不同的链接只处理一次。
 - `IdByRegexp` 必须是合法正则且至少包含一个捕获组，使用首次匹配的第一个捕获组作为 ID；未匹配时不设置 ID。错误配置返回规则解析错误。
 - `RSS_SERVER_TIMEOUT` / `-timeout-server` 限制整个订阅生成流程，包括 JS 排队与启动、规则执行、缓存访问、SSR/CSR/混合解析、分页、详情抓取和输出生成。单次网络、JS 和浏览器超时仍可提前终止对应步骤。SSR 和详情页的解码后 HTML 每页最多 10 MiB。
-- 不支持的订阅类型返回 `400`；未知规则返回 `404`；规则或订阅生成失败返回 `500`；上游抓取失败返回 `502`；总超时返回 `504`，不返回部分订阅内容。
+- 不支持的订阅类型返回 `400`；未知规则返回 `404`；规则或订阅生成失败返回 `500`；上游抓取失败返回 `502`；总超时返回 `504`，不返回部分订阅内容。用户配额耗尽返回 `429`，全局容量耗尽返回 `503`。
 
 ### Docker 容器方式运行
 
 使用下面的命令，下载最新版本的软件之后，使用 `docker run` 运行即可（记得将项目中的 Feed Rules 挂载到容器中）：
 
 ```
-docker pull soulteary/rss-can:v0.4.0
-docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.4.0
+docker pull soulteary/rss-can:v0.5.0
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.0
 ```
 
-此命令运行历史独立部署版本，不是团队部署。需要 CPU/内存限制及只读根文件系统时，请使用[独立部署 Compose 示例](example/README.md)。
+此命令启动独立模式。需要 CPU/内存限制及只读根文件系统时，请使用[独立部署 Compose 示例](example/README.md)。团队模式还需完成 [Stargate 配置](example/4.with-stargate/README.md)，仅升级镜像不会自动启用鉴权。
 
 Docker Hub 镜像支持 Linux AMD64/ARM64。镜像已包含示例规则；仅使用内存缓存时添加 `-e RSS_REDIS=false`。二进制归档包含 `rssc`、`rules/`、文档和许可证，可使用随附的 SHA-256 文件校验。
+
+### 升级前需要确认的变化
+
+切换流量前，请阅读 [v0.4.0 到 v0.5.0 升级步骤](docs/upgrading.md#upgrade-v050)：
+
+- [订阅快照](docs/feed-snapshots.md)默认保鲜 30 秒，刷新失败时最多额外返回 3600 秒的旧快照。设置 `RSS_SNAPSHOT_TTL=0` 可关闭；手动刷新会重新抓取并更新底层页面缓存。
+- [订阅 HTML 清理](docs/feed-content-safety.md)作用于所有规则：删除主动内容和 CSS，图片替换为替代文本，JSON Feed 摘要为纯文本。
+- [抓取策略](docs/fetch-policy.md)在独立模式默认信任管理员安装的规则；团队模式强制公网 SSR 抓取及来源权限。每次生成共用 64 次 HTTP 请求、64 MiB 上游响应预算。
 
 ### 支持的命令行参数及环境变量
 
@@ -167,12 +175,12 @@ This project is licensed under the [MIT License](https://github.com/soulteary/RS
 
 启用文档缓存时，相同抓取任务会合并；`DisableCache` 仍保持独立抓取。`RSS_CONFIG_CACHE_TTL=30` 可开启 30 秒配置缓存，默认关闭以保留动态规则行为。日期转换仅在单次生成内复用。压测工具与结果见[HTTP 负载报告](docs/benchmarks/feed-load.md)；覆盖率口径、依赖和 CI 门禁见[测试说明](docs/testing.md)。
 
-当前源码新增规则快照一致性、全局 HTTP 抓取预算（16 个执行、64 个等待，满载返回 503）、Redis 操作超时与熔断，以及可注入的 FeedService。行为边界见[升级指南](docs/upgrading.md#architecture-hardening-in-source-builds)。
+v0.5.0 提供规则快照一致性、全局 HTTP 抓取预算（16 个执行、64 个等待，满载返回 503）、Redis 操作超时与熔断，以及可注入的 FeedService。行为边界见[升级指南](docs/upgrading.md#architecture-hardening-in-v040)。
 
-进一步的源码构建改进包括：64 MiB 内存缓存预算、事务式规则重载、完整生成并发预算、页面/条目/输出大小限制、浏览器任务合并和应用实例独立关停。空规则集及无效规则现在会阻止启动或重载；具体限制见[升级指南](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle)。
+v0.5.0 还包括：64 MiB 内存缓存预算、事务式规则重载、完整生成并发预算、页面/条目/输出大小限制、浏览器任务合并和应用实例独立关停。独立模式拒绝空规则集及无效规则；团队模式可从可读的空规则目录启动，再通过向导创建来源；具体限制见[升级指南](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle)。
 
 部署方式：[Compose 示例与升级验收](example/README.md)。
 
 ### 管理接口安全变更
 
-源码构建的 `/config/*` 修改操作需要 POST 和 `X-RSS-Admin-Action: 1`，GET 返回 405。源码镜像以 UID/GID 65532 运行；示例仅绑定回环地址并只读挂载规则。详见[安全部署说明](docs/secure-deployment.md)。
+v0.5.0 的 `/config/*` 修改操作需要 POST 和 `X-RSS-Admin-Action: 1`，GET 返回 405。容器镜像以 UID/GID 65532 运行；示例仅绑定回环地址并只读挂载规则。详见[安全部署说明](docs/secure-deployment.md)。

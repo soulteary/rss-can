@@ -1,6 +1,6 @@
 # RSS Can / RSS 罐头
 
-**Team security features require a current source build.** Published `v0.4.0` does not implement team access, public fetch policy, or the source wizard, and silently ignores their environment variables. Follow the [source deployment and verification steps](docs/secure-deployment.md#build-and-verify-current-source) before configuring Stargate.
+**v0.5.0 adds optional team access, public fetch policy and a source wizard.** Historical `v0.4.0` does not implement these features and silently ignores their environment variables. Follow the [deployment and verification steps](docs/secure-deployment.md#build-and-verify-current-source) before configuring Stargate.
 
 For the simplest supported team setup, use the [source-based Stargate Compose guide](example/4.with-stargate/README.md).
 
@@ -30,7 +30,7 @@ workflow without writing JavaScript rules.
 - Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
 
-Current release: [v0.4.0](https://github.com/soulteary/rss-can/releases/tag/v0.4.0). See the [release notes](docs/releases/v0.4.0.md) for changes and upgrade requirements.
+Current release: [v0.5.0](https://github.com/soulteary/rss-can/releases/tag/v0.5.0). See the [release notes](docs/releases/v0.5.0.md) for changes and upgrade requirements.
 
 ## Usage
 
@@ -40,31 +40,31 @@ Download the binary from the github [release page](https://github.com/soulteary/
 ./rssc
 ```
 
-### JavaScript runtime for source builds
+### JavaScript runtime
 
-Source builds now use a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. v0.4.0 Docker images and all four standalone archives include pinned Deno 2.9.8. Keep the bundled executable beside `rssc`; no separate download is needed. Historical v0.3.12 retains its embedded runtime.
+v0.5.0 uses a persistent Deno worker by default. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) **2.9.8** on PATH, or set `RSS_CAN_DENO` to its executable. Build with `CGO_ENABLED=0 go build -o rssc .`; no build tag is needed. Tests also require Deno. v0.5.0 Docker images and all four standalone archives include pinned Deno 2.9.8. Keep the bundled executable beside `rssc`; no separate download is needed. Historical v0.3.12 retains its embedded runtime.
 
 The service checks every Deno worker before starting. `RSS_JS_WORKERS` defaults to `1` and accepts `1–16` (restart to change). Runtime lookup uses `RSS_CAN_DENO`, a `deno` executable beside `rssc`, then PATH. See the [upgrade guide](docs/upgrading.md) for installation, proxy/cookie behavior and concurrency limits. See [runtime setup](docs/deno-prototype.md) for lifecycle and deployment requirements.
 
 ### Feed generation limits
 
-The following behavior applies to current source builds:
+The following behavior applies to v0.5.0:
 
 - SSR `PagerLimit` counts all pages, including the current page. An omitted/zero limit parses only the current page; negative values are rejected. The current document is reused, and duplicate pagination URLs (including fragment-only differences) are processed once.
 - `IdByRegexp` must be valid and contain at least one capture group. The first capture of the first match becomes the entry ID; a non-match leaves the ID unset. Invalid patterns produce a rule configuration error.
 - `RSS_SERVER_TIMEOUT` / `-timeout-server` bounds the entire feed generation pipeline: JS queueing/startup, rule evaluation, cache access, SSR/CSR/mixed parsing, pagination, detail requests and serialization. Per-request, JS and browser timeouts may end individual steps sooner. Decoded SSR and detail-page HTML is limited to 10 MiB per document.
-- Unsupported feed types return `400`; unknown rules return `404`; rule or feed generation errors return `500`; upstream failures return `502`; the overall deadline returns `504` without a partial feed.
+- Unsupported feed types return `400`; unknown rules return `404`; rule or feed generation errors return `500`; upstream failures return `502`; the overall deadline returns `504` without a partial feed. Owner quota exhaustion returns `429`; global capacity exhaustion returns `503`.
 
 ### Docker
 
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:
 
 ```
-docker pull soulteary/rss-can:v0.4.0
-docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.4.0
+docker pull soulteary/rss-can:v0.5.0
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.0
 ```
 
-This is the historical standalone release, not a team deployment. For bounded CPU/memory and a read-only root filesystem, use the [standalone Compose examples](example/README.md).
+This command starts standalone mode. For bounded CPU/memory and a read-only root filesystem, use the [standalone Compose examples](example/README.md). Team access requires the additional [Stargate configuration](example/4.with-stargate/README.md); an image upgrade alone does not enable it.
 
 The Docker Hub image supports Linux AMD64/ARM64. Images include example rules; add `-e RSS_REDIS=false` for memory-only caching. Binary archives include `rssc`, `rules/`, documentation and license notices. Verify downloads with the accompanying SHA-256 files.
 
@@ -115,6 +115,14 @@ Usage of rssc:
   -timeout-server RSS_SERVER_TIMEOUT
     	set web server response timeout, env: RSS_SERVER_TIMEOUT (default 8)
 ```
+
+### Changes to review before upgrading
+
+[Upgrade from v0.4.0](docs/upgrading.md#upgrade-v050) before switching traffic:
+
+- [Feed snapshots](docs/feed-snapshots.md) default to 30 seconds of freshness and up to 3600 additional seconds of stale service during refresh failures. Set `RSS_SNAPSHOT_TTL=0` to disable snapshots. Manual refresh fetches and replaces upstream document caches.
+- [Feed HTML safety](docs/feed-content-safety.md) applies to every rule: active markup and CSS are removed, images become alternative text, and JSON Feed summaries are plain text.
+- [Fetch policy](docs/fetch-policy.md) defaults to trusted operator-owned rules in standalone mode. Team mode enforces public SSR destinations and source permissions. Each generation has a shared 64-request/64-MiB upstream budget.
 
 ### Management endpoints and page inspector
 
@@ -167,12 +175,12 @@ The rapid evolution of the project is inseparable from the following excellent o
 
 Cache-enabled document requests share in-flight work; `DisableCache` retains independent fetches. Set `RSS_CONFIG_CACHE_TTL=30` to opt into configuration caching, disabled by default for dynamic rules. Date conversions are reused only within a feed. See [HTTP load measurements](docs/benchmarks/feed-load.md) and [testing and coverage budgets](docs/testing.md).
 
-Source builds now share immutable rule snapshots, bound upstream HTTP work (16 active and 64 waiting; overload returns 503), bound Redis operations with circuit recovery, and inject a FeedService. See the [upgrade guide](docs/upgrading.md#architecture-hardening-in-source-builds) for behavior and limits.
+v0.5.0 shares immutable rule snapshots, bounds upstream HTTP work (16 active and 64 waiting; overload returns 503), bounds Redis operations with circuit recovery, and injects a FeedService. See the [upgrade guide](docs/upgrading.md#architecture-hardening-in-v040) for behavior and limits.
 
-Source builds also add a 64 MiB memory-cache budget, transactional rule reload, generation/page/item/output limits, shared browser extraction and independently owned application shutdown. Empty or invalid rule sets now prevent startup or reload; see the [upgrade guide](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle).
+v0.5.0 also includes a 64 MiB memory-cache budget, transactional rule reload, generation/page/item/output limits, shared browser extraction and independently owned application shutdown. Standalone mode rejects empty or invalid rule sets; team mode may start with an empty readable rule directory for the source wizard; see the [upgrade guide](docs/upgrading.md#capacity-transactional-reload-and-owned-application-lifecycle).
 
 Deployment profiles: [Compose examples and upgrade checks](example/README.md).
 
 ### Administrative API hardening
 
-Source builds require POST plus `X-RSS-Admin-Action: 1` for `/config/*` mutations. GET returns 405. Docker source builds run as UID/GID 65532; examples bind to loopback and mount rules read-only. See [secure deployment](docs/secure-deployment.md).
+v0.5.0 requires POST plus `X-RSS-Admin-Action: 1` for `/config/*` mutations. GET returns 405. Docker images run as UID/GID 65532; examples bind to loopback and mount rules read-only. See [secure deployment](docs/secure-deployment.md).

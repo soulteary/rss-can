@@ -46,6 +46,44 @@ archives:
       - DEPENDENCIES.md
       - docs/deno-prototype.md
       - docs/upgrading.md
+      - .github/coverage.svg
+      - .github/goreportcard.svg
+      - .github/go-test-report.md
+      - .github/goreportcard-report.md
+      - .github/images/hp.jpg
+      - .github/images/feeds.jpg
+      - docs/secure-deployment.md
+      - docs/stargate-access.md
+      - docs/stargate-setup.md
+      - docs/fetch-policy.md
+      - docs/feed-content-safety.md
+      - docs/feed-snapshots.md
+      - docs/observability.md
+      - docs/testing.md
+      - docs/feeds-performance.md
+      - docs/goquery-performance.md
+      - docs/html-to-markdown-performance.md
+      - docs/benchmarks/feed-load.md
+      - docs/benchmarks/README.md
+      - docs/benchmarks/deno-v8go.md
+      - docs/benchmarks/deno-worker.md
+      - docs/benchmarks/2026-10-28-coverage.json
+      - docs/benchmarks/2026-10-28-deno-v8go.json
+      - docs/benchmarks/2026-10-28-deno-worker-soak.json
+      - docs/benchmarks/2026-10-28-deno-worker.json
+      - docs/benchmarks/2026-10-28-feed-load.json
+      - docs/benchmarks/2026-10-28-v8go-soak.json
+      - example/README.md
+      - example/1.standalone/docker-compose.yml
+      - example/2.with-redis-cache/docker-compose.yml
+      - example/3.enable-csr-render/docker-compose.yml
+      - example/4.with-stargate/README.md
+      - example/4.with-stargate/compose.yml
+      - example/4.with-stargate/nginx.conf.template
+      - example/4.with-stargate/setup.py
+      - example/4.with-stargate/verify.py
+      - example/4.with-stargate/rss_operator.py
+      - example/4.with-stargate/.gitignore
       - CHANGELOG.md
       - docs/releases/*.md
       - third_party/licenses/*

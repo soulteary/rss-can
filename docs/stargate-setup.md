@@ -1,6 +1,6 @@
 # Create and maintain a personal feed
 
-**Requires current source:** published `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features described here. It silently ignores the new configuration variables. [Build and verify the current source image](secure-deployment.md#build-and-verify-current-source) first; do not add team settings to the historical standalone image.
+**Version requirement:** use **v0.5.0 or later**, or a reviewed current source build, for this workflow. Historical `v0.4.0` has none of the team access, public fetch policy, source wizard or `doctor` features and silently ignores their configuration variables. Do not use it for team deployments. See the [source image build and verification steps](secure-deployment.md#build-and-verify-current-source) when building locally.
 
 After enabling [team access](stargate-access.md), open `/sources` through the
 authenticated gateway. A first successful Warden-backed login provisions a
@@ -29,8 +29,7 @@ expressions. Tags, classes, IDs and their compounds are supported, such as
 `article.card`, `.title`, `#news` and `a.link`. Combinators, selector lists,
 pseudo-classes, attributes and CSS escapes are rejected. This avoids allowing
 user-supplied selectors to trigger unbounded backtracking in the shared process.
-The
-source format is deliberately small:
+The source format is deliberately small:
 
 ```json
 {
@@ -96,10 +95,14 @@ budget, reserving authorization-store capacity for other records. Permission
 storage also has global record and byte limits. This is a single-process store: use an explicit
 shared storage design before running multiple replicas.
 
-Manual refresh rebuilds the final representation under the existing upstream
-document-cache policy. It does not bypass target-domain budgets, retry backoff,
-or the source's document freshness interval. A failed refresh leaves an existing
-successful snapshot available subject to its configured maximum stale age.
+Manual refresh bypasses both final-snapshot freshness and upstream document
+cache reads, so it requests current content even before the source's refresh
+interval expires. Successful document fetches replace their cached values, and
+a successful generation replaces the final snapshot. Authorization, network
+policy, target-domain budgets, queue limits and retry backoff still apply. A
+failed refresh leaves the previous successful snapshot available only within
+its configured maximum stale age; it does not report stale content as a
+successful refresh.
 
 ## Read-only startup diagnostics
 
@@ -121,10 +124,11 @@ required check produces a nonzero exit code. Deployment-level checks—such as
 whether a host port is published to the Internet—still require verification in
 the deployment environment.
 
-If an environment value fails before configuration can be assembled, the
-process exits without running these checks. It does not echo invalid values;
-check the documented variable names and constraints when startup reports a
-configuration failure.
+If an environment value fails before configuration can be assembled, `doctor`
+prints a safe `FAIL configuration: ...` hint and exits nonzero without running
+the remaining checks. Known settings receive a fixed hint naming the variable
+and its constraints; other failures receive a general configuration checklist.
+Invalid values and raw errors are never echoed.
 
 Team installations may start with an empty, readable legacy rule directory;
 the wizard then creates the first source. Standalone installations retain the

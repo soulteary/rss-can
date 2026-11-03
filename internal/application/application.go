@@ -94,6 +94,9 @@ type App struct {
 }
 
 func New(ctx context.Context, config Config) (*App, error) {
+	if config.Server.Access != nil {
+		config.Network.Policy = network.PublicPolicy()
+	}
 	var accessStore *access.Store
 	if config.Server.Access != nil {
 		copyAccess := *config.Server.Access

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/soulteary/RSS-Can/internal/access"
+	"github.com/soulteary/RSS-Can/internal/network"
 )
 
 func teamConfig(t *testing.T) Config {
@@ -39,6 +40,9 @@ func TestTeamApplicationOwnsAuthorizationLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer app.Close()
+	if !app.config.Network.Policy.PublicOnly() {
+		t.Fatal("programmatic team config did not enforce public policy")
+	}
 	if err = app.access.PutSource(access.Source{ID: "site", Owner: "alice"}); err != nil {
 		t.Fatal(err)
 	}
@@ -96,5 +100,14 @@ func TestTeamApplicationRejectsInvalidConfigurationAndReleasesFailedStartup(t *t
 	t.Setenv("RSS_TRUSTED_PROXIES", "")
 	if _, err := ConfigFromGlobals(); err == nil {
 		t.Fatal("invalid env accepted")
+	}
+}
+
+func TestProgrammaticTeamRejectsProxyBeforeRuntime(t *testing.T) {
+	cfg := teamConfig(t)
+	cfg.Network.Policy = network.FetchPolicy{}
+	cfg.Network.Proxy = "http://127.0.0.1:8080"
+	if app, err := New(t.Context(), cfg); err == nil || app != nil || !strings.Contains(err.Error(), "does not allow a proxy") {
+		t.Fatalf("team proxy accepted: %v", err)
 	}
 }

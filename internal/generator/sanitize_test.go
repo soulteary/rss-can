@@ -203,6 +203,37 @@ func TestJSONFeedSummaryRemainsPlainText(t *testing.T) {
 	}
 }
 
+func TestJSONFeedSummaryPreservesTextBoundaries(t *testing.T) {
+	for _, tc := range []struct{ name, html, want string }{
+		{"inline Chinese and punctuation", `今天<strong>北京</strong>晴，Hello <em>world</em>!`, "今天北京晴，Hello world!"},
+		{"nested inline word", `<p>un<strong>break<em>able</em></strong>.</p>`, "unbreakable."},
+		{"adjacent blocks", `<p>First</p><p><b>Second</b></p>`, "First Second"},
+		{"opening block", `First<div>Second</div>Third`, "First Second Third"},
+		{"explicit breaks", `First<br><br>Second<hr>Third`, "First Second Third"},
+		{"table cells", `<table><tr><td>A</td><td>B</td></tr><tr><td>C</td></tr></table>`, "A B C"},
+		{"existing whitespace", "<p>First </p><p>Second</p><pre>\n  code\n</pre>", "First Second\n  code"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			data := define.BodyParsed{Body: []define.InfoItem{{Description: tc.html}}}
+			body, err := GenerateFeedsByTypeContext(t.Context(), define.JavaScriptConfig{}, data, "json")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var decoded struct {
+				Items []struct {
+					Summary string `json:"summary"`
+				}
+			}
+			if err := json.Unmarshal([]byte(body), &decoded); err != nil {
+				t.Fatal(err)
+			}
+			if got := decoded.Items[0].Summary; got != tc.want {
+				t.Fatalf("summary = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
+
 func FuzzFeedHTMLSanitizer(f *testing.F) {
 	for _, raw := range []string{`<p>Hello</p>`, `<img src=x onerror=x>`, `<a href="javascript:alert(1)">text</a>`, `<svg><style><img src=x></style></svg>`} {
 		f.Add(raw)

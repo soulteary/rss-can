@@ -64,7 +64,7 @@ func makeMap(list []string) (map[string]define.RuleCache, error) {
 func InitRules() {
 	newCache, err := makeMap(LoadRules(define.RULES_DIRECTORY))
 	if err != nil {
-		logger.Instance.Errorf("Unable to load rules: %v", err)
+		logger.Instance.Error("Unable to load rules; details withheld to protect source credentials")
 		return
 	}
 	rulesMu.Lock()

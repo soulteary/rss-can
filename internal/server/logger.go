@@ -48,7 +48,13 @@ func Logger(logger *zap.SugaredLogger, notLogged ...string) fiber.Handler {
 		statusCode := c.Response().StatusCode()
 		clientIP := inputSanitized(c.IP())
 		clientUserAgent := inputSanitized(c.Get(fiber.HeaderUserAgent))
-		referer := inputSanitized(c.Get(fiber.HeaderReferer))
+		// URLs may contain subscription secrets, so never retain Referer.
+		referer := "[redacted]"
+		routePath := c.Route().Path
+		if routePath == "" {
+			routePath = "[unmatched]"
+		}
+		safePath := inputSanitized(routePath)
 		dataLength := len(c.Response().Body())
 
 		if _, ok := skip[path]; ok {
@@ -61,16 +67,16 @@ func Logger(logger *zap.SugaredLogger, notLogged ...string) fiber.Handler {
 			"latency", latency, // time to process
 			"clientIP", clientIP,
 			"method", c.Method(),
-			"path", path,
+			"path", safePath,
 			"referer", referer,
 			"dataLength", dataLength,
 			"userAgent", clientUserAgent,
 		)
 
 		if err != nil {
-			entry.Error(err)
+			entry.Error("request handler failed")
 		} else {
-			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)", clientIP, hostname, time.Now().Format(timeFormat), c.Method(), path, statusCode, dataLength, referer, clientUserAgent, latency)
+			msg := fmt.Sprintf("%s - %s [%s] \"%s %s\" %d %d \"%s\" \"%s\" (%dms)", clientIP, hostname, time.Now().Format(timeFormat), c.Method(), safePath, statusCode, dataLength, referer, clientUserAgent, latency)
 			if statusCode >= http.StatusInternalServerError {
 				entry.Error(msg)
 			} else if statusCode >= http.StatusBadRequest {

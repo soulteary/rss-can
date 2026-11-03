@@ -90,3 +90,15 @@ func localHost(host string) bool {
 	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
 }
+
+// adminMutation requires an explicit, non-simple request header. Browser forms
+// cannot supply it and cross-origin fetches require a CORS preflight, which this
+// service does not allow. adminOnly still verifies Origin and Fetch Metadata.
+func adminMutation() fiber.Handler {
+	return func(c fiber.Ctx) error {
+		if c.Get("X-RSS-Admin-Action") != "1" {
+			return c.Status(http.StatusForbidden).JSON(fiber.Map{"msg": "explicit administrative action required"})
+		}
+		return c.Next()
+	}
+}

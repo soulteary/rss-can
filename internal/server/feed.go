@@ -81,7 +81,7 @@ func apiRSSWithService(service FeedGenerator) fiber.Handler {
 			response, err = service.Generate(c.Context(), id, rssType)
 		}
 		if err != nil {
-			logger.Instance.Errorf("Feed generation failed (rule %s): %v", id, err)
+			logger.Instance.Error("Feed generation failed; details withheld to protect source credentials")
 			var failure *feedservice.Error
 			if !errors.As(err, &failure) {
 				return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"msg": "generate feed failed"})

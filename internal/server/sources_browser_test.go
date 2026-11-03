@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ func TestSourceWizardBrowserCreatesCredentialWithoutExecutingContent(t *testing.
 		}
 		t.Skip("browser endpoint not configured")
 	}
+	browsertest.Lock(t, endpoint)
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	defer cancel()
 	req, _ := http.NewRequestWithContext(ctx, "GET", strings.TrimRight(endpoint, "/")+"/json/version", nil)

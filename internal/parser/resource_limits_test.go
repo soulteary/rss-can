@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/chromedp/chromedp"
+	"github.com/soulteary/RSS-Can/internal/browsertest"
 	"os"
 	"strings"
 	"sync/atomic"
@@ -149,6 +150,7 @@ func TestLiveBrowserRejectsOversizeBeforeTransfer(t *testing.T) {
 		}
 		t.Skip("requires isolated Chrome")
 	}
+	browsertest.Lock(t, address)
 	for _, expression := range []string{fmt.Sprintf("'x'.repeat(%d)", limits.MaxPageBytes+1), fmt.Sprintf("'你'.repeat(%d)", limits.MaxPageBytes/2)} {
 		ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 		err := withBrowserPage(ctx, address, "", "about:blank", "", false, func(pageCtx context.Context) error {

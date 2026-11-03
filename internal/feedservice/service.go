@@ -11,6 +11,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/limits"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
@@ -73,6 +74,7 @@ func (s *Service) Generate(ctx context.Context, id, format string) (string, erro
 	default:
 		return "", &Error{Stage: InvalidFormat, Cause: errors.New("unsupported feed type")}
 	}
+	ctx = network.WithFetchBudget(ctx)
 	ctx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
 	deadline := func() error {

@@ -57,7 +57,8 @@ type denoResponse struct {
 func startDenoProcess(ctx context.Context) (*denoProcess, error) {
 	telemetry.Default.Add("js_starts_total", 1)
 	binary := runtimeBinary(ctx)
-	cmd := exec.Command(binary, "run", "--no-prompt", "--no-config", "--no-lock", "data:application/javascript;base64,"+base64.StdEncoding.EncodeToString([]byte(denoRunner)))
+	cmd := exec.Command(binary, "run", "--no-prompt", "--no-config", "--no-lock", "--v8-flags=--max-old-space-size=128", "data:application/javascript;base64,"+base64.StdEncoding.EncodeToString([]byte(denoRunner)))
+	cmd.Env = denoEnvironment()
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -314,4 +315,17 @@ func readProtocolLine(reader *bufio.Reader) ([]byte, error) {
 		}
 		return line, err
 	}
+}
+
+// Deno receives no application credentials, proxy settings, node options or
+// runtime permission flags from the parent environment. The runner is embedded
+// and the executable path has already been resolved by the application.
+func denoEnvironment() []string {
+	env := []string{"DENO_NO_UPDATE_CHECK=1", "NO_COLOR=1"}
+	for _, key := range []string{"TMPDIR", "TMP", "TEMP", "SystemRoot", "WINDIR"} {
+		if value, ok := os.LookupEnv(key); ok {
+			env = append(env, key+"="+value)
+		}
+	}
+	return env
 }

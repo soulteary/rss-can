@@ -14,6 +14,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/generator"
 	"github.com/soulteary/RSS-Can/internal/limits"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/telemetry"
 )
 
@@ -93,6 +94,7 @@ func (s *Snapshots) Refresh(ctx context.Context, id, format string) (Representat
 }
 
 func (s *Snapshots) representation(ctx context.Context, id, format string, force bool) (Representation, error) {
+	ctx = network.WithFetchBudget(ctx)
 	if err := ctx.Err(); err != nil {
 		return Representation{}, &Error{Stage: Timeout, Cause: err}
 	}

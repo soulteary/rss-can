@@ -37,6 +37,13 @@ type Config struct {
 // ConfigFromGlobals is a startup-only compatibility boundary for CLI/env options.
 // The resulting Config is copied into the application; requests do not reread it.
 func ConfigFromGlobals() (Config, error) {
+	policy, err := network.ParseFetchPolicy(os.Getenv("RSS_FETCH_POLICY"))
+	if err != nil {
+		return Config{}, err
+	}
+	if os.Getenv("RSS_ACCESS_MODE") == "team" {
+		policy = network.PublicPolicy()
+	}
 	workers := 1
 	if raw := os.Getenv("RSS_JS_WORKERS"); raw != "" {
 		n, err := strconv.Atoi(raw)
@@ -53,7 +60,7 @@ func ConfigFromGlobals() (Config, error) {
 		Server:     server.DefaultOptions(),
 		Cache:      cacher.Config{RedisEnabled: define.REDIS, MemoryEnabled: define.IN_MEMORY_CACHE, RedisAddr: define.REDIS_SERVER, RedisPassword: define.REDIS_PASS, RedisDB: define.REDIS_DB, MemoryTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)},
 		JavaScript: jssdk.RuntimeConfig{Binary: os.Getenv("RSS_CAN_DENO"), Workers: workers, Timeout: time.Duration(define.JS_EXECUTE_TIMEOUT) * time.Millisecond},
-		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER},
+		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER, Policy: policy},
 		Browser:    parser.BrowserOptions{Debug: define.CSR_DEBUG, IgnoreCertificateErrors: define.CSR_IGNORE_CERT_ERRORS}, BrowserTimeout: fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT), ConfigCacheTTL: time.Duration(ttl) * time.Second,
 	}, nil
 }
@@ -98,9 +105,17 @@ func New(ctx context.Context, config Config) (*App, error) {
 	}
 	config.Server.BrowserTimeout = config.BrowserTimeout
 	config.Network.ServerTimeout = config.Server.Timeout
+	policy, err := network.ParseFetchPolicy(config.Network.Policy.Mode)
+	if err != nil {
+		return nil, err
+	}
+	config.Network.Policy = policy
 	proxy, err := network.NormalizeProxy(config.Network.Proxy)
 	if err != nil {
 		return nil, err
+	}
+	if config.Network.Policy.PublicOnly() && proxy != "" {
+		return nil, errors.New("public fetch policy does not allow a proxy")
 	}
 	config.Network.Proxy = proxy
 	config.Server.Proxy = proxy
@@ -126,6 +141,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 			return app.rules.Configure(app.resources(ctx), snapshot)
 		},
 		Fetch: func(ctx context.Context, config define.JavaScriptConfig) define.BodyParsed {
+			ctx = network.WithFetchBudget(ctx)
 			if !fn.IsVaildHeadlessAddr(config.Headless) {
 				config.Headless = app.config.Server.Headless
 			}

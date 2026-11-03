@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
@@ -35,7 +34,9 @@ func HttpGet(url string, userAgent string) (code define.ErrorCode, status string
 
 func HttpGetContext(ctx context.Context, targetURL string, userAgent string, options ...RequestOptions) (code define.ErrorCode, status string, response *http.Response) {
 	settings := configForContext(ctx)
-	client := &http.Client{Timeout: settings.RequestTimeout}
+	if err := PolicyForContext(ctx).ValidateURL(targetURL); err != nil {
+		return define.ERROR_CODE_INIT_NETWORK_FAILED, "fetch destination is blocked by policy", nil
+	}
 	opts := requestOptions(options)
 	if len(options) == 0 && scopedClient(ctx) != nil {
 		opts.Proxy = settings.Proxy
@@ -44,19 +45,16 @@ func HttpGetContext(ctx context.Context, targetURL string, userAgent string, opt
 	if err != nil {
 		return define.ERROR_CODE_INIT_NETWORK_FAILED, "invalid proxy configuration", nil
 	}
-	var transport *http.Transport
-	if proxy != "" {
-		proxyURL, _ := url.Parse(proxy)
-		transport = http.DefaultTransport.(*http.Transport).Clone()
-		transport.Proxy = http.ProxyURL(proxyURL)
-		client.Transport = transport
+	client, transport, err := policyHTTPClient(ctx, settings.RequestTimeout, proxy)
+	if err != nil {
+		return define.ERROR_CODE_INIT_NETWORK_FAILED, "fetch proxy is blocked by policy", nil
 	}
 	if opts.Cookies != "" {
 		origin, parseErr := url.Parse(opts.CookieURL)
 		if parseErr != nil || origin.Host == "" {
 			return define.ERROR_CODE_INIT_NETWORK_FAILED, "invalid cookie origin", nil
 		}
-		jar, _ := cookiejar.New(nil)
+		jar := newOriginJar(origin)
 		cookieRequest := &http.Request{Header: http.Header{"Cookie": []string{opts.Cookies}}}
 		cookies := cookieRequest.Cookies()
 		for _, cookie := range cookies {
@@ -120,13 +118,19 @@ const MaxDocumentBytes = limits.MaxPageBytes
 var documentFlights coalesce.Group[define.RemoteBodySanitized]
 
 func GetRemoteDocumentContext(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) define.RemoteBodySanitized {
+	if err := PolicyForContext(ctx).ValidateURL(url); err != nil {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), "")
+	}
 	if client := scopedClient(ctx); client != nil && len(options) == 0 {
 		options = []RequestOptions{{Proxy: client.config.Proxy}}
+	}
+	if PolicyForContext(ctx).PublicOnly() && strings.TrimSpace(requestOptions(options).Proxy) != "" {
+		return define.MixupRemoteBodySanitized(define.ERROR_CODE_NETWORK, "fetch proxy is blocked by policy", time.Now(), "")
 	}
 	if disableCache || !cacher.IsEnabledContext(ctx) {
 		return getRemoteDocument(ctx, url, charset, expire, disableCache, options...)
 	}
-	key := documentKey(url, charset, expire, options...)
+	key := policyDocumentKey(ctx, documentKey(url, charset, expire, options...))
 	flights := &documentFlights
 	if client := scopedClient(ctx); client != nil {
 		flights = &client.flights
@@ -146,11 +150,11 @@ func GetRemoteDocumentContext(ctx context.Context, url string, charset string, e
 
 func documentKey(url, charset string, expire int, options ...RequestOptions) string {
 	opts := requestOptions(options)
-	return fmt.Sprintf("document:v3:%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d\x00%s\x00%s\x00%s", url, charset, expire, opts.CookieURL, opts.Cookies, opts.Proxy))))
+	return fmt.Sprintf("document:v4:%x", sha256.Sum256([]byte(fmt.Sprintf("%s\x00%s\x00%d\x00%s\x00%s\x00%s", url, charset, expire, opts.CookieURL, opts.Cookies, opts.Proxy))))
 }
 
 func getRemoteDocument(ctx context.Context, url string, charset string, expire int, disableCache bool, options ...RequestOptions) (result define.RemoteBodySanitized) {
-	key := documentKey(url, charset, expire, options...)
+	key := policyDocumentKey(ctx, documentKey(url, charset, expire, options...))
 	if scopedClient(ctx) != nil {
 		key += fmt.Sprintf(":ua:%x", sha256.Sum256([]byte(configForContext(ctx).UserAgent)))
 	}
@@ -171,7 +175,7 @@ func getRemoteDocument(ctx context.Context, url string, charset string, expire i
 		cache, found, err := cacher.GetWithinLimit(ctx, key, limits.MaxDocumentCacheBytes)
 		if err == nil && found {
 			var cached define.RemoteBodySanitized
-			if json.Unmarshal([]byte(cache), &cached) == nil && validCachedDocument(cached) {
+			if json.Unmarshal([]byte(cache), &cached) == nil && validCachedDocument(cached) && PolicyForContext(ctx).ValidateURL(cached.FinalURL) == nil && (cached.BaseURL == "" || PolicyForContext(ctx).ValidateURL(cached.BaseURL) == nil) {
 				logger.Instance.Debugln("Get remote document from cache", url)
 				return cached
 			}

@@ -16,6 +16,7 @@ type Config struct {
 	RequestTimeout, ServerTimeout, DefaultTTL time.Duration
 	UserAgent                                 string
 	Proxy                                     string
+	Policy                                    FetchPolicy
 }
 type Client struct {
 	config  Config

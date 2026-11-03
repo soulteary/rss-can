@@ -12,6 +12,7 @@ import (
 var bounds = []float64{.001, .005, .01, .025, .05, .1, .25, .5, 1, 2.5, 5, 10}
 
 var counters = []string{
+	"snapshot_hits_total", "snapshot_stale_total", "snapshot_refreshes_total", "snapshot_failures_total",
 	"feed_requests_total", "feed_successes_total", "feed_failures_total", "feed_timeouts_total",
 	"fetch_requests_total", "fetch_failures_total", "fetch_shared_total",
 	"cache_hits_total", "cache_misses_total", "cache_errors_total", "cache_fallbacks_total",
@@ -21,7 +22,7 @@ var counters = []string{
 	"browser_requests_total", "browser_failures_total", "browser_shared_total",
 }
 var gauges = []string{"js_queued", "js_active", "browser_queued", "browser_active"}
-var histograms = []string{"feed_duration_seconds", "fetch_duration_seconds", "js_queue_seconds", "js_execution_seconds", "browser_queue_seconds", "browser_duration_seconds"}
+var histograms = []string{"snapshot_queue_seconds", "feed_duration_seconds", "fetch_duration_seconds", "js_queue_seconds", "js_execution_seconds", "browser_queue_seconds", "browser_duration_seconds"}
 
 type metric struct {
 	kind    string

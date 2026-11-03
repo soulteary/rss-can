@@ -31,8 +31,10 @@ following the [team configuration](stargate-access.md#team-configuration).
 
 For a team deployment, prepare a private state directory owned by UID/GID 65532
 (mode `0700`). Store the team environment from that guide in an operator-only
-file `team.env`, using unquoted `KEY=value` lines (Docker retains literal
-quotes), with `RSS_ACCESS_STORE=/state/access.json` and
+file `.env.team`, using unquoted `KEY=value` lines (Docker retains literal
+quotes). Create it with `umask 077`, require mode `0600`, and never commit
+credentials. `.env.team` is excluded from Git and the Docker build context. Set
+`RSS_ACCESS_STORE=/state/access.json` and
 `RSS_REDIS=false` unless a private Redis is configured. Run the verified image:
 
 ```sh
@@ -40,7 +42,7 @@ docker run --name rss-can-team --user 65532:65532 \
   --read-only --cap-drop ALL --security-opt no-new-privileges:true \
   --pids-limit 128 --memory 512m --cpus 2 \
   --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
-  --env-file team.env -p 127.0.0.1:8080:8080 \
+  --env-file .env.team -p 127.0.0.1:8080:8080 \
   -v "$(pwd)/state:/state" -v "$(pwd)/rules:/rules:ro" \
   rss-can-source:local
 ```

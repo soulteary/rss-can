@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/cacher"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/feedservice"
@@ -57,8 +58,14 @@ func ConfigFromGlobals() (Config, error) {
 	if n, err := strconv.Atoi(os.Getenv("RSS_CONFIG_CACHE_TTL")); err == nil && n > 0 {
 		ttl = min(n, 3600)
 	}
+	accessConfig, err := access.FromEnv()
+	if err != nil {
+		return Config{}, err
+	}
+	serverOptions := server.DefaultOptions()
+	serverOptions.Access = accessConfig
 	return Config{
-		Server:     server.DefaultOptions(),
+		Server:     serverOptions,
 		Cache:      cacher.Config{RedisEnabled: define.REDIS, MemoryEnabled: define.IN_MEMORY_CACHE, RedisAddr: define.REDIS_SERVER, RedisPassword: define.REDIS_PASS, RedisDB: define.REDIS_DB, MemoryTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)},
 		JavaScript: jssdk.RuntimeConfig{Binary: os.Getenv("RSS_CAN_DENO"), Workers: workers, Timeout: time.Duration(define.JS_EXECUTE_TIMEOUT) * time.Millisecond},
 		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER, Policy: policy},
@@ -83,9 +90,37 @@ type App struct {
 	closeOnce sync.Once
 	closed    chan struct{}
 	closeErr  error
+	access    *access.Store
 }
 
 func New(ctx context.Context, config Config) (*App, error) {
+	var accessStore *access.Store
+	if config.Server.Access != nil {
+		copyAccess := *config.Server.Access
+		copyAccess.TrustedProxies = append(copyAccess.TrustedProxies[:0:0], copyAccess.TrustedProxies...)
+		config.Server.Access = &copyAccess
+		if err := config.Server.Access.Validate(); err != nil {
+			return nil, err
+		}
+		if len(config.Server.AdminToken) < 32 {
+			return nil, errors.New("team mode requires an admin token of at least 32 characters")
+		}
+		var err error
+		accessStore, err = access.Open(config.Server.Access.StorePath)
+		if err != nil {
+			return nil, err
+		}
+		if err = accessStore.BindIssuer(config.Server.Access.WardenURL); err != nil {
+			_ = accessStore.Close()
+			return nil, err
+		}
+	}
+	keepAccess := false
+	defer func() {
+		if accessStore != nil && !keepAccess {
+			_ = accessStore.Close()
+		}
+	}()
 	if config.Server.Timeout <= 0 {
 		return nil, errors.New("server timeout must be positive")
 	}
@@ -125,7 +160,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 		return nil, err
 	}
 	life, cancel := context.WithCancel(ctx)
-	app := &App{config: config, runtime: runtime, cache: cacher.New(config.Cache), client: network.NewClient(config.Network), life: life, cancel: cancel, closed: make(chan struct{})}
+	app := &App{config: config, runtime: runtime, cache: cacher.New(config.Cache), client: network.NewClient(config.Network), life: life, cancel: cancel, closed: make(chan struct{}), access: accessStore}
 	evaluator := func(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
 		return rule.EvaluateConfigContext(app.resources(ctx), snapshot)
 	}
@@ -159,10 +194,16 @@ func New(ctx context.Context, config Config) (*App, error) {
 			return generator.GenerateFeedsByTypeContext(app.resources(ctx), config, data, format)
 		},
 	})
+	var accessController *server.AccessController
+	if accessStore != nil {
+		accessController = &server.AccessController{Config: *config.Server.Access, Store: accessStore, Directory: access.WardenChecker{URL: config.Server.Access.WardenURL, APIKey: config.Server.Access.WardenAPIKey}}
+	}
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
 		Feeds: app.feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
+		Access: accessController,
 	})
+	keepAccess = true
 	return app, nil
 }
 
@@ -194,6 +235,9 @@ func (a *App) Close() error {
 		a.requests.Wait()
 		a.work.Wait()
 		a.closeErr = errors.Join(a.runtime.Close(), a.cache.Close())
+		if a.access != nil {
+			a.closeErr = errors.Join(a.closeErr, a.access.Close())
+		}
 		close(a.closed)
 	})
 	<-a.closed

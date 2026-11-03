@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>我的订阅来源 · RSS Can</title>
+  <link rel="stylesheet" href="/assets/css/sources.css">
+  <script defer src="/assets/js/sources.js"></script>
+</head>
+<body>
+<main>
+  <header><span class="eyebrow">RSS CAN</span><h1>把网站变成自己的订阅</h1><p>添加来源、确认内容、复制到阅读器。新来源仅自己可见。</p></header>
+  <div id="status" role="status" aria-live="polite"></div>
+  <div class="columns">
+  <section class="editor" aria-labelledby="editor-title">
+    <h2 id="editor-title">添加来源</h2>
+    <form id="source-form">
+      <label>网站地址<input id="url" type="url" required placeholder="https://example.com/news" autocomplete="url"></label>
+      <label>订阅名称<input id="name" maxlength="256" placeholder="留空使用网站域名"></label>
+      <label>页面结构<select id="template"><option value="article">文章列表（article）</option><option value="post">博客条目（.post）</option><option value="custom">自定义选择器</option></select></label>
+      <details id="advanced"><summary>调整提取范围和刷新时间</summary>
+        <p class="hint">使用简单标签、类名或 ID，例如 article.card、.title、a。暂不支持空格组合、属性或伪类选择器。先预览，再确认标题和链接。</p>
+        <label>每条内容的范围<input id="item_selector" value="article" required maxlength="512"></label>
+        <label>标题<input id="title_selector" value="h2" required maxlength="512"></label>
+        <label>链接<input id="link_selector" value="a" required maxlength="512"></label>
+        <label>时间（可选）<input id="date_selector" maxlength="512"></label>
+        <label>摘要（可选）<input id="description_selector" maxlength="512"></label>
+        <label>下一页（可选）<input id="pager_selector" maxlength="512"></label>
+        <div class="pair"><label>最多页数<input id="max_pages" type="number" min="1" max="20" value="1"></label><label>刷新间隔（秒）<input id="refresh_seconds" type="number" min="60" max="86400" value="600"></label></div>
+      </details>
+      <div class="actions"><button id="preview" type="button">预览内容</button><button id="save" type="submit" class="primary">保存并生成订阅链接</button><button id="reset" type="button" hidden>取消编辑</button></div>
+    </form>
+    <div id="preview-result" aria-live="polite"></div>
+    <section id="credential" hidden><h3>复制到阅读器</h3><p>此链接只显示这一次。持有者可以读取这个来源，请勿公开转发。</p><label>私密订阅链接<input id="reader-url" readonly></label><button id="copy" type="button">复制链接</button></section>
+  </section>
+  <aside><section><h2>我的来源</h2><div id="sources"><p class="hint">正在读取来源…</p></div></section><section><h2>阅读器凭据</h2><p class="hint">为不同设备单独生成凭据。撤销后，该凭据无法继续下载；已经下载的内容不会被远程删除。</p><div id="grants"></div></section></aside>
+  </div>
+</main>
+</body>
+</html>

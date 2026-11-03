@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/soulteary/RSS-Can/internal/source"
 	"golang.org/x/sys/unix"
 )
 
@@ -40,17 +41,21 @@ type Principal struct {
 }
 
 type Source struct {
-	ID      string   `json:"id"`
-	Owner   string   `json:"owner"`
-	Public  bool     `json:"public"`
-	Readers []string `json:"readers,omitempty"`
+	ID       string        `json:"id"`
+	Owner    string        `json:"owner"`
+	Public   bool          `json:"public"`
+	Readers  []string      `json:"readers,omitempty"`
+	Spec     *source.Spec  `json:"spec,omitempty"`
+	Previous []source.Spec `json:"previous,omitempty"`
+	Revision uint64        `json:"revision,omitempty"`
 }
 
 type Grant struct {
+	Label     string    `json:"label,omitempty"`
 	ID        string    `json:"id"`
 	Source    string    `json:"source"`
 	Subject   string    `json:"subject"`
-	Digest    string    `json:"digest"`
+	Digest    string    `json:"digest,omitempty"`
 	Formats   []string  `json:"formats"`
 	ExpiresAt time.Time `json:"expires_at"`
 	Revoked   bool      `json:"revoked"`
@@ -172,8 +177,27 @@ func validate(st state) error {
 				return ErrInvalid
 			}
 		}
+		if len(src.Previous) > 5 {
+			return ErrInvalid
+		}
+		if src.Spec != nil {
+			if src.Revision == 0 || src.Spec.Validate() != nil {
+				return ErrInvalid
+			}
+		}
+		for _, old := range src.Previous {
+			if old.Validate() != nil {
+				return ErrInvalid
+			}
+		}
+	}
+	if err := managedCapacity(st); err != nil {
+		return err
 	}
 	for id, g := range st.Grants {
+		if len(g.Label) > 80 || strings.ContainsAny(g.Label, "\r\n\t") {
+			return ErrInvalid
+		}
 		if id != g.ID || !validID(id) || !validID(g.Subject) || len(g.Digest) != 64 || g.ExpiresAt.IsZero() || !validFormats(g.Formats) {
 			return ErrInvalid
 		}
@@ -278,6 +302,7 @@ func (s *Store) updateState(permissionsChanged bool, fn func(*state) error) erro
 }
 
 func (s *Store) SetPrincipal(subject string, disabled bool) error {
+	subject = strings.Clone(subject)
 	if !validID(subject) {
 		return ErrInvalid
 	}
@@ -298,6 +323,7 @@ func (s *Store) SetPrincipal(subject string, disabled bool) error {
 // BindIssuer prevents accidental identity rebinding when a deployment points
 // an existing permission database at a different directory authority.
 func (s *Store) BindIssuer(issuer string) error {
+	issuer = strings.Clone(issuer)
 	if issuer == "" {
 		return ErrInvalid
 	}
@@ -312,6 +338,7 @@ func (s *Store) BindIssuer(issuer string) error {
 
 func (s *Store) PutSource(src Source) error {
 	src.Readers = append([]string(nil), src.Readers...)
+	src = cloneSource(src)
 	if !validID(src.ID) || !validID(src.Owner) || len(src.Readers) > 256 {
 		return ErrInvalid
 	}
@@ -394,8 +421,7 @@ func (s *Store) Sources(subject string) []Source {
 	}
 	for id, src := range s.state.Sources {
 		if canRead(s.state, subject, id) {
-			src.Readers = append([]string(nil), src.Readers...)
-			out = append(out, src)
+			out = append(out, cloneSource(src))
 		}
 	}
 	return out
@@ -423,7 +449,19 @@ func randomToken(n int) (string, error) {
 }
 
 // CreateGrant returns the secret exactly once. Only its SHA-256 digest persists.
-func (s *Store) CreateGrant(subject, source string, formats []string, expires time.Time) (Grant, string, error) {
+func (s *Store) CreateGrant(subject, source string, formats []string, expires time.Time, labels ...string) (Grant, string, error) {
+	subject, source = strings.Clone(subject), strings.Clone(source)
+	formats = append([]string(nil), formats...)
+	for i := range formats {
+		formats[i] = strings.Clone(formats[i])
+	}
+	label := ""
+	if len(labels) > 0 {
+		label = strings.Clone(strings.TrimSpace(labels[0]))
+		if len(label) > 80 || strings.ContainsAny(label, "\r\n\t") {
+			return Grant{}, "", ErrInvalid
+		}
+	}
 	if !validFormats(formats) || !expires.After(time.Now()) || expires.After(time.Now().Add(366*24*time.Hour)) {
 		return Grant{}, "", ErrInvalid
 	}
@@ -452,7 +490,7 @@ func (s *Store) CreateGrant(subject, source string, formats []string, expires ti
 		return Grant{}, "", err
 	}
 	digest := sha256.Sum256([]byte(secret))
-	g := Grant{ID: id, Source: source, Subject: subject, Digest: hex.EncodeToString(digest[:]), Formats: append([]string(nil), formats...), ExpiresAt: expires}
+	g := Grant{ID: id, Source: source, Subject: subject, Digest: hex.EncodeToString(digest[:]), Formats: append([]string(nil), formats...), ExpiresAt: expires, Label: label}
 	err = s.updateState(false, func(st *state) error {
 		if !canRead(*st, subject, source) {
 			return ErrDenied

@@ -7,7 +7,7 @@ import sys
 
 MINIMUMS = {'access': 80, 'application': 85, 'cacher': 80, 'cmd': 95, 'coalesce': 95, 'define': 95, 'feedservice': 80, 'fn': 95,
             'generator': 85, 'jssdk': 80, 'logger': 95, 'network': 75,
-            'limits': 95, 'workscope': 95, 'parser': 70, 'rule': 90, 'rulefile': 80, 'server': 75, 'telemetry': 95}
+            'limits': 95, 'workscope': 95, 'parser': 70, 'rule': 90, 'rulefile': 80, 'server': 75, 'source': 85, 'telemetry': 95}
 
 
 def summarize(text):

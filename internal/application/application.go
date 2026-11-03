@@ -190,7 +190,7 @@ func New(ctx context.Context, config Config) (*App, error) {
 	evaluator := func(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
 		return rule.EvaluateConfigContext(app.resources(ctx), snapshot)
 	}
-	app.rules = rule.NewRepositoryWithOptions(config.Server.RuleDirectory, evaluator, config.ConfigCacheTTL, config.Server.Timeout)
+	app.rules = rule.NewRepositoryWithOptions(config.Server.RuleDirectory, evaluator, config.ConfigCacheTTL, config.Server.Timeout, config.Server.Access != nil)
 	if err := app.rules.Reload(app.resources(ctx)); err != nil {
 		cancel()
 		_ = app.runtime.Close()
@@ -198,9 +198,9 @@ func New(ctx context.Context, config Config) (*App, error) {
 		return nil, fmt.Errorf("load rules: %w", err)
 	}
 	app.feeds = feedservice.New(config.Server.Timeout, feedservice.Dependencies{
-		Lookup: app.rules.Lookup,
+		Lookup: app.lookupSource,
 		Configure: func(ctx context.Context, snapshot define.RuleCache) (define.JavaScriptConfig, error) {
-			return app.rules.Configure(app.resources(ctx), snapshot)
+			return app.configureSource(ctx, snapshot)
 		},
 		Fetch: func(ctx context.Context, config define.JavaScriptConfig) define.BodyParsed {
 			ctx = network.WithFetchBudget(ctx)
@@ -236,9 +236,10 @@ func New(ctx context.Context, config Config) (*App, error) {
 		feeds = app.snapshots
 	}
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
-		Feeds: feeds, Snapshot: app.rules.Snapshot, Metadata: app.rules.SnapshotMetadata, Configure: app.rules.Configure,
+		Feeds: feeds, Snapshot: app.sourceSnapshots, Metadata: app.sourceMetadata, Configure: app.configureSource,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
-		Access: accessController,
+		Access:  accessController,
+		Preview: app.previewSource,
 	})
 	keepAccess = true
 	return app, nil

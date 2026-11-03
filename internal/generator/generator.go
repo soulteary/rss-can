@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"html"
 	"time"
 
 	"github.com/soulteary/RSS-Can/internal/define"
@@ -48,7 +49,13 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		if err := ctx.Err(); err != nil {
 			return "", err
 		}
-		description, err := sanitizeFragment(ctx, data.Description, config.URL, htmlBudget)
+		var description string
+		var err error
+		if config.TextOnly {
+			description, err = escapeFeedText(ctx, data.Description, htmlBudget)
+		} else {
+			description, err = sanitizeFragment(ctx, data.Description, config.URL, htmlBudget)
+		}
 		if err != nil {
 			return "", fmt.Errorf("sanitize feed description: %w", err)
 		}
@@ -64,7 +71,10 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 			return "", fmt.Errorf("sanitize feed content: %w", err)
 		}
 		htmlBudget -= len(content)
-		link, _ := safeFeedLink(data.Link, config.URL, false)
+		link, validLink := safeFeedLink(data.Link, config.URL, false)
+		if config.TextOnly && !validLink {
+			return "", fmt.Errorf("declarative source contains an unsafe link")
+		}
 		feedItem := feeds.Item{
 			Title:       data.Title,
 			Category:    data.Category,
@@ -137,6 +147,30 @@ func feedTime(ctx context.Context) time.Time {
 type contextWriter struct {
 	ctx    context.Context
 	buffer *bytes.Buffer
+}
+
+func escapeFeedText(ctx context.Context, input string, maximum int) (string, error) {
+	size := len(input)
+	if size > maximum {
+		return "", fmt.Errorf("feed text exceeds content budget")
+	}
+	for i := 0; i < len(input); i++ {
+		if i%4096 == 0 {
+			if err := ctx.Err(); err != nil {
+				return "", err
+			}
+		}
+		switch input[i] {
+		case '&', '\'', '"':
+			size += 4
+		case '<', '>':
+			size += 3
+		}
+		if size > maximum {
+			return "", fmt.Errorf("feed text exceeds content budget")
+		}
+	}
+	return html.EscapeString(input), nil
 }
 
 func (w contextWriter) Write(p []byte) (int, error) {

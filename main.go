@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,6 +23,10 @@ func main() {
 	}
 }
 func run() error {
+	doctor := len(os.Args) > 1 && os.Args[1] == "doctor"
+	if doctor {
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+	}
 	cmd.ApplyFlags()
 	if define.DEBUG_MODE {
 		logger.SetLevel("debug")
@@ -30,10 +36,29 @@ func run() error {
 	logger.Instance.Infof("version: %v commit: %v build: %v", version.Version, version.Commit, version.BuildDate)
 	config, err := application.ConfigFromGlobals()
 	if err != nil {
+		if doctor {
+			diagnostic := application.ConfigurationDiagnostic(err)
+			fmt.Fprintf(os.Stdout, "FAIL %s: %s\n", diagnostic.Name, diagnostic.Message)
+		}
 		return err
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	if doctor {
+		failed := false
+		for _, result := range application.Diagnose(ctx, config) {
+			status := "OK"
+			if !result.OK {
+				status = "FAIL"
+				failed = true
+			}
+			fmt.Fprintf(os.Stdout, "%s %s: %s\n", status, result.Name, result.Message)
+		}
+		if failed {
+			return errors.New("startup diagnostics failed")
+		}
+		return nil
+	}
 	app, err := application.New(ctx, config)
 	if err != nil {
 		return err

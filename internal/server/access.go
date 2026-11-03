@@ -8,11 +8,14 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/soulteary/RSS-Can/internal/access"
+	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/source"
 )
 
 const subjectLocal = "rss.subject"
@@ -23,9 +26,13 @@ type accessSubjectKey struct{}
 // AccessController is injected by the application so its durable store has an
 // explicit lifecycle. Role/scope headers are never trusted as authorization.
 type AccessController struct {
-	Config    access.Config
-	Store     *access.Store
-	Directory access.Checker
+	Config       access.Config
+	Store        *access.Store
+	Directory    access.Checker
+	Preview      func(context.Context, source.Spec) ([]define.InfoItem, error)
+	previewOnce  sync.Once
+	previewSlots chan struct{}
+	writes       subjectWriteLimiter
 }
 
 func (a *AccessController) subject(c fiber.Ctx) (string, error) {
@@ -43,7 +50,13 @@ func (a *AccessController) subject(c fiber.Ctx) (string, error) {
 	if count != 1 || subject == "" || len(subject) > 256 || strings.TrimSpace(subject) != subject || strings.ContainsAny(subject, " ,/\\\r\n\t") {
 		return "", access.ErrDenied
 	}
-	if err := a.active(c.Context(), subject); err != nil {
+	if a.Directory == nil {
+		return "", errors.New("directory is unavailable")
+	}
+	if err := a.Directory.Active(c.Context(), subject); err != nil {
+		return "", err
+	}
+	if err := a.Store.EnsurePrincipal(subject); err != nil {
 		return "", err
 	}
 	return subject, nil
@@ -69,11 +82,21 @@ func accessFailure(c fiber.Ctx, err error) error {
 
 func (a *AccessController) requireSubject() fiber.Handler {
 	return func(c fiber.Ctx) error {
+		c.Set("Cache-Control", "private, no-store")
 		subject, err := a.subject(c)
 		if err != nil {
 			return accessFailure(c, err)
 		}
 		c.Locals(subjectLocal, subject)
+		if c.Method() == "POST" || c.Method() == "PUT" || c.Method() == "PATCH" || c.Method() == "DELETE" {
+			if !a.writeOrigin(c) {
+				return c.SendStatus(403)
+			}
+			if !a.writes.allow(subject, time.Now()) {
+				c.Set("Retry-After", "5")
+				return c.Status(429).JSON(fiber.Map{"code": "RATE_LIMITED", "msg": "too many changes; retry shortly"})
+			}
+		}
 		c.SetContext(context.WithValue(c.Context(), accessSubjectKey{}, subject))
 		c.Set("Cache-Control", "private, no-store")
 		return c.Next()
@@ -193,15 +216,25 @@ func (a *AccessController) listSources() fiber.Handler {
 	return func(c fiber.Ctx) error {
 		subject, _ := c.Locals(subjectLocal).(string)
 		sources := a.Store.Sources(subject)
+		for i := range sources {
+			if sources[i].Owner != subject {
+				sources[i].Spec = nil
+				sources[i].Previous = nil
+			}
+		}
 		sort.Slice(sources, func(i, j int) bool { return sources[i].ID < sources[j].ID })
-		return c.JSON(fiber.Map{"sources": sources})
+		views := make([]fiber.Map, 0, len(sources))
+		for _, src := range sources {
+			views = append(views, fiber.Map{"id": src.ID, "owner": src.Owner, "public": src.Public, "spec": src.Spec, "previous": src.Previous, "revision": src.Revision, "can_manage": src.Owner == subject})
+		}
+		return c.JSON(fiber.Map{"sources": views})
 	}
 }
 
 func (a *AccessController) putSource(exists func(string) bool) fiber.Handler {
 	return func(c fiber.Ctx) error {
 		var src access.Source
-		if decodeAccessBody(c, &src) != nil || !exists(src.ID) {
+		if decodeAccessBody(c, &src) != nil || src.Spec != nil || len(src.Previous) != 0 || src.Revision != 0 || !exists(src.ID) {
 			return c.Status(400).JSON(fiber.Map{"msg": "invalid source or unknown rule"})
 		}
 		if err := a.Store.PutSource(src); err != nil {
@@ -240,6 +273,7 @@ func (a *AccessController) createGrant() fiber.Handler {
 			return c.SendStatus(403)
 		}
 		var body struct {
+			Label   string   `json:"label,omitempty"`
 			Formats []string `json:"formats"`
 			Days    int      `json:"days"`
 		}
@@ -256,7 +290,7 @@ func (a *AccessController) createGrant() fiber.Handler {
 			body.Formats = []string{"rss"}
 		}
 		subject, _ := c.Locals(subjectLocal).(string)
-		g, secret, err := a.Store.CreateGrant(subject, c.Params("id"), body.Formats, time.Now().Add(time.Duration(body.Days)*24*time.Hour))
+		g, secret, err := a.Store.CreateGrant(subject, c.Params("id"), body.Formats, time.Now().Add(time.Duration(body.Days)*24*time.Hour), body.Label)
 		if errors.Is(err, access.ErrDenied) {
 			return c.SendStatus(404)
 		}

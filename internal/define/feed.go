@@ -63,6 +63,7 @@ type PROP_ID struct {
 }
 
 type JavaScriptConfig struct {
+	TextOnly     bool       `json:"-"`
 	RuleSource   RuleSource `json:"-"`
 	Name         string     `json:"name"`
 	URL          string     `json:"URL"`

@@ -57,6 +57,9 @@ func apiRSSWithService(service FeedGenerator) fiber.Handler {
 			}
 		}()
 		id := c.Params("id")
+		if resolved, ok := c.Locals(sourceLocal).(string); ok {
+			id = resolved
+		}
 		rssType := strings.ToLower(c.Params("type"))
 		if id == "" || rssType == "" {
 			return c.Status(http.StatusNotFound).JSON(fiber.Map{"msg": "missing feed parameter"})

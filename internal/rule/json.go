@@ -59,6 +59,9 @@ func GetWebsiteDataWithConfigContext(ctx context.Context, config define.JavaScri
 	if err := ValidateConfig(config); err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_PARSE_CONTENT_FAILED, err.Error(), time.Now(), nil)
 	}
+	if err := network.PolicyForContext(ctx).ValidateRule(config.URL, config.Proxy, config.Headless, config.Mode); err != nil {
+		return define.MixupBodyParsed(define.ERROR_CODE_NETWORK, err.Error(), time.Now(), nil)
+	}
 	proxy, err := network.NormalizeProxy(network.OptionsForConfigContext(ctx, config).Proxy)
 	if err != nil {
 		return define.MixupBodyParsed(define.ERROR_CODE_INIT_NETWORK_FAILED, err.Error(), time.Now(), nil)

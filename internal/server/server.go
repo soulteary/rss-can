@@ -20,6 +20,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/fn"
 	"github.com/soulteary/RSS-Can/internal/jssdk"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/rule"
 	"github.com/soulteary/RSS-Can/internal/source"
 )
@@ -145,6 +146,12 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 			return c.Next()
 		})
 	}
+	if options.Access != nil {
+		route.Use(func(c fiber.Ctx) error {
+			c.SetContext(network.WithFetchPolicy(c.Context(), network.PublicPolicy()))
+			return c.Next()
+		})
+	}
 	view := pageView{options: options, snapshot: dependencies.Snapshot, configure: dependencies.Configure, metadata: dependencies.Metadata}
 	admin := adminOnlyWithToken(options.AdminToken)
 	if options.Access != nil {
@@ -175,7 +182,11 @@ func NewAppWithDependencies(options Options, dependencies Dependencies) *fiber.A
 		route.Get(options.FeedPath+"/:id/:type/", apiRSSWithService(dependencies.Feeds))
 		route.Get(options.FeedPath, view.listPage())
 	}
-	route.Get("/config/:type/:value/", admin, apiConfigWithReload(dependencies.Reload))
+	route.Get("/config/:type/:value/", admin, func(c fiber.Ctx) error {
+		c.Set("Allow", "POST")
+		return c.SendStatus(405)
+	})
+	route.Post("/config/:type/:value/", admin, adminMutation(), apiConfigWithReload(dependencies.Reload))
 	route.Get("/inspector/:url/", admin, inspectorProxyWithOptions(options))
 	route.Get("/inspector", admin, inspectorHome())
 	route.Post("/inspector", admin, inspectorPrepare())

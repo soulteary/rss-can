@@ -76,8 +76,10 @@ At the edge:
 The store is a bounded, single-process JSON database with atomic replacement,
 file sync and an exclusive advisory lock. Multiple replicas must not open the
 same store. Back it up like authorization data, not like disposable feed cache.
-Changing permissions advances an authorization version that downstream output
-caches can include in their keys.
+Changing source permissions or principal status advances an authorization
+version that downstream output caches can include in their keys. Creating or
+revoking a reader credential does not invalidate unrelated content snapshots;
+the credential itself is checked freshly before every read.
 The store is bound to its configured Warden URL. Repointing an existing store
 at another directory issuer fails startup rather than silently rebinding user
 IDs. Plan an explicit permission migration when changing directory authorities.
@@ -134,6 +136,15 @@ The response includes an ID, a token, a copyable URL, and its expiry:
   "expires_at": "<timestamp>"
 }
 ```
+
+Each account may hold up to 64 active reader credentials across all sources.
+Issuance above that limit returns HTTP 429 with `code: "GRANT_LIMIT"`; revoke an
+unused credential before creating another. A separate global ceiling of 8,192
+active credentials leaves room in the bounded store for operator-managed
+principals and sources. Expired and revoked records are reclaimed during
+successful store mutations, including administrative changes, so inactive
+credentials do not permanently occupy capacity. Existing oversized active
+stores remain readable; new issuance waits until usage falls below the limits.
 
 The secret is 256 random bits. Only its SHA-256 digest is stored. It is returned
 only by this creation response and cannot be recovered later. A reader that

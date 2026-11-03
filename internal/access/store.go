@@ -23,12 +23,18 @@ import (
 )
 
 var (
-	ErrDenied  = errors.New("source access denied")
-	ErrInvalid = errors.New("invalid access record")
+	ErrDenied     = errors.New("source access denied")
+	ErrInvalid    = errors.New("invalid access record")
+	ErrGrantLimit = errors.New("reader credential limit reached")
 )
 
 const maxStoreBytes = 8 << 20
 const maxRecords = 10000
+
+// MaxGrantsPerSubject bounds one account's active reader credentials across
+// every source. Reserve global records for principals and source administration.
+const MaxGrantsPerSubject = 64
+const maxGrantRecords = 8192
 
 type Principal struct {
 	Disabled bool `json:"disabled"`
@@ -255,6 +261,12 @@ func (s *Store) persist(st state) error {
 }
 
 func (s *Store) update(fn func(*state) error) error {
+	return s.updateState(true, fn)
+}
+
+// Credential changes are authenticated afresh on every request and do not
+// change source ACLs. Do not invalidate every tenant's content cache for them.
+func (s *Store) updateState(permissionsChanged bool, fn func(*state) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.lock == nil || s.failed {
@@ -263,10 +275,13 @@ func (s *Store) update(fn func(*state) error) error {
 	body, _ := json.Marshal(s.state)
 	var next state
 	_ = json.Unmarshal(body, &next)
+	pruneInactiveGrants(&next, time.Now())
 	if err := fn(&next); err != nil {
 		return err
 	}
-	next.Version++
+	if permissionsChanged {
+		next.Version++
+	}
 	if err := s.persist(next); err != nil {
 		// A failed durability operation must not leave the process serving old
 		// permissions after a potentially committed revoke. Restart/recovery is
@@ -437,6 +452,22 @@ func (s *Store) CreateGrant(subject, source string, formats []string, expires ti
 	if !validFormats(formats) || !expires.After(time.Now()) || expires.After(time.Now().Add(366*24*time.Hour)) {
 		return Grant{}, "", ErrInvalid
 	}
+	now := time.Now()
+	// Reject unauthorised and over-quota requests before cloning the full store.
+	// The transaction repeats these checks to make concurrent issuance atomic.
+	s.mu.RLock()
+	var preflight error
+	if s.lock == nil || s.failed {
+		preflight = errors.New("access store is closed")
+	} else if !canRead(s.state, subject, source) {
+		preflight = ErrDenied
+	} else {
+		preflight = checkGrantQuota(s.state, subject, now)
+	}
+	s.mu.RUnlock()
+	if preflight != nil {
+		return Grant{}, "", preflight
+	}
 	id, err := randomToken(16)
 	if err != nil {
 		return Grant{}, "", err
@@ -447,9 +478,13 @@ func (s *Store) CreateGrant(subject, source string, formats []string, expires ti
 	}
 	digest := sha256.Sum256([]byte(secret))
 	g := Grant{ID: id, Source: source, Subject: subject, Digest: hex.EncodeToString(digest[:]), Formats: append([]string(nil), formats...), ExpiresAt: expires, Label: label}
-	err = s.update(func(st *state) error {
+	err = s.updateState(false, func(st *state) error {
 		if !canRead(*st, subject, source) {
 			return ErrDenied
+		}
+		now := time.Now()
+		if err := checkGrantQuota(*st, subject, now); err != nil {
+			return err
 		}
 		st.Grants[id] = g
 		return nil
@@ -484,7 +519,7 @@ func (s *Store) ResolveGrant(id, secret, format string, now time.Time) (Grant, u
 }
 
 func (s *Store) RevokeGrant(subject, id string) error {
-	return s.update(func(st *state) error {
+	return s.updateState(false, func(st *state) error {
 		g, ok := st.Grants[id]
 		if !ok || g.Subject != subject {
 			return ErrDenied
@@ -493,4 +528,31 @@ func (s *Store) RevokeGrant(subject, id string) error {
 		st.Grants[id] = g
 		return nil
 	})
+}
+
+func checkGrantQuota(st state, subject string, now time.Time) error {
+	active, owned := 0, 0
+	for _, g := range st.Grants {
+		if g.Revoked || !now.Before(g.ExpiresAt) {
+			continue
+		}
+		active++
+		if g.Subject == subject {
+			owned++
+		}
+	}
+	if owned >= MaxGrantsPerSubject || active >= maxGrantRecords {
+		return ErrGrantLimit
+	}
+	return nil
+}
+
+// Reclaim inactive credentials during successful mutations, including operator
+// changes, so historical grants cannot occupy reserved administration records.
+func pruneInactiveGrants(st *state, now time.Time) {
+	for id, g := range st.Grants {
+		if g.Revoked || !now.Before(g.ExpiresAt) {
+			delete(st.Grants, id)
+		}
+	}
 }

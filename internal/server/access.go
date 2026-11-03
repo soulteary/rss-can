@@ -101,6 +101,9 @@ func (a *AccessController) requireSubject() fiber.Handler {
 
 func (a *AccessController) requireFeed(machine bool) fiber.Handler {
 	return func(c fiber.Ctx) error {
+		// Denials, including hidden-resource 404s, must not be retained by a
+		// shared cache or turned into a conditional success response.
+		c.Set("Cache-Control", "private, no-store")
 		if a == nil || a.Store == nil {
 			return accessFailure(c, errors.New("access is unavailable"))
 		}
@@ -282,6 +285,9 @@ func (a *AccessController) createGrant() fiber.Handler {
 		g, secret, err := a.Store.CreateGrant(subject, c.Params("id"), body.Formats, time.Now().Add(time.Duration(body.Days)*24*time.Hour), body.Label)
 		if errors.Is(err, access.ErrDenied) {
 			return c.SendStatus(404)
+		}
+		if errors.Is(err, access.ErrGrantLimit) {
+			return c.Status(http.StatusTooManyRequests).JSON(fiber.Map{"code": "GRANT_LIMIT", "msg": "reader credential limit reached; revoke an unused credential"})
 		}
 		if err != nil {
 			return c.Status(400).JSON(fiber.Map{"msg": "grant creation failed"})

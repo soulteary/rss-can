@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,11 +34,19 @@ type Config struct {
 	BrowserTimeout time.Duration
 	Browser        parser.BrowserOptions
 	ConfigCacheTTL time.Duration
+	Snapshots      feedservice.SnapshotOptions
 }
 
 // ConfigFromGlobals is a startup-only compatibility boundary for CLI/env options.
 // The resulting Config is copied into the application; requests do not reread it.
 func ConfigFromGlobals() (Config, error) {
+	policy, err := network.ParseFetchPolicy(os.Getenv("RSS_FETCH_POLICY"))
+	if err != nil {
+		return Config{}, err
+	}
+	if os.Getenv("RSS_ACCESS_MODE") == "team" {
+		policy = network.PublicPolicy()
+	}
 	workers := 1
 	if raw := os.Getenv("RSS_JS_WORKERS"); raw != "" {
 		n, err := strconv.Atoi(raw)
@@ -56,13 +65,34 @@ func ConfigFromGlobals() (Config, error) {
 	}
 	serverOptions := server.DefaultOptions()
 	serverOptions.Access = accessConfig
+	snapshotTTL, err := snapshotDuration("RSS_SNAPSHOT_TTL", 30, 3600)
+	if err != nil {
+		return Config{}, err
+	}
+	maxStale, err := snapshotDuration("RSS_SNAPSHOT_MAX_STALE", 3600, 86400)
+	if err != nil {
+		return Config{}, err
+	}
 	return Config{
+		Snapshots:  feedservice.SnapshotOptions{TTL: snapshotTTL, MaxStale: maxStale},
 		Server:     serverOptions,
 		Cache:      cacher.Config{RedisEnabled: define.REDIS, MemoryEnabled: define.IN_MEMORY_CACHE, RedisAddr: define.REDIS_SERVER, RedisPassword: define.REDIS_PASS, RedisDB: define.REDIS_DB, MemoryTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION)},
 		JavaScript: jssdk.RuntimeConfig{Binary: os.Getenv("RSS_CAN_DENO"), Workers: workers, Timeout: time.Duration(define.JS_EXECUTE_TIMEOUT) * time.Millisecond},
-		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER},
+		Network:    network.Config{RequestTimeout: fn.ExpireBySecond(define.REQUEST_TIMEOUT), ServerTimeout: fn.ExpireBySecond(define.SERVER_TIMEOUT), DefaultTTL: fn.ExpireBySecond(define.IN_MEMORY_EXPIRATION), UserAgent: define.USER_AGENT, Proxy: define.PROXY_SERVER, Policy: policy},
 		Browser:    parser.BrowserOptions{Debug: define.CSR_DEBUG, IgnoreCertificateErrors: define.CSR_IGNORE_CERT_ERRORS}, BrowserTimeout: fn.ExpireBySecond(define.HEADLESS_EXCUTE_TIMEOUT), ConfigCacheTTL: time.Duration(ttl) * time.Second,
 	}, nil
+}
+
+func snapshotDuration(name string, fallback, maximum int) (time.Duration, error) {
+	seconds := fallback
+	if raw := os.Getenv(name); raw != "" {
+		n, err := strconv.Atoi(raw)
+		if err != nil || n < 0 || n > maximum {
+			return 0, fmt.Errorf("%s must be an integer between 0 and %d", name, maximum)
+		}
+		seconds = n
+	}
+	return time.Duration(seconds) * time.Second, nil
 }
 
 type App struct {
@@ -72,6 +102,7 @@ type App struct {
 	client    *network.Client
 	rules     *rule.Repository
 	feeds     *feedservice.Service
+	snapshots *feedservice.Snapshots
 	routes    *fiber.App
 	life      context.Context
 	cancel    context.CancelFunc
@@ -86,6 +117,9 @@ type App struct {
 }
 
 func New(ctx context.Context, config Config) (*App, error) {
+	if config.Server.Access != nil {
+		config.Network.Policy = network.PublicPolicy()
+	}
 	var accessStore *access.Store
 	if config.Server.Access != nil {
 		copyAccess := *config.Server.Access
@@ -133,9 +167,17 @@ func New(ctx context.Context, config Config) (*App, error) {
 	}
 	config.Server.BrowserTimeout = config.BrowserTimeout
 	config.Network.ServerTimeout = config.Server.Timeout
+	policy, err := network.ParseFetchPolicy(config.Network.Policy.Mode)
+	if err != nil {
+		return nil, err
+	}
+	config.Network.Policy = policy
 	proxy, err := network.NormalizeProxy(config.Network.Proxy)
 	if err != nil {
 		return nil, err
+	}
+	if config.Network.Policy.PublicOnly() && proxy != "" {
+		return nil, errors.New("public fetch policy does not allow a proxy")
 	}
 	config.Network.Proxy = proxy
 	config.Server.Proxy = proxy
@@ -161,7 +203,9 @@ func New(ctx context.Context, config Config) (*App, error) {
 			return app.configureSource(ctx, snapshot)
 		},
 		Fetch: func(ctx context.Context, config define.JavaScriptConfig) define.BodyParsed {
-			if !fn.IsVaildHeadlessAddr(config.Headless) {
+			ctx = network.WithFetchBudget(ctx)
+			mode := strings.ToLower(strings.TrimSpace(config.Mode))
+			if !network.PolicyForContext(ctx).PublicOnly() && (mode == define.PARSE_MODE_CSR || mode == define.PARSE_MODE_MIX) && !fn.IsVaildHeadlessAddr(config.Headless) {
 				config.Headless = app.config.Server.Headless
 			}
 			if config.Timeout <= 0 {
@@ -180,8 +224,19 @@ func New(ctx context.Context, config Config) (*App, error) {
 	if accessStore != nil {
 		accessController = &server.AccessController{Config: *config.Server.Access, Store: accessStore, Directory: access.WardenChecker{URL: config.Server.Access.WardenURL, APIKey: config.Server.Access.WardenAPIKey}}
 	}
+	var feeds server.FeedGenerator = app.feeds
+	if config.Snapshots.TTL > 0 {
+		app.snapshots, err = feedservice.NewSnapshots(life, app.feeds, config.Snapshots)
+		if err != nil {
+			cancel()
+			_ = app.runtime.Close()
+			_ = app.cache.Close()
+			return nil, err
+		}
+		feeds = app.snapshots
+	}
 	app.routes = server.NewAppWithDependencies(config.Server, server.Dependencies{
-		Feeds: app.feeds, Snapshot: app.sourceSnapshots, Metadata: app.sourceMetadata, Configure: app.configureSource,
+		Feeds: feeds, Snapshot: app.sourceSnapshots, Metadata: app.sourceMetadata, Configure: app.configureSource,
 		Reload: app.rules.Reload, RuntimeCheck: app.runtime.Check, CacheCheck: app.cache.Check, BindContext: app.bindRequest,
 		Access:  accessController,
 		Preview: app.previewSource,
@@ -216,6 +271,9 @@ func (a *App) Close() error {
 		a.cancel()
 		a.mu.Unlock()
 		a.requests.Wait()
+		if a.snapshots != nil {
+			_ = a.snapshots.Close()
+		}
 		a.work.Wait()
 		a.closeErr = errors.Join(a.runtime.Close(), a.cache.Close())
 		if a.access != nil {

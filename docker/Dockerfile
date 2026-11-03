@@ -29,5 +29,7 @@ LABEL org.opencontainers.image.title="RSS Can" \
       org.opencontainers.image.revision="${COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.source="https://github.com/soulteary/rss-can"
+ENV DENO_DIR=/tmp/deno
+USER 65532:65532
 EXPOSE 8080
 CMD ["rssc"]

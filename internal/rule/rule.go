@@ -47,14 +47,14 @@ func evaluateConfig(ctx context.Context, rule define.RuleCache) (config define.J
 	app := jssdk.GenerateGetConfigWithRule(rule.Body)
 	jsConfig, err := jssdk.RunCodeContext(ctx, jssdk.TPL_SSR_JS, app, rule.File)
 	if err != nil {
-		logger.Instance.Errorf("Executing rule file failed: %v", err)
+		logger.Instance.Error("Executing rule file failed; details withheld to protect source credentials")
 		return config, err
 	}
 
 	config, err = ParseConfigFromJSON(jsConfig, rule)
 	config.RuleSource = define.NewRuleSource(rule.Body)
 	if err != nil {
-		logger.Instance.Errorf("Parsing rule file failed: %v", err)
+		logger.Instance.Error("Parsing rule file failed; details withheld to protect source credentials")
 		return config, err
 	}
 

@@ -28,7 +28,7 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 	if !limits.ItemsWithinBudget(data.Body) {
 		return "", fmt.Errorf("feed exceeds item or content size limit")
 	}
-	now := time.Now()
+	now := feedTime(ctx)
 
 	rssFeed := &feeds.Feed{
 		Title:   config.File,
@@ -109,6 +109,20 @@ func GenerateFeedsByTypeContext(ctx context.Context, config define.JavaScriptCon
 		return "", err
 	}
 	return buffer.String(), nil
+}
+
+type feedTimeKey struct{}
+
+// WithFeedTime fixes the representation timestamp during snapshot refreshes.
+// Direct generation retains its historical wall-clock timestamp.
+func WithFeedTime(ctx context.Context, at time.Time) context.Context {
+	return context.WithValue(ctx, feedTimeKey{}, at)
+}
+func feedTime(ctx context.Context) time.Time {
+	if at, ok := ctx.Value(feedTimeKey{}).(time.Time); ok && !at.IsZero() {
+		return at
+	}
+	return time.Now()
 }
 
 type contextWriter struct {

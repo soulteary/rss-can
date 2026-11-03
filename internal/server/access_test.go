@@ -17,6 +17,7 @@ import (
 	"github.com/soulteary/RSS-Can/internal/access"
 	"github.com/soulteary/RSS-Can/internal/define"
 	"github.com/soulteary/RSS-Can/internal/logger"
+	"github.com/soulteary/RSS-Can/internal/network"
 	"github.com/soulteary/RSS-Can/internal/rule"
 )
 
@@ -33,13 +34,15 @@ func (d *testDirectory) Active(context.Context, string) error {
 }
 
 type accessGenerator struct {
-	calls int
-	scope access.Scope
+	calls  int
+	scope  access.Scope
+	public bool
 }
 
 func (g *accessGenerator) Generate(ctx context.Context, id, format string) (string, error) {
 	g.calls++
 	g.scope = access.ScopeFromContext(ctx)
+	g.public = network.PolicyForContext(ctx).PublicOnly()
 	return id + ":" + format, nil
 }
 
@@ -103,6 +106,9 @@ func TestTeamFeedIdentityAndDirectoryIsolation(t *testing.T) {
 		t.Fatalf("private listing leak: %d %s", status, body)
 	}
 	status, _ = testResponse(t, app, requestAs("GET", "/feed/private-a/rss", "alice", ""))
+	if !gen.public {
+		t.Fatal("team embedder bypassed public policy")
+	}
 	if status != 200 || gen.scope.Key != "alice\x00private-a" || gen.scope.Version == 0 {
 		t.Fatal("missing authorization cache scope")
 	}
@@ -259,5 +265,20 @@ func TestTeamMissingControllerFailsClosed(t *testing.T) {
 	status, _ := testResponse(t, app, requestAs("GET", "/feed/source/rss", "", ""))
 	if status != 503 {
 		t.Fatal("missing controller exposed feed")
+	}
+}
+
+func TestTeamGrantQuotaReturnsActionableError(t *testing.T) {
+	app, a, _ := accessApp(t)
+	for i := 0; i < access.MaxGrantsPerSubject; i++ {
+		if _, _, err := a.Store.CreateGrant("alice", "private-a", []string{"rss"}, time.Now().Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	request := requestAs("POST", "/api/sources/private-a/grants", "alice", `{"formats":["rss"]}`)
+	request.Header.Set("Origin", "https://rss.example")
+	status, body := testResponse(t, app, request)
+	if status != http.StatusTooManyRequests || !strings.Contains(body, "GRANT_LIMIT") {
+		t.Fatalf("quota response: %d %s", status, body)
 	}
 }

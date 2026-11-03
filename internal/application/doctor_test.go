@@ -53,7 +53,11 @@ func TestDoctorDoesNotMutateAuthorizationStore(t *testing.T) {
 	if string(before) != string(after) {
 		t.Fatal("doctor changed authorization state")
 	}
-	if err := access.Inspect(filepath.Join(t.TempDir(), "missing.json"), "issuer"); err == nil {
+	publicDir := t.TempDir()
+	if err := os.Chmod(publicDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := access.Inspect(filepath.Join(publicDir, "missing.json"), "issuer"); err == nil {
 		t.Fatal("nonprivate directory accepted")
 	}
 }

@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1520 880" width="1520" height="880" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="6" data-visual-theme="Claude Official" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#d97757"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7b8b5c"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8c6f5a"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#b45309"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9a6fb0"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c5c96"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8f8a80"/>
+    </marker>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 24px; font-weight: 700; fill: #141413; }
+    .subtitle { font-size: 13px; font-weight: 500; fill: #8f8a80; }
+    .section { font-size: 13px; font-weight: 700; fill: #8b7355; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .node-title { font-weight: 700; fill: #141413; }
+    .node-sub { font-weight: 500; fill: #6b6257; }
+    .node-type { font-size: 11px; font-weight: 700; fill: #75695d; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b6257; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b6257; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #75695d; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #75695d; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #141413; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1520.0" height="880.0" fill="#f8f6f3"/>
+  <text x="48.0" y="48" text-anchor="start" class="title">RSS Can · System Architecture</text>
+  <text x="48.0" y="72" text-anchor="start" class="subtitle">Subscription requests, rule execution and bounded page fetching</text>
+  <line x1="48" y1="100" x2="1472.0" y2="100" stroke="#ded8cf" stroke-width="1"/>
+  <path id="request" data-graph-role="edge" data-edge-id="request" data-source="reader" data-target="http" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 260,223 L 350,223" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="admit" data-graph-role="edge" data-edge-id="admit" data-source="http" data-target="service" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 560,223 L 650,223" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="parse" data-graph-role="edge" data-edge-id="parse" data-source="service" data-target="parser" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 860,223 L 950,223" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="serialize" data-graph-role="edge" data-edge-id="serialize" data-source="parser" data-target="output" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1160,223 L 1250,223" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="lookup" data-graph-role="edge" data-edge-id="lookup" data-source="service" data-target="rules" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 755,266 L 755,430" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="execute" data-graph-role="edge" data-edge-id="execute" data-source="rules" data-target="deno" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 755,516 L 755,650" fill="none" stroke="#d97757" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="fetch-page" data-graph-role="edge" data-edge-id="fetch-page" data-source="parser" data-target="fetch" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1055,266 L 1055,430" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="upstream" data-graph-role="edge" data-edge-id="upstream" data-source="fetch" data-target="web" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1055,516 L 1055,650" fill="none" stroke="#8c6f5a" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="cache-access" data-graph-role="edge" data-edge-id="cache-access" data-source="fetch" data-target="cache" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 1160,473 L 1250,473" fill="none" stroke="#7b8b5c" stroke-width="2.0" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <g id="node-reader" data-graph-role="node" data-node-id="reader" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="50,180,260,266">
+  <rect x="50.0" y="180.0" width="210.0" height="86.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="RSS Reader" data-text-max-width="186.0" x="155.0" y="223.0" text-anchor="middle" class="node-title" font-size="18">RSS Reader</text>
+  <text data-text-role="subtitle" data-full-text="Poll a subscription URL" data-text-max-width="186.0" x="155.0" y="245.0" text-anchor="middle" class="node-sub" font-size="12">Poll a subscription URL</text>
+  </g>
+  <g id="node-http" data-graph-role="node" data-node-id="http" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="350,180,560,266">
+  <rect x="350.0" y="180.0" width="210.0" height="86.0" rx="10.0" fill="#f7ecda" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="HTTP Server" data-text-max-width="186.0" x="455.0" y="223.0" text-anchor="middle" class="node-title" font-size="18">HTTP Server</text>
+  <text data-text-role="subtitle" data-full-text="Routing + access checks" data-text-max-width="186.0" x="455.0" y="245.0" text-anchor="middle" class="node-sub" font-size="12">Routing + access checks</text>
+  </g>
+  <g id="node-service" data-graph-role="node" data-node-id="service" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="650,180,860,266">
+  <rect x="650.0" y="180.0" width="210.0" height="86.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Feed Service" data-text-max-width="186.0" x="755.0" y="223.0" text-anchor="middle" class="node-title" font-size="18">Feed Service</text>
+  <text data-text-role="subtitle" data-full-text="Snapshots + generation" data-text-max-width="186.0" x="755.0" y="245.0" text-anchor="middle" class="node-sub" font-size="12">Snapshots + generation</text>
+  </g>
+  <g id="node-parser" data-graph-role="node" data-node-id="parser" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="950,180,1160,266">
+  <rect x="950.0" y="180.0" width="210.0" height="86.0" rx="10.0" fill="#c8e4db" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Page Parser" data-text-max-width="186.0" x="1055.0" y="223.0" text-anchor="middle" class="node-title" font-size="18">Page Parser</text>
+  <text data-text-role="subtitle" data-full-text="SSR / CSR / hybrid" data-text-max-width="186.0" x="1055.0" y="245.0" text-anchor="middle" class="node-sub" font-size="12">SSR / CSR / hybrid</text>
+  </g>
+  <g id="node-output" data-graph-role="node" data-node-id="output" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1250,180,1460,266">
+  <rect x="1250.0" y="180.0" width="210.0" height="86.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Feed Output" data-text-max-width="186.0" x="1355.0" y="223.0" text-anchor="middle" class="node-title" font-size="18">Feed Output</text>
+  <text data-text-role="subtitle" data-full-text="RSS / Atom / JSON" data-text-max-width="186.0" x="1355.0" y="245.0" text-anchor="middle" class="node-sub" font-size="12">RSS / Atom / JSON</text>
+  </g>
+  <g id="node-cache" data-graph-role="node" data-node-id="cache" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="1250,430,1460,516">
+  <rect x="1250.0" y="430.0" width="210.0" height="86.0" rx="10.0" fill="#e5e8df" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Page Cache" data-text-max-width="186.0" x="1355.0" y="473.0" text-anchor="middle" class="node-title" font-size="18">Page Cache</text>
+  <text data-text-role="subtitle" data-full-text="Memory / optional Redis" data-text-max-width="186.0" x="1355.0" y="495.0" text-anchor="middle" class="node-sub" font-size="12">Memory / optional Redis</text>
+  </g>
+  <g id="node-rules" data-graph-role="node" data-node-id="rules" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="650,430,860,516">
+  <rect x="650.0" y="430.0" width="210.0" height="86.0" rx="10.0" fill="#efe8de" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Rule Snapshot" data-text-max-width="186.0" x="755.0" y="473.0" text-anchor="middle" class="node-title" font-size="18">Rule Snapshot</text>
+  <text data-text-role="subtitle" data-full-text="Validated JS rule files" data-text-max-width="186.0" x="755.0" y="495.0" text-anchor="middle" class="node-sub" font-size="12">Validated JS rule files</text>
+  </g>
+  <g id="node-fetch" data-graph-role="node" data-node-id="fetch" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="950,430,1160,516">
+  <rect x="950.0" y="430.0" width="210.0" height="86.0" rx="10.0" fill="#f7ecda" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Fetch Engines" data-text-max-width="186.0" x="1055.0" y="473.0" text-anchor="middle" class="node-title" font-size="18">Fetch Engines</text>
+  <text data-text-role="subtitle" data-full-text="Go HTTP / Chrome" data-text-max-width="186.0" x="1055.0" y="495.0" text-anchor="middle" class="node-sub" font-size="12">Go HTTP / Chrome</text>
+  </g>
+  <g id="node-deno" data-graph-role="node" data-node-id="deno" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="650,650,860,736">
+  <rect x="650.0" y="650.0" width="210.0" height="86.0" rx="10.0" fill="#f7ecda" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Deno Workers" data-text-max-width="186.0" x="755.0" y="693.0" text-anchor="middle" class="node-title" font-size="18">Deno Workers</text>
+  <text data-text-role="subtitle" data-full-text="Rule config + JS callbacks" data-text-max-width="186.0" x="755.0" y="715.0" text-anchor="middle" class="node-sub" font-size="12">Rule config + JS callbacks</text>
+  </g>
+  <g id="node-web" data-graph-role="node" data-node-id="web" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="950,650,1160,736">
+  <rect x="950.0" y="650.0" width="210.0" height="86.0" rx="10.0" fill="#e9f1fb" stroke="#8c6f5a" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="Source Websites" data-text-max-width="186.0" x="1055.0" y="693.0" text-anchor="middle" class="node-title" font-size="18">Source Websites</text>
+  <text data-text-role="subtitle" data-full-text="HTML + detail pages" data-text-max-width="186.0" x="1055.0" y="715.0" text-anchor="middle" class="node-sub" font-size="12">HTML + detail pages</text>
+  </g>
+  <g id="request-label" data-graph-role="label" data-owner="request" data-graph-bounds="271.48,192,338.52,212">
+  <rect x="271.48" y="192.0" width="67.03999999999999" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="305.0" y="206.0" text-anchor="middle" class="arrow-label">GET feed</text>
+  </g>
+  <g id="admit-label" data-graph-role="label" data-owner="admit" data-graph-bounds="568.24,192,641.76,212">
+  <rect x="568.24" y="192.0" width="73.52" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="605.0" y="206.0" text-anchor="middle" class="arrow-label">authorize</text>
+  </g>
+  <g id="parse-label" data-graph-role="label" data-owner="parse" data-graph-bounds="864.52,192,945.48,212">
+  <rect x="864.52" y="192.0" width="80.96000000000001" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="905.0" y="206.0" text-anchor="middle" class="arrow-label">on refresh</text>
+  </g>
+  <g id="serialize-label" data-graph-role="label" data-owner="serialize" data-graph-bounds="1173.28,192,1236.72,212">
+  <rect x="1173.28" y="192.0" width="63.43999999999999" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="1205.0" y="206.0" text-anchor="middle" class="arrow-label">sanitize</text>
+  </g>
+  <g id="lookup-label" data-graph-role="label" data-owner="lookup" data-graph-bounds="670.32,334,752,354">
+  <rect x="670.32" y="334.0" width="81.68" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="711.16" y="348.0" text-anchor="middle" class="arrow-label">lookup rule</text>
+  </g>
+  <g id="execute-label" data-graph-role="label" data-owner="execute" data-graph-bounds="678.48,569,752,589">
+  <rect x="678.48" y="569.0" width="73.52" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="715.24" y="583.0" text-anchor="middle" class="arrow-label">configure</text>
+  </g>
+  <g id="fetch-page-label" data-graph-role="label" data-owner="fetch-page" data-graph-bounds="971.04,334,1052,354">
+  <rect x="971.04" y="334.0" width="80.96000000000001" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="1011.52" y="348.0" text-anchor="middle" class="arrow-label">fetch page</text>
+  </g>
+  <g id="upstream-label" data-graph-role="label" data-owner="upstream" data-graph-bounds="989.28,569,1052,589">
+  <rect x="989.28" y="569.0" width="62.72" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="1020.64" y="583.0" text-anchor="middle" class="arrow-label">HTTP(S)</text>
+  </g>
+  <g id="cache-access-label" data-graph-role="label" data-owner="cache-access" data-graph-bounds="1180.6,442,1229.4,462">
+  <rect x="1180.6" y="442.0" width="48.8" height="20" rx="6" fill="#f8f6f3" opacity="0.96"/>
+  <text x="1205.0" y="456.0" text-anchor="middle" class="arrow-label">cache</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="45" y="776" width="498.56" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="55.0" y1="790.0" x2="85.0" y2="790.0" stroke="#8c6f5a" stroke-width="2.0" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="95.0" y="794.0" class="legend">Request / dependency</text>
+    <line data-graph-role="decoration" x1="256.92" y1="790.0" x2="286.92" y2="790.0" stroke="#d97757" stroke-width="2.0" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="296.92" y="794.0" class="legend">JS execution</text>
+    <line data-graph-role="decoration" x1="402.68" y1="790.0" x2="432.68" y2="790.0" stroke="#7b8b5c" stroke-width="2.0" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="442.68" y="794.0" class="legend">Cache access</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="55,838,832,854">
+  <text x="55.0" y="850.0" class="footnote">Warm snapshots reuse feed output · refresh follows the generation path · arrows show calls, not response timing</text>
+  </g>
+</svg>

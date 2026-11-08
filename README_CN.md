@@ -24,6 +24,12 @@
   <img src="./.github/images/feeds.jpg">
 </p>
 
+## 整体架构
+
+![RSS Can 整体架构](docs/images/rss-can-architecture.gif)
+
+RSS Can 通过规则解析网页，结合缓存生成 RSS、Atom 或 JSON Feed。动画表示主要调用方向。
+
 ## 支持软硬件环境
 
 - Linux: AMD64(x86_64) / ARM64

@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 6,
+  "text_policy": "strict",
+  "quality_profile": "showcase",
+  "width": 1520,
+  "height": 880,
+  "title": "RSS Can \u00b7 System Architecture",
+  "subtitle": "Subscription requests, rule execution and bounded page fetching",
+  "nodes": [
+    {
+      "id": "reader",
+      "kind": "rect",
+      "x": 50,
+      "y": 180,
+      "width": 210,
+      "height": 86,
+      "label": "RSS Reader",
+      "sublabel": "Poll a subscription URL",
+      "fill": "#e9f1fb",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "http",
+      "kind": "rect",
+      "x": 350,
+      "y": 180,
+      "width": 210,
+      "height": 86,
+      "label": "HTTP Server",
+      "sublabel": "Routing + access checks",
+      "fill": "#f7ecda",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "service",
+      "kind": "rect",
+      "x": 650,
+      "y": 180,
+      "width": 210,
+      "height": 86,
+      "label": "Feed Service",
+      "sublabel": "Snapshots + generation",
+      "fill": "#c8e4db",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "parser",
+      "kind": "rect",
+      "x": 950,
+      "y": 180,
+      "width": 210,
+      "height": 86,
+      "label": "Page Parser",
+      "sublabel": "SSR / CSR / hybrid",
+      "fill": "#c8e4db",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "output",
+      "kind": "rect",
+      "x": 1250,
+      "y": 180,
+      "width": 210,
+      "height": 86,
+      "label": "Feed Output",
+      "sublabel": "RSS / Atom / JSON",
+      "fill": "#e9f1fb",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "cache",
+      "kind": "rect",
+      "x": 1250,
+      "y": 430,
+      "width": 210,
+      "height": 86,
+      "label": "Page Cache",
+      "sublabel": "Memory / optional Redis",
+      "fill": "#e5e8df",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "rules",
+      "kind": "rect",
+      "x": 650,
+      "y": 430,
+      "width": 210,
+      "height": 86,
+      "label": "Rule Snapshot",
+      "sublabel": "Validated JS rule files",
+      "fill": "#efe8de",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "fetch",
+      "kind": "rect",
+      "x": 950,
+      "y": 430,
+      "width": 210,
+      "height": 86,
+      "label": "Fetch Engines",
+      "sublabel": "Go HTTP / Chrome",
+      "fill": "#f7ecda",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "deno",
+      "kind": "rect",
+      "x": 650,
+      "y": 650,
+      "width": 210,
+      "height": 86,
+      "label": "Deno Workers",
+      "sublabel": "Rule config + JS callbacks",
+      "fill": "#f7ecda",
+      "stroke": "#8c6f5a",
+      "flat": true
+    },
+    {
+      "id": "web",
+      "kind": "rect",
+      "x": 950,
+      "y": 650,
+      "width": 210,
+      "height": 86,
+      "label": "Source Websites",
+      "sublabel": "HTML + detail pages",
+      "fill": "#e9f1fb",
+      "stroke": "#8c6f5a",
+      "flat": true
+    }
+  ],
+  "arrows": [
+    {
+      "id": "request",
+      "source": "reader",
+      "target": "http",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read",
+      "label": "GET feed"
+    },
+    {
+      "id": "admit",
+      "source": "http",
+      "target": "service",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read",
+      "label": "authorize"
+    },
+    {
+      "id": "parse",
+      "source": "service",
+      "target": "parser",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read",
+      "label": "on refresh"
+    },
+    {
+      "id": "serialize",
+      "source": "parser",
+      "target": "output",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read",
+      "label": "sanitize"
+    },
+    {
+      "id": "lookup",
+      "source": "service",
+      "target": "rules",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "lookup rule"
+    },
+    {
+      "id": "execute",
+      "source": "rules",
+      "target": "deno",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "configure"
+    },
+    {
+      "id": "fetch-page",
+      "source": "parser",
+      "target": "fetch",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "fetch page"
+    },
+    {
+      "id": "upstream",
+      "source": "fetch",
+      "target": "web",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read",
+      "label": "HTTP(S)"
+    },
+    {
+      "id": "cache-access",
+      "source": "fetch",
+      "target": "cache",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write",
+      "label": "cache"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 55,
+  "legend_y": 790,
+  "legend_locked": true,
+  "legend": [
+    {
+      "flow": "read",
+      "label": "Request / dependency"
+    },
+    {
+      "flow": "control",
+      "label": "JS execution"
+    },
+    {
+      "flow": "write",
+      "label": "Cache access"
+    }
+  ],
+  "footer": "Warm snapshots reuse feed output \u00b7 refresh follows the generation path \u00b7 arrows show calls, not response timing",
+  "footer_x": 55,
+  "footer_y": 850
+}

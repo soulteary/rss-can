@@ -25,6 +25,12 @@ workflow without writing JavaScript rules.
   <img src="./.github/images/feeds.jpg">
 </p>
 
+## Architecture
+
+![RSS Can architecture](docs/images/rss-can-architecture.gif)
+
+RSS Can parses web pages using rules and generates RSS, Atom or JSON Feed with caching. The animation shows the main call directions.
+
 ## Supported Systems and Architectures
 
 - Linux: AMD64(x86_64) / ARM64

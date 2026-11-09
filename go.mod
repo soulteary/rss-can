@@ -3,8 +3,8 @@ module github.com/soulteary/RSS-Can
 go 1.27.3
 
 require (
-	github.com/chromedp/cdproto v0.158.6
-	github.com/chromedp/chromedp v0.21.0
+	github.com/chromedp/cdproto v0.159.0
+	github.com/chromedp/chromedp v0.23.0
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/soulteary/cache-kit/v2 v2.1.1

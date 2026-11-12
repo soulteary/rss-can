@@ -1,18 +1,18 @@
 module github.com/soulteary/RSS-Can
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/chromedp/cdproto v0.159.2
 	github.com/chromedp/chromedp v0.23.0
 	github.com/gofiber/fiber/v3 v3.6.1
 	github.com/redis/go-redis/v9 v9.23.0
-	github.com/soulteary/cache-kit/v2 v2.1.1
+	github.com/soulteary/cache-kit/v2 v2.1.2
 	github.com/soulteary/cascadia v1.0.0
 	github.com/soulteary/feeds v1.3.0
 	github.com/soulteary/goquery v1.14.0
 	github.com/soulteary/html-to-markdown/v2 v2.0.1
-	github.com/soulteary/redis-kit v1.8.1
+	github.com/soulteary/redis-kit v1.8.2
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.62.0
 	golang.org/x/sys v0.49.0

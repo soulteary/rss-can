@@ -1,5 +1,5 @@
 FROM denoland/deno:bin-2.9.8 AS Deno
-FROM golang:1.27.3-bookworm AS Builder
+FROM golang:1.27.4-bookworm AS Builder
 WORKDIR /app
 ENV CGO_ENABLED=0
 COPY go.mod go.sum ./

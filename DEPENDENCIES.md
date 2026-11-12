@@ -1,7 +1,7 @@
 # Dependency maintenance
 
 The current dependency graph is defined by `go.mod` and `go.sum`; release
-builds use Go 1.27.3, CGO disabled, and Deno 2.9.8. Historical migration evidence
+builds use Go 1.27.4, CGO disabled, and Deno 2.9.8. Historical migration evidence
 is preserved in Git history and `docs/benchmarks/`, rather than mixed with the
 current installation requirements.
 

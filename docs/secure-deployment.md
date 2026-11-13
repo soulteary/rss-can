@@ -12,15 +12,15 @@ The security behavior below applies to **v0.5.0 and later**, and current source
 builds, not historical `v0.4.0`. That historical image ignores `RSS_ACCESS_MODE` and
 `RSS_FETCH_POLICY`; setting them does not add authentication or SSRF protection.
 It also predates the POST-only administrative API and log redaction described
-below. The standalone Compose examples now use v0.5.0 but do not enable team identity;
+below. The standalone Compose examples now use v0.5.1 but do not enable team identity;
 use the Stargate example for a shared deployment.
 
 For the released image, pull the pinned version and verify that its diagnostics
 complete successfully before configuring real credentials:
 
 ```sh
-docker pull soulteary/rss-can:v0.5.0
-docker run --rm --network none -e RSS_REDIS=false soulteary/rss-can:v0.5.0 rssc doctor
+docker pull soulteary/rss-can:v0.5.1
+docker run --rm --network none -e RSS_REDIS=false soulteary/rss-can:v0.5.1 rssc doctor
 ```
 
 Alternatively, from a reviewed checkout, build and verify a separately named
@@ -52,7 +52,7 @@ docker run --name rss-can-team --user 65532:65532 \
   --tmpfs /tmp:rw,noexec,nosuid,size=64m,mode=1777 \
   --env-file .env.team -p 127.0.0.1:8080:8080 \
   -v "$(pwd)/state:/state" -v "$(pwd)/rules:/rules:ro" \
-  soulteary/rss-can:v0.5.0
+  soulteary/rss-can:v0.5.1
 ```
 
 Connect the authenticated reverse proxy through a private path and set

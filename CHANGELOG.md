@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.1 — 2026-11-13
+
+See the [bilingual release notes](docs/releases/v0.5.1.md). No configuration or data migration is required from v0.5.0.
+
+- Require Go 1.27.4 in `go.mod`, the Docker builder image and the CodeQL workflow. Go 1.27.4 contains security fixes to cgo, the go command, the compiler, the linker and `net/http` (GO-2026-6859).
+- Update cache-kit/v2 to v2.1.2 and redis-kit to v1.8.2.
+- Update chromedp to v0.23.0 and cdproto to v0.159.2, used by browser (CSR) rules.
+- Add an architecture diagram to both READMEs, with its source under `docs/images/` and `scripts/render_architecture.py`. Refresh Go quality reports.
+- Retain Deno 2.9.8, the archive layout, configuration variables and stored data formats.
+
+[Compare v0.5.0…v0.5.1](https://github.com/soulteary/rss-can/compare/v0.5.0...v0.5.1).
+
 ## v0.5.0 — 2026-11-04
 
 See the [bilingual release notes](docs/releases/v0.5.0.md) and [v0.4.0 upgrade steps](docs/upgrading.md#upgrade-v050).

@@ -30,7 +30,7 @@ Go source needed by the Compose build. If you started from an archive, obtain
 the matching source checkout first:
 
 ```sh
-git clone --branch v0.5.0 --depth 1 https://github.com/soulteary/rss-can.git
+git clone --branch v0.5.1 --depth 1 https://github.com/soulteary/rss-can.git
 cd rss-can/example/4.with-stargate
 ```
 

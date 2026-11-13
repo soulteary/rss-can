@@ -1,8 +1,8 @@
 # RSS-Can deployment examples / 部署示例
 
-These three examples run the pinned `soulteary/rss-can:v0.5.0` image in **standalone mode**. They include Deno 2.9.8 and do not enable per-user source permissions. For shared Stargate/Warden hosting, use the [team deployment guide](4.with-stargate/README.md).
+These three examples run the pinned `soulteary/rss-can:v0.5.1` image in **standalone mode**. They include Deno 2.9.8 and do not enable per-user source permissions. For shared Stargate/Warden hosting, use the [team deployment guide](4.with-stargate/README.md).
 
-三个独立部署示例固定 `v0.5.0` 镜像，内置 Deno 2.9.8，无需另装运行时。多人使用时，请选择[Stargate 团队部署](4.with-stargate/README.md)，不要直接公开独立模式服务。升级前阅读[迁移和回退说明](../docs/upgrading.md)与 [v0.5.0 发布说明](../docs/releases/v0.5.0.md)。
+三个独立部署示例固定 `v0.5.1` 镜像，内置 Deno 2.9.8，无需另装运行时。多人使用时，请选择[Stargate 团队部署](4.with-stargate/README.md)，不要直接公开独立模式服务。升级前阅读[迁移和回退说明](../docs/upgrading.md)、[v0.5.0 发布说明](../docs/releases/v0.5.0.md)与 [v0.5.1 发布说明](../docs/releases/v0.5.1.md)。
 
 ## Start / 启动
 

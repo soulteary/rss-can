@@ -35,7 +35,7 @@ RSS Can 通过规则解析网页，结合缓存生成 RSS、Atom 或 JSON Feed�
 - Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
 
-当前版本：[v0.5.0](https://github.com/soulteary/rss-can/releases/tag/v0.5.0)。变更和升级须知见[发布说明](docs/releases/v0.5.0.md)。
+当前版本：[v0.5.1](https://github.com/soulteary/rss-can/releases/tag/v0.5.1)。变更和升级须知见[发布说明](docs/releases/v0.5.1.md)。
 
 ## 使用方法
 
@@ -65,8 +65,8 @@ v0.5.0 默认使用常驻 Deno worker（`RSS_JS_WORKERS` 默认 `1`，可配置�
 使用下面的命令，下载最新版本的软件之后，使用 `docker run` 运行即可（记得将项目中的 Feed Rules 挂载到容器中）：
 
 ```
-docker pull soulteary/rss-can:v0.5.0
-docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.0
+docker pull soulteary/rss-can:v0.5.1
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.1
 ```
 
 此命令启动独立模式。需要 CPU/内存限制及只读根文件系统时，请使用[独立部署 Compose 示例](example/README.md)。团队模式还需完成 [Stargate 配置](example/4.with-stargate/README.md)，仅升级镜像不会自动启用鉴权。

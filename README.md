@@ -36,7 +36,7 @@ RSS Can parses web pages using rules and generates RSS, Atom or JSON Feed with c
 - Linux: AMD64(x86_64) / ARM64
 - macOS: AMD64(x86_64) /  ARMv64
 
-Current release: [v0.5.0](https://github.com/soulteary/rss-can/releases/tag/v0.5.0). See the [release notes](docs/releases/v0.5.0.md) for changes and upgrade requirements.
+Current release: [v0.5.1](https://github.com/soulteary/rss-can/releases/tag/v0.5.1). See the [release notes](docs/releases/v0.5.1.md) for changes and upgrade requirements.
 
 ## Usage
 
@@ -66,8 +66,8 @@ The following behavior applies to v0.5.0:
 Pull the docker image and mount the `Feed rules` file in the project to the docker container:
 
 ```
-docker pull soulteary/rss-can:v0.5.0
-docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.0
+docker pull soulteary/rss-can:v0.5.1
+docker run --rm -it --user 65532:65532 -p 127.0.0.1:8080:8080 -e RSS_REDIS=false -v "$(pwd)/rules:/rules:ro" soulteary/rss-can:v0.5.1
 ```
 
 This command starts standalone mode. For bounded CPU/memory and a read-only root filesystem, use the [standalone Compose examples](example/README.md). Team access requires the additional [Stargate configuration](example/4.with-stargate/README.md); an image upgrade alone does not enable it.

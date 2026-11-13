@@ -1,6 +1,6 @@
 services:
   rssc:
-    image: soulteary/rss-can:v0.5.0
+    image: soulteary/rss-can:v0.5.1
     user: "65532:65532"
     environment:
       - RSS_SERVER=redis:6379

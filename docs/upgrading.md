@@ -3,12 +3,12 @@
 ## Which distribution am I running? / 先确认版本
 
 Published **v0.3.12** archives and images use the historical embedded runtime.
-They do not require Deno. **v0.4.0**, **v0.5.0** and current source use
+They do not require Deno. **v0.4.0**, **v0.5.0**, **v0.5.1** and current source use
 Deno **2.9.8**, with CGO disabled in Go release binaries. Changes under
 a later `CHANGELOG.md` section do not change an existing published tag.
 Never replace a published release or its images to apply these changes.
 
-已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。**v0.4.0**、**v0.5.0** 和当前源码
+已发布的 **v0.3.12** 仍使用旧的内嵌运行时，无需 Deno。**v0.4.0**、**v0.5.0**、**v0.5.1** 和当前源码
 使用 Deno **2.9.8**。后续源码中的改动不会自动进入已发布版本；升级时使用新版本
 或明确的源码构建镜像，不覆盖历史发布物。
 
@@ -18,6 +18,22 @@ Use a matching release or the [verified source-image procedure](secure-deploymen
 
 团队鉴权、公网抓取策略、来源向导和 `doctor` 从 **v0.5.0** 开始提供。
 历史 v0.4.0 会静默忽略相关配置，不能承接团队流量。
+
+<a id="upgrade-v051"></a>
+
+## Upgrading from v0.5.0 to v0.5.1 / 从 v0.5.0 升级到 v0.5.1
+
+v0.5.1 is a maintenance release built with Go 1.27.4 and updated dependencies.
+It keeps Deno 2.9.8, the archive layout, configuration variables, cache keys and
+the team authorization store format. Back up as usual, replace the complete
+archive or the image tag, and restart. To roll back, restore the exact v0.5.0
+archive or image with the same settings. When upgrading from v0.4.0 or earlier,
+follow the v0.5.0 steps below first.
+
+v0.5.1 是维护版本，使用 Go 1.27.4 构建并更新依赖；Deno 2.9.8、归档布局、配置变量、
+缓存键和团队权限库格式均不变。按常规备份后，替换完整归档或镜像标签并重启即可。
+回退时恢复原 v0.5.0 归档或镜像及相同配置。从 v0.4.0 或更早版本升级时，先完成下方
+v0.5.0 的升级步骤。
 
 <a id="upgrade-v050"></a>
 
@@ -140,12 +156,12 @@ access before reopening the gateway.
 
 ## Standalone / 独立二进制
 
-v0.4.0 and v0.5.0 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup
+v0.4.0, v0.5.0 and v0.5.1 archives bundle checksum-pinned Deno 2.9.8 for the same OS/architecture as `rssc`. Extract the whole archive and keep executable `deno` beside `rssc`; do not copy only the Go binary. Runtime startup needs no network download. Linux archives require a glibc-based host (use the Debian container on musl/Alpine hosts). Source-only builds still need Deno installed. The executable lookup
 order is `RSS_CAN_DENO`, an executable `deno` beside `rssc`, then `deno` on PATH.
 An explicit override that does not work is an error; it is never silently ignored.
 The startup error explains how to supply the dependency.
 
-v0.4.0 和 v0.5.0 四平台归档内置与 `rssc` 匹配的 Deno 2.9.8。完整解压并保留同目录 `deno` 的可执行权限，不能只复制 Go 二进制；启动时无需联网下载。Linux 归档需要 glibc，musl/Alpine 主机请使用 Debian 容器。源码单独构建仍需安装 Deno。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
+v0.4.0、v0.5.0 和 v0.5.1 四平台归档内置与 `rssc` 匹配的 Deno 2.9.8。完整解压并保留同目录 `deno` 的可执行权限，不能只复制 Go 二进制；启动时无需联网下载。Linux 归档需要 glibc，musl/Alpine 主机请使用 Debian 容器。源码单独构建仍需安装 Deno。查找顺序为 `RSS_CAN_DENO`、`rssc` 同目录
 下可执行的 `deno`、PATH。显式指定的路径无效会报错，不会偷偷改用另一个运行时。
 
 ```sh
@@ -166,10 +182,10 @@ docker run --rm -p 127.0.0.1:8080:8080 -e RSS_REDIS=false rss-can:local
 ```
 
 The image includes pinned Deno and example rules. Mount custom rules at `/rules`.
-v0.4.0 and v0.5.0 standalone archives also include Deno, rules, notices and this guide.
+v0.4.0, v0.5.0 and v0.5.1 standalone archives also include Deno, rules, notices and this guide.
 Release CI validates the four upstream runtime hashes and starts native archives with an empty PATH.
 
-源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。v0.4.0 和 v0.5.0 独立归档也附带 Deno、规则和升级说明，发布前校验四平台运行时摘要，并以空 PATH 启动本机归档。
+源码镜像内置 Deno 和示例规则，自定义规则挂载到 `/rules`。v0.4.0、v0.5.0 和 v0.5.1 独立归档也附带 Deno、规则和升级说明，发布前校验四平台运行时摘要，并以空 PATH 启动本机归档。
 
 ## Rule behavior / 规则行为
 

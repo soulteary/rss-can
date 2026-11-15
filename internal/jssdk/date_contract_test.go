@@ -21,11 +21,17 @@ func TestDateContractPreservesSignedEpochAndTimeZones(t *testing.T) {
 			t.Fatalf("%q: got %d (%s), %v", tc.input, got.Unix(), got, err)
 		}
 	}
-	for _, input := range []string{"2022年01月02日", "2022/1/2 03:04:05", "2022年1月2日 3:04:05"} {
+	for _, input := range []string{"2022年01月02日", "2022/1/2 03:04:05", "2022年1月2日 3:04:05", "2026-10-29 09:20:46", "2026-11-15 16:20 分享"} {
 		got, err := ConvertStrToUnix(input)
 		expected := time.Date(2022, time.January, 2, 3, 4, 5, 0, time.Local)
 		if input == "2022年01月02日" {
 			expected = time.Date(2022, time.January, 2, 0, 0, 0, 0, time.Local)
+		}
+		if input == "2026-10-29 09:20:46" {
+			expected = time.Date(2026, time.October, 29, 9, 20, 46, 0, time.Local)
+		}
+		if input == "2026-11-15 16:20 分享" {
+			expected = time.Date(2026, time.November, 15, 16, 20, 0, 0, time.Local)
 		}
 		if err != nil || !got.Equal(expected) {
 			t.Fatalf("%q: %s %v", input, got, err)
@@ -34,7 +40,7 @@ func TestDateContractPreservesSignedEpochAndTimeZones(t *testing.T) {
 }
 
 func TestDateContractRejectsInvalidWithoutInventingTimestamp(t *testing.T) {
-	for _, input := range []string{"", " ", "not-a-date", "2026-02-30", "2026年13月1日", "2月30日", "-1 days ago", "1.5 hours ago", "10 weeks ago garbage", `"10天前`, `"); throw new Error("injected"); //`} {
+	for _, input := range []string{"", " ", "not-a-date", "2026-02-30", "2026年13月1日", "2月30日", "02-30", "13-01", "-1 days ago", "1.5 hours ago", "10 weeks ago garbage", `"10天前`, `"); throw new Error("injected"); //`} {
 		got, err := ConvertStrToUnix(input)
 		if err == nil || !got.IsZero() {
 			t.Fatalf("%q accepted as %s: %v", input, got, err)
@@ -72,7 +78,11 @@ func TestDateContractRelativeUnitsAndLeapDays(t *testing.T) {
 			t.Fatalf("%q: %s %v", input, got, err)
 		}
 	}
-	got, err := ConvertStrToUnix("2月29日")
+	got, err := ConvertStrToUnix("11-12")
+	if err != nil || got.Year() != time.Now().Year() || got.Month() != time.November || got.Day() != 12 {
+		t.Fatalf("compact month/day: %s %v", got, err)
+	}
+	got, err = ConvertStrToUnix("2月29日")
 	year := time.Now().Year()
 	leap := year%4 == 0 && (year%100 != 0 || year%400 == 0)
 	if leap {
@@ -108,4 +118,12 @@ func subtractCalendarMonths(now time.Time, months int) time.Time {
 	target := time.Date(now.Year(), now.Month()-time.Month(months), 1, now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
 	last := time.Date(target.Year(), target.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
 	return time.Date(target.Year(), target.Month(), min(now.Day(), last), now.Hour(), now.Minute(), now.Second(), now.Nanosecond(), now.Location())
+}
+
+func TestDateContractCompactMonthDay(t *testing.T) {
+	got, err := ConvertStrToUnix("11-12")
+	expected := time.Date(time.Now().Year(), time.November, 12, 0, 0, 0, 0, time.Local)
+	if err != nil || !got.Equal(expected) {
+		t.Fatalf("month/day: %s, %v; want %s", got, err, expected)
+	}
 }

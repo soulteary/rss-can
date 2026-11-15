@@ -1,14 +1,12 @@
 const config = {
-    Name: "Yahoo",
-    URL: "https://us.yahoo.com/",
-    Mode: "csr",
-    IdByRegexp: "\\/(\\.+)\.html$",
-    Proxy: "http://10.11.12.90:11080",
-  
-    Title: "h3",
-    Author: "Yahoo",
-    Category: ".Fw\(b\).Tt\(c\)",
-    Link: "h3 a",
-  };
-  potted.SetConfig(config).SetScope("#main .stream-items");
-  
+  Name: "Yahoo",
+  // Use the US news feed: the portal redirects to a regional homepage.
+  URL: "https://news.yahoo.com/rss/",
+  IdByRegexp: "^(https?://[^#]+)",
+  Title: "h2",
+  Author: ".rss-author",
+  DateTime: "time",
+  Description: ".rss-description",
+  Link: "a",
+};
+potted.SetConfig(config).SetScope("article");

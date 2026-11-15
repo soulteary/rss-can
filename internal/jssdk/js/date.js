@@ -27,8 +27,10 @@ function ConvertAgoToUnix(input) {
 }
 
 function ConvertStrToUnix(input) {
-  const text = String(input == null ? "" : input).trim();
+  let text = String(input == null ? "" : input).trim();
   if (!text) throw new Error("date must not be empty");
+  // Some cards append an action label to an otherwise complete timestamp.
+  text = text.replace(/\s+分享$/, "");
   if (/ago$|前$/i.test(text)) return ConvertAgoToUnix(text);
 
   // Numeric calendar components accept both padded and unpadded Chinese
@@ -39,10 +41,18 @@ function ConvertStrToUnix(input) {
     const year = match[1] == null ? new Date().getFullYear() : Number(match[1]);
     return ValidUnixDate(moment([year, Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)]), text);
   }
+  // Compact month/day labels are used by news lists such as Gouhuo.
+  match = /^(\d{1,2})-(\d{1,2})$/.exec(text);
+  if (match) return ValidUnixDate(moment([new Date().getFullYear(), Number(match[1]) - 1, Number(match[2])]), text);
+
   match = /^(\d{4})年(?:(\d{1,2})月)?$/.exec(text);
   if (match) return ValidUnixDate(moment([Number(match[1]), Number(match[2] || 1) - 1, 1]), text);
 
   match = /^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(text);
+  if (match) return ValidUnixDate(moment([Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)]), text);
+
+  // 3DM prints "2026-10-29 09:20:46". A date-only value stays on the local calendar day.
+  match = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(text);
   if (match) return ValidUnixDate(moment([Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4] || 0), Number(match[5] || 0), Number(match[6] || 0)]), text);
 
   return ValidUnixDate(moment(text, [moment.ISO_8601, moment.RFC_2822], true), text);

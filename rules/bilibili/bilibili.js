@@ -1,7 +1,8 @@
 const config = {
   Name: "哔哩哔哩",
   URL: "https://www.bilibili.com/read/home",
-  Mode: "mix",
+  Mode: "ssr",
+  IdByRegexp: "/read/(cv[0-9]+)/?",
   Title: ".article-item__title",
   Author: ".article-item__author .article-item__uname",
   Category: ".article-item__label",

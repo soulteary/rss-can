@@ -1,16 +1,14 @@
 const config = {
   Name: "36氪",
-  URL: "https://36kr.com/",
-  // optional
-  // Mode: "ssr",
-  // Expire: 10*60,
-  IdByRegexp: "\\/(\\d+)$",
+  // The homepage now returns a WAF challenge to non-browser clients.
+  // www.36kr.com/feed is the public article feed.
+  URL: "https://www.36kr.com/feed",
+  IdByRegexp: "/(?:p|newsflashes)/([0-9]+)",
 
-  Title: ".article-item-title",
-  Author: ".kr-flow-bar-author",
-  Category: ".kr-flow-bar-motif a",
-  DateTime: ".kr-flow-bar-time",
-  Description: ".article-item-description",
-  Link: ".article-item-title",
+  Title: "h2",
+  Author: ".rss-author",
+  DateTime: "time",
+  Description: ".rss-description",
+  Link: "a",
 };
-potted.SetConfig(config).SetScope("#app .main-right .kr-home-main .kr-home-flow .kr-home-flow-list .kr-flow-article-item");
+potted.SetConfig(config).SetScope("article");

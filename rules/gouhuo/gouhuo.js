@@ -4,7 +4,7 @@ const config = {
   // optional
   // Mode: "ssr",
   // Expire: 10*60,
-  IdByRegexp: "\\/(\\.+)$",
+  IdByRegexp: "/detail/([^/?#]+)$",
 
   Title: "h3",
   Author: "篝火营地",

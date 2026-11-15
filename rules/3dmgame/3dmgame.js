@@ -5,10 +5,10 @@ const config = {
   // Mode: "ssr",
   // Expire: 10*60,
   DisableCache: true,
-  IdByRegexp: "\\/(\\d+).html$",
+  IdByRegexp: "\\/(\\d+)\\.html$",
 
   Title: ".bt",
-  Author: "3DM Game",
+  Author: "literal:3DM Game",
   Category: "流程攻略",
   DateTime: ".item span.time",
   Description: "a > p",

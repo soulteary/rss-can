@@ -17,6 +17,11 @@ import (
 )
 
 func ParsePageByGoQuery(data define.RemoteBodySanitized, callback func(document *goquery.Document) []define.InfoItem) define.BodyParsed {
+	if rewritten, ok := rssAsArticleHTML(data.Body); ok {
+		data.Body = rewritten
+	} else if rewritten, ok := nuxtStoriesAsArticleHTML(data.Body); ok {
+		data.Body = rewritten
+	}
 	document, err := goquery.NewDocumentFromReader(strings.NewReader(data.Body))
 
 	if err != nil {

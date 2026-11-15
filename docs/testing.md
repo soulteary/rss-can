@@ -149,3 +149,19 @@ inside an 8-second application deadline; their Fiber test client waits for that
 application deadline plus one second rather than Fiber's implicit 1-second cap.
 The explicit-readiness empty-feed fixture delays its marker by 1.1 seconds to
 exercise this distinction. Timeout-policy tests retain their own short budgets.
+
+## Shipped subscription rules
+
+`TestRepositoryRulesExtractUpstreamSnapshots` checks the shipped scripts against
+small upstream HTML/RSS snapshots, including article IDs, literal authors and
+Gouhuo's compact month/day dates. `TestLiveRepositoryBAAIRule` checks the actual
+BAAI script in isolated Chrome, including the link structure and the timestamp's
+trailing action label. It uses the same browser variables described above.
+
+BAAI's initial HTML leaves the card list empty. The articles are in the embedded
+Nuxt state, which the SSR parser reads without Chrome. The browser test still
+covers a rendered card when a browser is configured. Bilibili uses the
+server-rendered article list; 36kr, GeekPark and Yahoo use official RSS sources.
+Live availability still depends on the upstream sites. For local checks of slow
+three-page 3DM fetches, allow a larger overall request budget, for example
+`RSS_SERVER_TIMEOUT=30 RSS_REQUEST_TIMEOUT=15`.

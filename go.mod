@@ -15,7 +15,7 @@ require (
 	github.com/soulteary/redis-kit v1.8.2
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.62.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.44.0
 )
 

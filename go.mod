@@ -4,7 +4,7 @@ go 1.27.4
 
 require (
 	github.com/chromedp/cdproto v0.160.6
-	github.com/chromedp/chromedp v0.23.0
+	github.com/chromedp/chromedp v0.24.0
 	github.com/gofiber/fiber/v3 v3.7.0
 	github.com/redis/go-redis/v9 v9.23.0
 	github.com/soulteary/cache-kit/v2 v2.1.2

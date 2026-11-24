@@ -14,7 +14,7 @@ require (
 	github.com/soulteary/html-to-markdown/v2 v2.0.1
 	github.com/soulteary/redis-kit v1.8.2
 	go.uber.org/zap v1.28.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/sys v0.50.0
 	golang.org/x/text v0.44.0
 )
@@ -36,5 +36,5 @@ require (
 	github.com/valyala/fasthttp v1.78.0 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 )

@@ -1,4 +1,4 @@
-FROM denoland/deno:bin-2.9.8 AS Deno
+FROM denoland/deno:bin-2.9.8@sha256:b507583d3c68ba69f3ed2ce5969ae5b8b70f43421c781279c7aea06435263543 AS Deno
 FROM arm64v8/ubuntu:22.04 as Builder
 WORKDIR /app
 COPY rssc ./

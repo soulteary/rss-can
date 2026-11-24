@@ -1,5 +1,5 @@
-FROM denoland/deno:bin-2.9.8 AS Deno
-FROM golang:1.27.4-bookworm AS Builder
+FROM denoland/deno:bin-2.9.8@sha256:b507583d3c68ba69f3ed2ce5969ae5b8b70f43421c781279c7aea06435263543 AS Deno
+FROM golang:1.27.4-bookworm@sha256:ce59b41415e2524ae99926fe1f37ce48ba8c194dcbd2a56a65436cdcefa2bd34 AS Builder
 WORKDIR /app
 ENV CGO_ENABLED=0
 COPY go.mod go.sum ./
@@ -10,7 +10,7 @@ ARG COMMIT=HEAD
 ARG BUILD_DATE=undefined
 RUN go build -trimpath -ldflags="-s -w -X github.com/soulteary/RSS-Can/internal/version.Version=${VERSION} -X github.com/soulteary/RSS-Can/internal/version.Commit=${COMMIT} -X github.com/soulteary/RSS-Can/internal/version.BuildDate=${BUILD_DATE}" -o /rssc .
 
-FROM debian:bookworm-slim
+FROM debian:bookworm-slim@sha256:e67eeead736ff7bbe258ef088bff683635c561b1fcfefad0806c1df4ab49ce0e
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata libstdc++6 && \
     rm -rf /var/lib/apt/lists/*
 COPY --from=Deno /deno /usr/local/bin/deno

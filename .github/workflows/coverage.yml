@@ -101,7 +101,7 @@ jobs:
           version: "v1.1.3"
           cover_mode: "atomic"
           commit: "false"
-      - name: Go quality report (v1.1.3)
+      - name: Go quality report (v1.1.7)
         if: "!cancelled() && (github.event_name == 'pull_request') && steps.report_cleanup.outcome == 'success'"
         id: go_report_card
         uses: soulteary/goreportcard-action@9744d0297ca0116cd4ef83e4ff6f3ba42a65a24d  # v1.1.7

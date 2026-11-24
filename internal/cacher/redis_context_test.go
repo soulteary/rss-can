@@ -36,11 +36,24 @@ func TestRedisRespectsCallerDeadline(t *testing.T) {
 	defer cancel()
 	began := time.Now()
 	_, _, err = newRedisBackend(client).Get(ctx, "deadline-test")
-	if err == nil || ctx.Err() != context.DeadlineExceeded {
-		t.Fatalf("Redis ignored caller deadline: %v, %v", err, ctx.Err())
+	finished := time.Now()
+	deadline, _ := ctx.Deadline()
+	if err == nil || finished.Before(deadline) {
+		t.Fatalf("Redis returned before the caller deadline: %v, elapsed %v", err, finished.Sub(began))
 	}
-	if elapsed := time.Since(began); elapsed > time.Second {
+	if elapsed := finished.Sub(began); elapsed > time.Second {
 		t.Fatalf("Redis blocked past request budget: %v", elapsed)
+	}
+	// The socket deadline and context timer expire at the same instant, but
+	// their callbacks may run in either order. Check context completion after
+	// checking that the Redis operation honored the actual deadline.
+	select {
+	case <-ctx.Done():
+		if ctx.Err() != context.DeadlineExceeded {
+			t.Fatalf("Unexpected context result: %v", ctx.Err())
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Caller context did not expire")
 	}
 	client.Close()
 	select {

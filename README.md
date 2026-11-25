@@ -1,5 +1,7 @@
 # RSS Can / RSS 罐头
 
+> v0.5.2 release notes: [rule fixes, upgrade and rollback](docs/releases/v0.5.2.md).
+
 **v0.5.0 adds optional team access, public fetch policy and a source wizard.** Historical `v0.4.0` does not implement these features and silently ignores their environment variables. Follow the [deployment and verification steps](docs/secure-deployment.md#build-and-verify-current-source) before configuring Stargate.
 
 For the simplest supported team setup, use the [source-based Stargate Compose guide](example/4.with-stargate/README.md).

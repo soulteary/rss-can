@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.2] - 2026-11-26
+
+Fix repository feed rules and document extraction after v0.5.1.
+
+- Convert RSS 2.0 and Nuxt-embedded article lists into the SSR parser's expected document shape.
+- Repair rules for 36kr, 3DM, BAAI, Bilibili, GeekPark, Gouhuo and Yahoo; normalize additional timestamp forms.
+- Refresh pinned Go modules and build dependencies. Go remains 1.27.4 and Deno remains 2.9.8.
+
+No configuration or stored-data migration is introduced by this patch. Existing bind-mounted rule directories are not updated by pulling a new image: back them up and merge the matching rules from this release explicitly. Extract the complete binary archive, including Deno, rules and notices. Keep the previous archive/image and rule snapshot together for rollback. Public sites can change independently; fixture success does not guarantee every live site remains reachable.
+
+Distribution: Linux/macOS AMD64 and ARM64 archives; Docker Linux AMD64 and ARM64. Published artifacts and checksums are verified by the existing release workflow before the Release is made public.
+
+# Changelog
+
 ## v0.5.1 — 2026-11-13
 
 See the [bilingual release notes](docs/releases/v0.5.1.md). No configuration or data migration is required from v0.5.0.

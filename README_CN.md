@@ -1,5 +1,7 @@
 # RSS Can / RSS 罐头
 
+> v0.5.2 release notes: [rule fixes, upgrade and rollback](docs/releases/v0.5.2.md).
+
 **v0.5.0 新增可选的团队鉴权、公网抓取策略和来源向导。** 历史 `v0.4.0` 不支持这些功能，会静默忽略相关环境变量。配置 Stargate 前，请先按[部署与验收步骤](docs/secure-deployment.md#build-and-verify-current-source)验证运行版本。
 
 已有 Stargate/Warden 时，推荐从[源码版 Compose 部署向导](example/4.with-stargate/README.md)开始，由脚本生成配置并连接私有网关。

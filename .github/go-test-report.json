@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
   "tests": {
-    "total": 442,
-    "passed": 428,
+    "total": 447,
+    "passed": 432,
     "failed": 0,
-    "skipped": 14
+    "skipped": 15
   },
   "coverage": {
-    "covered_statements": 4642,
-    "total_statements": 5563,
-    "percentage": 83.44,
+    "covered_statements": 4893,
+    "total_statements": 5885,
+    "percentage": 83.14,
     "threshold": 0
   },
   "packages": [
@@ -93,7 +93,7 @@
     {
       "name": "internal/jssdk",
       "status": "pass",
-      "tests": 37,
+      "tests": 38,
       "failed": 0,
       "coverage": 91.1
     },
@@ -121,16 +121,16 @@
     {
       "name": "internal/parser",
       "status": "pass",
-      "tests": 78,
+      "tests": 82,
       "failed": 0,
-      "coverage": 73.75
+      "coverage": 74.79
     },
     {
       "name": "internal/rule",
       "status": "pass",
       "tests": 26,
       "failed": 0,
-      "coverage": 92.16
+      "coverage": 91.89
     },
     {
       "name": "internal/rulefile",

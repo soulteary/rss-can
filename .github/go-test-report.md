@@ -4,11 +4,11 @@
 
 | Metric | Value |
 | --- | --- |
-| Total | 442 |
-| Passed | 428 |
+| Total | 447 |
+| Passed | 432 |
 | Failed | 0 |
-| Skipped | 14 |
-| Coverage | 83.44% |
+| Skipped | 15 |
+| Coverage | 83.14% |
 | Threshold | 0.00% |
 
 ### Packages
@@ -26,12 +26,12 @@
 | internal/feedservice | pass | 28 | 0 | 89.90% |
 | internal/fn | pass | 30 | 0 | 98.43% |
 | internal/generator | pass | 19 | 0 | 88.52% |
-| internal/jssdk | pass | 37 | 0 | 91.10% |
+| internal/jssdk | pass | 38 | 0 | 91.10% |
 | internal/limits | pass | 1 | 0 | 100.00% |
 | internal/logger | pass | 2 | 0 | 100.00% |
 | internal/network | pass | 44 | 0 | 90.42% |
-| internal/parser | pass | 78 | 0 | 73.75% |
-| internal/rule | pass | 26 | 0 | 92.16% |
+| internal/parser | pass | 82 | 0 | 74.79% |
+| internal/rule | pass | 26 | 0 | 91.89% |
 | internal/rulefile | pass | 7 | 0 | 93.26% |
 | internal/server | pass | 51 | 0 | 80.49% |
 | internal/source | pass | 5 | 0 | 94.34% |
